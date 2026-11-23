@@ -501,10 +501,11 @@ def test_pip_advisories_are_fixed_by_the_installer_pin():
     shape as test_uv_advisories_are_fixed_by_the_build_tool_pin, and uv.lock can hold no
     floor for a package it never resolves.
 
-    Added 2026-11-23 when the row's blocked_by (the miniconda environment holding pip 25.1)
-    went stale with its subject: /Users/sanji/miniconda3 was measured absent, the venv
-    measured pip 26.3, and the only copies the repository itself installs are the 26.2.2
-    wheels pinned in install.sh and Dockerfile. This fence is what replaces the prose.
+    Added 2026-11-23 when the row's blocked_by (a conda environment holding pip 25.1)
+    went stale with its subject: that interpreter measured absent, the venv this tree
+    builds carries no pip at all, and the only copies the repository itself installs are
+    the 26.2.2 wheels pinned in install.sh and Dockerfile. This fence is what replaces
+    the prose.
     """
     rows = [m for m in _entries() if m["package"] == "pip"]
     assert {m["id"] for m in rows} == {"PYSEC-2026-3721"}

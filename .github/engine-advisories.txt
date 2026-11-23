@@ -76,8 +76,8 @@ RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=
 # wasmtime eight, 50.0.3 for the wasi one — and PyPI publishes neither of those wheel
 # versions: measured against pypi.org/pypi/wasmtime/json the 50.x line carries only
 # 50.0.1; 51.0.0 is the next release, and the databases report ZERO records for
-# wasmtime@51.0.0 and wasmtime-wasi@51.0.0 (queried 2026-11-23, full run in
-# /Users/sanji/ephe-plan/osv-wasmtime/). A crate with a published fix is moved; the register does not
+# wasmtime@51.0.0 and wasmtime-wasi@51.0.0 (queried 2026-11-23 against api.osv.dev for each
+# crate at each version). A crate with a published fix is moved; the register does not
 # talk it out of the move. Every row below is a written acceptance whose blocked_by names that open
 # move: 51.0.0 is the wheel carrying the fixes, while 50.0.2 and 50.0.3 exist on crates.io and were
 # never published to PyPI. These rows carry no state=fixed until 51.0.0 is locked.

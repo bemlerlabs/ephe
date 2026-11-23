@@ -69,10 +69,11 @@ GHSA-2g87-pp6c-29x5  # package=aiohttp ecosystem=PyPI scope=runtime state=fixed 
 # Why it is fixed: uv.lock resolves certifi 2026.10.19 (uv.lock:278-279) and pyproject
 # carries the floor (pyproject.toml:145); the compromised emSign ECC Root CA - G3 is
 # absent from the bundle the product uses.
-# Exposure as measured (re-measured 2026-11-23): uv.lock holds 2026.10.19 and the product
-# venv (/Users/sanji/ephe/.venv) holds 2026.10.23, both at or above the fix. The earlier
-# "miniconda CLI still carries 2025.8.3" migration item is gone with its subject:
-# /Users/sanji/miniconda3 is absent from the machine (measured 2026-11-23), so no
+# Exposure as measured (re-measured 2026-11-23): uv.lock holds 2026.10.19 and the product venv
+# this tree builds (`uv sync --frozen`, `.venv/bin/python -c "from importlib.metadata import
+# version; print(version('certifi'))"`) answers 2026.10.19 — both at the fix. The earlier
+# "miniconda CLI still carries 2025.8.3" migration item is gone with its subject: that
+# interpreter is absent from the development machine (measured 2026-11-23), so no
 # certifi older than the floor remains where this repository's code runs.
 PYSEC-2026-4320  # package=certifi ecosystem=PyPI scope=runtime state=fixed affected=<=2026.10.18 fixed_in=2026.10.19 recheck=2026-12-23
 GHSA-6q48-6c7w-9gw2  # package=certifi ecosystem=PyPI scope=runtime state=fixed affected=<=2026.10.18 fixed_in=2026.10.19 recheck=2026-12-23
@@ -89,17 +90,15 @@ GHSA-6q48-6c7w-9gw2  # package=certifi ecosystem=PyPI scope=runtime state=fixed 
 PYSEC-2026-4321  # package=uv ecosystem=PyPI scope=development state=fixed affected=<=0.13.3 fixed_in=0.13.4 recheck=2026-12-23
 GHSA-hq85-5cpj-mr62  # package=uv ecosystem=PyPI scope=development state=fixed affected=<=0.13.3 fixed_in=0.13.4 recheck=2026-12-23
 
-# Why it is fixed: every carrier measured on 2026-11-23 holds 26.2.2 or newer, and the
-# two install paths restate the floor themselves: install.sh bootstraps the 26.2.2 wheel
-# by hash before anything else (install.sh:514-517) and Dockerfile's builder pins the same
-# wheel (Dockerfile:34-35, added after measuring 2026-11-01 that python:3.12-slim from
-# 2026-10-28 ships pip 25.0.1). The environment this row sat pending-fix for — the
-# miniconda dev environment holding pip 25.1 — is gone with its subject:
-# /Users/sanji/miniconda3 is absent from the machine (measured 2026-11-23).
-# Exposure as measured: pip is a build/install tool; the installer path uses the hash-pinned
-# 26.2.2 wheel and the venv that runs the tests (/Users/sanji/ephe/.venv, importlib.metadata,
-# 2026-11-23) carries pip 26.3 — above the floor, installed by bootstrap, and what the lock
-# cannot hold is held by hash and assert (install.sh:517, Dockerfile:35).
+# Why it is fixed: every carrier measured on 2026-11-23 holds 26.2.2 or newer, and both install
+# paths restate the floor themselves — install.sh bootstraps the 26.2.2 wheel by hash
+# (install.sh:514-517) and Dockerfile's builder pins it (Dockerfile:34-35, added after measuring
+# 2026-11-01 that python:3.12-slim from 2026-10-28 ships pip 25.0.1). The conda development
+# environment this row sat pending-fix for is gone with its subject: absent from the machine.
+# Exposure as measured: pip is a build tool, and the venv this tree builds carries none at all
+# (`uv sync --frozen` writes one without pip; importlib.metadata, 2026-11-23), so the only pip
+# that runs here is the hash-pinned 26.2.2 wheel the installer and the image fetch themselves —
+# above the floor, and what the lock cannot hold is held by hash and assert (install.sh:517).
 # CVE-2026-13346 is the NVD/GHSA alias of PYSEC-2026-3721; the OSV CVE record
 # names no package, so the pip decision is carried on the PYSEC line below.
 # CVE-2026-13346
