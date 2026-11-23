@@ -92,7 +92,7 @@ def test_opaque_brand_surfaces():
     for name in ("icon-maskable-512.png", "apple-touch-icon-180.png"):
         with Image.open(PUBLIC / name) as img:
             if img.mode == "RGBA":
-                assert img.getextrema()[3][0] == 255, f"{name} hat transparente Pixel"
+                assert img.getextrema()[3][0] == 255, f"{name} carries transparent pixels"
 
 
 def test_tauri_pngs_are_rgba():
@@ -124,5 +124,5 @@ def test_the_mark_cut_follows_the_size():
         svg = ns["VARIANTS"][name]()
         assert "<path" in svg, f"{name} zeichnet nichts"
         assert "url(#" in svg or name in ("mark-micro", "mark-compact"), (
-            f"{name} hat keinen Verlauf"
+            f"{name} carries no gradient"
         )

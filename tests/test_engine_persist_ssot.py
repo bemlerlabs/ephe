@@ -53,7 +53,7 @@ class TestEnginePersistSSOT:
         cfg = _engine_json()
         assert cfg is not None
         assert cfg["provider"] == "local_ollama"
-        assert cfg.get("api_url") is None, "THEN: lokaler Ollama hat keine api_url"
+        assert cfg.get("api_url") is None, "a local Ollama choice carries no api_url"
 
     def test_given_both_routes_then_same_helper_writes_same_shape(self, client):
         """Both routes run through persist_engine_choice — the same shape."""

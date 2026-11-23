@@ -48,8 +48,8 @@ def test_rubric_fields_covered_by_golden(name):
     d = SKILLS / name
     rub_pts = _count_points((d / "references" / "rubric.md").read_text(encoding="utf-8"))
     gold_pts = _count_points((d / "examples" / "golden.md").read_text(encoding="utf-8"))
-    assert rub_pts, f"{name}: rubric.md hat keine Prüf-Punkte"
-    assert gold_pts, f"{name}: golden.md hat keine ausgefüllten Punkte"
+    assert rub_pts, f"{name}: rubric.md carries no check points"
+    assert gold_pts, f"{name}: golden.md carries no filled points"
     assert len(gold_pts) >= len(rub_pts), (
         f"{name}: Golden deckt nur {len(gold_pts)} von {len(rub_pts)} Rubric-Feldern ab"
     )

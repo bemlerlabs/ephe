@@ -117,7 +117,7 @@ def _supported_python_versions() -> list[tuple[int, int]]:
     for v in re.findall(r"Programming Language :: Python :: (3\.\d+)", text):
         a, b = v.split(".")
         out.add((int(a), int(b)))
-    assert out, "keine Python-Klassifizierer in pyproject.toml gefunden"
+    assert out, "no Python classifiers found in pyproject.toml"
     return sorted(out)
 
 
