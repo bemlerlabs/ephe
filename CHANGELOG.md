@@ -77,6 +77,12 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   New-file rule over paths no committed baseline covers, so six prose tells on a new test file reached
   CI before anything read them. The hook now runs that instrument over the staged scope, proven with a
   planted German developer line that makes it exit 1 naming the file (`35c26a0`).
+- scripts, hooks: the two defects the first suite run in the public tree's own environment named in
+  the commits above — a direct stdlib `tomllib` read where the tree's own parity rule asks for the
+  3.10-capable shape, and a hook that called the New-file instrument even where no checkout carries it,
+  which turned a clean commit into a refusal. Both now read the way the tree does it: the sanctioned
+  try/except for the reader, and a named skip line for the leg that could not run. 32 tests across the
+  two instruments' own suites pass (`ae95e10`).
 
 ### Changed
 
