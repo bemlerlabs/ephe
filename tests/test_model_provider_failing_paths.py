@@ -159,26 +159,32 @@ def test_parse_json_arguments_branches():
     assert mp._parse_json_arguments('[1, 2]') == {"_raw": "[1, 2]"}
 
 
-def test_zen_session_id_matches_fingerprint():
-    sid = mp._zen_session_id()
-    assert re.fullmatch(r"ses_[0-9a-f]{8}[0-9a-f]{4}[0-9a-zA-Z]{14}", sid)
+def test_the_endpoint_that_answers_only_its_own_program_is_recognised_by_host():
+    assert mp._is_foreign_client_gateway("https://opencode.ai/zen/v1") is True
+    # a bare host without a scheme parses to no netloc, so it is not the gateway
+    assert mp._is_foreign_client_gateway("opencode.ai") is False
+    assert mp._is_foreign_client_gateway("https://api.openai.com/v1") is False
+    assert mp._is_foreign_client_gateway("") is False
 
 
-def test_is_zen_base_url_only_matches_opencode():
-    assert mp._is_zen_base_url("https://opencode.ai/zen/v1") is True
-    # a bare host without a scheme parses to no netloc, so it is not zen
-    assert mp._is_zen_base_url("opencode.ai") is False
-    assert mp._is_zen_base_url("https://api.openai.com/v1") is False
-    assert mp._is_zen_base_url("") is False
-
-
-def test_with_zen_markers_appends_missing_bash_and_read():
-    real = [{"type": "function", "function": {"name": "run_shell"}}]
-    merged = mp._with_zen_markers(real)
-    names = {t["function"]["name"] for t in merged}
-    assert {"bash", "read", "run_shell"} <= names
-    # re-running adds nothing (no duplicates)
-    assert len(mp._with_zen_markers(merged)) == len(merged)
+def test_no_request_leaves_the_house_naming_another_program():
+    # Asserted on the whole header set of every endpoint this client can be pointed at: putting
+    # an impersonation back anywhere in _headers fails here, and our own name has to travel
+    # whether or not the endpoint asked for one.
+    for base_url in (
+        "https://opencode.ai/zen/v1",
+        "https://openrouter.ai/api/v1",
+        "https://api.example.com/v1",
+        "",
+    ):
+        headers = _client(base_url)._headers()
+        foreign = [
+            f"{name}: {value}"
+            for name, value in headers.items()
+            if "opencode" in f"{name} {value}".lower()
+        ]
+        assert foreign == [], base_url
+        assert headers["User-Agent"] == f"Ephe/{mp.__version__}", base_url
 
 
 def test_provider_message_and_response_getitem():
@@ -516,14 +522,38 @@ async def test_stream_skips_non_data_and_blank_lines(monkeypatch):
     assert frames == []
 
 
-# Zen gateway path
+# The endpoint that answers only the program shipping it
 
 
-def test_zen_headers_carry_opencode_fingerprint():
-    client = _client("https://opencode.ai/zen/v1")
-    headers = client._headers()
-    assert headers["User-Agent"].startswith("opencode/")
-    assert re.fullmatch(r"ses_[0-9a-f]{8}[0-9a-f]{4}[0-9a-zA-Z]{14}", headers["x-opencode-session"])
+def _hosted_config(base_url: str) -> mp.ModelProviderConfig:
+    return mp.ModelProviderConfig(
+        provider="openai_compatible",
+        model="some/model",
+        base_url=base_url,
+        label="Hosted",
+        offline_capable=False,
+        requires_internet=True,
+        requires_api_key=False,
+    )
+
+
+def test_the_endpoint_that_answers_only_its_own_program_is_refused_before_connecting():
+    with pytest.raises(mp.ProviderSetupError) as raised:
+        mp.ensure_provider_ready(_hosted_config("https://opencode.ai/zen/v1"))
+    text = str(raised.value)
+    # The reason, the stance and the way out all reach the operator: this is the one place the
+    # endpoint is turned away, and no setting brings the disguise back.
+    assert "answers only the program that ships it" in text
+    assert "Ephe identifies itself as Ephe" in text
+    assert "Local Ollama" in text
+    # Closing the readiness gate closes every path to it: a chat turn, a probe and a vision call
+    # all build through here, so no request can be assembled against that endpoint.
+    with pytest.raises(mp.ProviderSetupError):
+        mp.build_provider_client(_hosted_config("https://opencode.ai/zen/v1"))
+
+
+def test_an_ordinary_hosted_endpoint_is_not_turned_away_by_that_rule():
+    mp.ensure_provider_ready(_hosted_config("https://api.example.com/v1"))
 
 
 def test_openrouter_headers_add_attribution():
@@ -535,41 +565,33 @@ def test_openrouter_headers_add_attribution():
 
 
 @pytest.mark.asyncio
-async def test_zen_nonstream_collects_stream_into_response(monkeypatch):
+async def test_a_nonstreaming_request_sends_the_answer_it_asked_for(monkeypatch):
     _no_generation(monkeypatch)
     session_ctx._MEASURED_USAGE.set(None)
-    lines = [
-        'data: {"choices":[{"delta":{"reasoning_content":"why"}}]}',
-        'data: {"choices":[{"delta":{"content":"He"}}]}',
-        'data: {"choices":[{"delta":{"content":"llo"}}]}',
-        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"bash","arguments":"{\\"command\\":"}}]}}]}',
-        'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"ls\\"}"}}]}}]}',
-        'data: {"choices":[],"usage":{"prompt_tokens":2,"completion_tokens":2}}',
-        "data: [DONE]",
-    ]
     captured: dict = {}
-    _install_stream(monkeypatch, _StreamResp(lines), captured)
-    resp = await _client("https://opencode.ai/zen/v1").chat(
+    _install_nonstream(monkeypatch, _Resp(200, _chat_payload("Hello")), captured)
+    resp = await _client("https://api.example.com/v1").chat(
         model="m", messages=[{"role": "user", "content": "hi"}], stream=False
     )
-    assert captured["json"]["stream"] is True
+    # The disguised endpoint needed stream=true forced into the body; with the disguise gone a
+    # non-streaming call asks for a non-streaming answer on every endpoint.
+    assert captured["json"]["stream"] is False
     assert resp.message.content == "Hello"
-    assert resp.message.thinking == "why"
-    tc = resp.message.tool_calls[0]
-    assert tc.id == "c1" and tc.function.name == "bash" and tc.function.arguments == {"command": "ls"}
 
 
 @pytest.mark.asyncio
-async def test_zen_tools_get_marker_definitions(monkeypatch):
+async def test_the_tools_array_leaves_as_it_arrived(monkeypatch):
     _no_generation(monkeypatch)
     captured: dict = {}
     _install_stream(monkeypatch, _StreamResp(["data: [DONE]"]), captured)
     tools = [{"type": "function", "function": {"name": "run_shell"}}]
-    await _client("https://opencode.ai/zen/v1").chat(
-        model="m", messages=[{"role": "user", "content": "hi"}], stream=False, tools=tools
+    stream = await _client("https://api.example.com/v1").chat(
+        model="m", messages=[{"role": "user", "content": "hi"}], stream=True, tools=tools
     )
-    names = {t["function"]["name"] for t in captured["json"]["tools"]}
-    assert {"bash", "read", "run_shell"} <= names
+    [_frame async for _frame in stream]
+    # Nothing is appended to answer an endpoint's taste in tool names: the engine sees the tools
+    # Ephe ships, under the names Ephe gave them.
+    assert captured["json"]["tools"] == tools
 
 
 # Probe + failover

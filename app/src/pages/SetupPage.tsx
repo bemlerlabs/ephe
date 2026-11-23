@@ -81,12 +81,6 @@ const OPTIONS: { kind: ProviderKind; icon: typeof Cpu; testId: string }[] = [
 const QUICK_PICKS: { label: string; kind: ProviderKind; endpoint?: string; testId: string }[] = [
   { label: 'Ollama', kind: 'local_ollama', testId: 'setup-quick-ollama' },
   {
-    label: 'OpenCode Zen',
-    kind: 'openai_compatible',
-    endpoint: 'https://opencode.ai/zen/v1',
-    testId: 'setup-quick-opencode',
-  },
-  {
     label: 'OpenRouter',
     kind: 'openai_compatible',
     endpoint: 'https://openrouter.ai/api/v1',
@@ -1183,15 +1177,6 @@ export default function SetupPage({ onDone }: SetupPageProps) {
                   className="underline underline-offset-2 hover:text-foreground"
                 >
                   {t('setup.keyHelpOpenrouter')}
-                </a>
-                {' · '}
-                <a
-                  href="https://opencode.ai/zen"
-                  target="_blank"
-                  rel="noreferrer noopener"
-                  className="underline underline-offset-2 hover:text-foreground"
-                >
-                  {t('setup.keyHelpOpencode')}
                 </a>
               </p>
             </div>

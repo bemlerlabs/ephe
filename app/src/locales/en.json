@@ -1786,7 +1786,6 @@
     "apiKeyHint": "For OpenAI-compatible providers that need a token. The desktop app stores it in ~/.ephe/engine.key, readable by its owner only, so the next start can authenticate; in a browser it lives in that server process and is gone when it exits.",
     "keyHelp": "This provider issues the key itself, and Ephe registers no account for you: create the key on the provider's site, paste it here, and it stays on this device.",
     "keyHelpOpenrouter": "OpenRouter keys",
-    "keyHelpOpencode": "OpenCode Zen keys",
     "localHint": "No Ollama is answering on this device. Install Ollama, start it and pull a model, then scan again. Or pick an engine above that already runs somewhere: a remote Ollama or an OpenAI-compatible endpoint.",
     "localHintLink": "Get Ollama",
     "finish": "Save",

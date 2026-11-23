@@ -220,17 +220,17 @@ describe('SetupPage: skip plus the API key (W19)', () => {
     expect(line).toContain('setup.modelsFound')
   })
 
-  // R45: quick provider picker — clicking 'OpenCode Zen' sets the endpoint and
+  // R45: quick provider picker — clicking a hosted pick sets the endpoint and
   // probes with that endpoint immediately (no manual typing).
-  it('R45: the OpenCode Zen quick pick sets the endpoint and probes at once', async () => {
+  it('R45: the OpenRouter quick pick sets the endpoint and probes at once', async () => {
     render(<SetupPage onDone={vi.fn()} />)
-    fireEvent.click(screen.getByTestId('setup-quick-opencode'))
+    fireEvent.click(screen.getByTestId('setup-quick-openrouter'))
     const input = screen.getByTestId('setup-endpoint') as HTMLInputElement
-    expect(input.value).toBe('https://opencode.ai/zen/v1')
+    expect(input.value).toBe('https://openrouter.ai/api/v1')
     await waitFor(() => {
       const calls = probeProvider.mock.calls as unknown as [string, string | undefined][]
       expect(
-        calls.some((c) => c[0] === 'openai_compatible' && c[1] === 'https://opencode.ai/zen/v1'),
+        calls.some((c) => c[0] === 'openai_compatible' && c[1] === 'https://openrouter.ai/api/v1'),
       ).toBe(true)
     })
   })

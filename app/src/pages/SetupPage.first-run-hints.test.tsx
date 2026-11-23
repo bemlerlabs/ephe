@@ -78,8 +78,11 @@ describe('SetupPage first-run hints (N1)', () => {
     expect(screen.getByText('setup.keyHelpOpenrouter').getAttribute('href')).toBe(
       'https://openrouter.ai/keys',
     )
-    expect(screen.getByText('setup.keyHelpOpencode').getAttribute('href')).toBe(
-      'https://opencode.ai/zen',
-    )
+    // The endpoint that answers only its own program is offered nowhere: not as a key link,
+    // not as a quick pick, so a first run cannot walk into a refusal it was sold as a path.
+    const offered = Array.from(document.querySelectorAll('a[href], [data-testid^="setup-quick"]'))
+      .map((node) => `${node.getAttribute('href') ?? ''} ${node.textContent ?? ''}`)
+      .join(' ')
+    expect(offered.toLowerCase()).not.toContain('opencode')
   })
 })

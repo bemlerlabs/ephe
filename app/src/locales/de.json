@@ -1786,7 +1786,6 @@
     "apiKeyHint": "Für OpenAI-kompatible Anbieter mit Authentifizierung. Die Desktop-App speichert ihn in ~/.ephe/engine.key, lesbar nur für den Besitzer, damit der nächste Start sich authentifizieren kann; im Browser lebt er in diesem Server-Prozess und ist mit ihm vorbei.",
     "keyHelp": "Diesen Schlüssel stellt der Anbieter selbst aus, und Ephe legt kein Konto für dich an: erzeuge den Schlüssel auf der Seite des Anbieters, füge ihn hier ein, und er bleibt auf diesem Gerät.",
     "keyHelpOpenrouter": "OpenRouter-Schlüssel",
-    "keyHelpOpencode": "OpenCode-Zen-Schlüssel",
     "localHint": "Auf diesem Gerät antwortet keine Ollama. Installiere Ollama, starte sie und lade ein Modell, dann scanne erneut. Oder wähle oben eine Engine, die schon irgendwo läuft: eine entfernte Ollama oder einen OpenAI-kompatiblen Endpunkt.",
     "localHintLink": "Ollama holen",
     "finish": "Übernehmen",

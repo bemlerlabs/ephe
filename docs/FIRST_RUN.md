@@ -116,12 +116,13 @@ classes; the paths below describe hosted and local engines.
 This is the fastest first answer: nothing to install, nothing to run locally.
 
 1. Create a key at the provider. Ephe registers no account for you and resells
-   nothing — the key is the provider's own. The setup screen links the common
-   ones: **OpenRouter** (`https://openrouter.ai/keys`) and **OpenCode Zen**
-   (`https://opencode.ai/zen`).
+   nothing — the key is the provider's own. The setup screen links the one it
+   knows: **OpenRouter** (`https://openrouter.ai/keys`).
 2. On the setup screen, pick **OpenAI-compatible API** and use the matching quick
-   pick (OpenRouter, OpenCode Zen), or type your endpoint under "Endpoint URL"
-   (for example a vLLM or SGLang host you already run).
+   pick (OpenRouter), or type your endpoint under "Endpoint URL"
+   (for example a vLLM or SGLang host you already run). An endpoint that answers
+   only the program that ships it is refused there by name; Ephe sends its own
+   identity on every request.
 3. Paste the key into **API key**. The settings page stores it in the OS keychain
    or in `~/.ephe/engine.key` with owner-only permissions; a shell export stays in
    the running process. Ephe never writes the key to `engine.json` or the chat.

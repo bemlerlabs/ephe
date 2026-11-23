@@ -9,8 +9,6 @@ from __future__ import annotations
 import asyncio
 import os
 import json
-import random as _random
-import time
 from dataclasses import asdict, dataclass
 from typing import Any, AsyncIterator, Literal
 from urllib.parse import urlparse
@@ -19,6 +17,7 @@ import httpx
 import ollama
 
 from core import provider_errors
+from core._version import __version__
 from core.engine_config import (
     ENGINE_SETUP_HINT,
     ENV_PROVIDER,
@@ -33,97 +32,25 @@ ProviderType = Literal["local_ollama", "custom_ollama", "openai_compatible"]
 SUPPORTED_PROVIDER_TYPES = {"local_ollama", "custom_ollama", "openai_compatible"}
 DEFAULT_OLLAMA_BASE_URL = "http://localhost:11434"
 
-# The OpenCode zen-Gateway (https://opencode.ai/zen/v1) is OpenAI-compatible but
-# demands a strict request fingerprint, otherwise 403 FreeTierError
-# ("can only be used from within OpenCode"). Verified live 2026-10-01:
-#   1. the User-Agent must start with "opencode/",
-#   2. header "x-opencode-session" = ses_<8hex><4hex><14base62> (strict:
-#      zone 1+2 = 12 lowercase hex characters, zone 3 = 14 base-62 [a-zA-Z0-9]),
-#   3. the tools array must contain the names "bash" AND "read" (edit optional).
-# A generic nanoid (without this pattern) returns 403 — hence the structured
-# generator below, not a random string.
-_ZEN_HOST = "opencode.ai"
-_ZEN_B62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-# Marker schemas: minimal OpenAI shape, parameter names identical to the real
-# implementations (bash→command, read→path, edit→path/old_string/new_string),
-# so the dispatcher (TOOL_MAP aliases) understands the arguments directly.
-_ZEN_MARKER_TOOLS: list[dict] = [
-    {
-        "type": "function",
-        "function": {
-            "name": "bash",
-            "description": "Runs a shell command and returns its output.",
-            "parameters": {
-                "type": "object",
-                "properties": {"command": {"type": "string"}},
-                "required": ["command"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "read",
-            "description": "Reads a file and returns its text.",
-            "parameters": {
-                "type": "object",
-                "properties": {"path": {"type": "string"}},
-                "required": ["path"],
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "edit",
-            "description": "Replaces an exact snippet in a file.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "path": {"type": "string"},
-                    "old_string": {"type": "string"},
-                    "new_string": {"type": "string"},
-                },
-                "required": ["path", "old_string", "new_string"],
-            },
-        },
-    },
-]
+# One endpoint in the wild is OpenAI-compatible on the wire and answers only the program that
+# ships it: measured live 2026-10-01 it returns 403 FreeTierError ("can only be used from within
+# OpenCode") unless the request carries that program's User-Agent, a session header in its own
+# format, and two tool names that are not ours. Borrowing another program's identity to reach its
+# free tier is not an integration, and when that program notices, the user loses the key. Ephe
+# names itself on every request and refuses this endpoint before a connection is made, with no
+# switch and no fallback that brings the disguise back (owner decision 2026-11-23).
+_FOREIGN_CLIENT_GATEWAY_HOST = "opencode.ai"
 
 
-def _zen_session_id() -> str:
-    """Strict zen session-ID fingerprint: ses_ + 8hex + 4hex + 14base62."""
-    ts = format(int(time.time()) & 0xFFFFFFFF, "08x")
-    cnt = format(_random.randint(0, 0xFFFF), "04x")
-    tail = "".join(_random.choice(_ZEN_B62) for _ in range(14))
-    return f"ses_{ts}{cnt}{tail}"
-
-
-def _is_zen_base_url(base_url: str) -> bool:
-    """True when the engine URL points at the opencode.ai zen/go gateway."""
+def _is_foreign_client_gateway(base_url: str) -> bool:
+    """True when the engine URL points at the endpoint that answers only its own program."""
     host = (urlparse((base_url or "").strip()).hostname or "").lower()
-    return host == _ZEN_HOST
-
-
-def _with_zen_markers(tools: list[dict]) -> list[dict]:
-    """Adds the missing mandatory zen markers (bash/read) to the tools array.
-
-    The zen gateway only returns 200 when the tool names "bash" AND "read"
-    appear in the array (verified live: [bash,read]->200, [bash,edit]->403,
-    [edit,read]->403). Ephe ships its own names (run_shell/read_file/...)
-    as well — the marker definitions are appended here without replacing the
-    real ones.
-    """
-    names = {t.get("function", {}).get("name") for t in tools}
-    merged = list(tools)
-    for marker in _ZEN_MARKER_TOOLS:
-        if marker["function"]["name"] not in names:
-            merged.append(marker)
-    return merged
+    return host == _FOREIGN_CLIENT_GATEWAY_HOST
 
 
 class ProviderSetupError(RuntimeError):
-    """Raised when an opt-in provider is configured incompletely."""
+    """Raised when an opt-in provider cannot be used as configured: incomplete, or an endpoint
+    that answers only the program that ships it."""
 
 
 def _parse_json_arguments(raw: Any) -> dict:
@@ -349,7 +276,13 @@ class OpenAICompatibleAsyncClient:
         return f"{self.base_url}/chat/completions"
 
     def _headers(self) -> dict[str, str]:
-        headers: dict[str, str] = {"Content-Type": "application/json"}
+        headers: dict[str, str] = {
+            "Content-Type": "application/json",
+            # Every request names the program that sent it. An endpoint that answers only the
+            # program shipping it is refused by ensure_provider_ready, not met with that
+            # program's name.
+            "User-Agent": f"Ephe/{__version__}",
+        }
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
         # OpenRouter attribution (docs: HTTP-Referer + X-Title identify the app
@@ -357,12 +290,6 @@ class OpenAICompatibleAsyncClient:
         if "openrouter.ai" in (self.base_url or ""):
             headers["HTTP-Referer"] = "http://localhost:8765"
             headers["X-Title"] = "Ephe"
-        # The zen gateway demands the opencode fingerprint (otherwise 403 FreeTierError):
-        # the UA starts with "opencode/" AND x-opencode-session carries the
-        # structured ses_ pattern. Both headers are a condition for 200.
-        if _is_zen_base_url(self.base_url):
-            headers["User-Agent"] = "opencode/1.18.34"
-            headers["x-opencode-session"] = _zen_session_id()
         return headers
 
     def _convert_messages(self, messages: list[dict]) -> list[dict]:
@@ -561,20 +488,10 @@ class OpenAICompatibleAsyncClient:
         # core/chat.py appends the results position-based —
         # _convert_messages restores the tool_call_id.
         if tools:
-            payload["tools"] = (
-                _with_zen_markers(tools) if _is_zen_base_url(self.base_url) else tools
-            )
+            payload["tools"] = tools
 
         if stream:
             return self._stream_chat(payload)
-
-        # zen gateway: non-streaming is not possible (stream missing/False ->
-        # 403). The fingerprint demands stream=true, so the SSE stream is
-        # collected here into a ProviderChatResponse (identical semantics).
-        if _is_zen_base_url(self.base_url):
-            payload["stream"] = True
-            payload["stream_options"] = {"include_usage": True}
-            return await self._collect_zen_stream(payload)
 
         client = _shared_http_client(
             self.base_url, self.api_key, self.api_timeout_seconds()
@@ -692,56 +609,6 @@ class OpenAICompatibleAsyncClient:
                     # fragments) — without them the tool detection could
                     # not stream (sglang/vLLM stream them correctly).
                     yield {"message": {"tool_calls": raw_tool_calls}}
-
-    async def _collect_zen_stream(self, payload: dict[str, Any]) -> ProviderChatResponse:
-        """Aggregate the zen gateway's SSE stream into one ProviderChatResponse.
-
-        The zen fingerprint demands stream=true; this path delivers the
-        non-streaming answer by consolidating the deltas. Tool-call
-        deltas arrive fragmented (arguments in pieces) and are merged per
-        index — identical shape to the non-streaming branch.
-        """
-        content_parts: list[str] = []
-        reasoning_parts: list[str] = []
-        # index -> {id, name, arguments}
-        tool_acc: dict[int, dict[str, str]] = {}
-        async for frame in self._stream_chat(payload):
-            msg = frame.get("message", {})
-            if msg.get("content"):
-                content_parts.append(str(msg["content"]))
-            if msg.get("reasoning_content"):
-                reasoning_parts.append(str(msg["reasoning_content"]))
-            for frag in msg.get("tool_calls") or []:
-                idx = frag.get("index", 0)
-                slot = tool_acc.setdefault(idx, {"id": "", "name": "", "arguments": ""})
-                if frag.get("id"):
-                    slot["id"] = str(frag["id"])
-                fn = frag.get("function") or {}
-                if fn.get("name"):
-                    slot["name"] = str(fn["name"])
-                if fn.get("arguments"):
-                    slot["arguments"] += str(fn["arguments"])
-
-        tool_calls: list[ProviderToolCall] | None = None
-        if tool_acc:
-            tool_calls = [
-                ProviderToolCall(
-                    id=slot["id"] or f"call_{idx}",
-                    function=ProviderFunctionCall(
-                        name=slot["name"],
-                        arguments=_parse_json_arguments(slot["arguments"]),
-                    ),
-                )
-                for idx, slot in sorted(tool_acc.items())
-            ]
-        return ProviderChatResponse(
-            message=ProviderMessage(
-                content="".join(content_parts),
-                thinking="".join(reasoning_parts),
-                tool_calls=tool_calls,
-            )
-        )
-
 
 _ACTIVE_OVERRIDE: ModelProviderConfig | None = None
 
@@ -1286,6 +1153,15 @@ def ensure_provider_ready(config: ModelProviderConfig | None = None) -> None:
         raise ProviderSetupError(
             "OpenAI-compatible API provider selected, but no base URL is configured. "
             "Set EPHE_OPENAI_COMPAT_BASE_URL or switch back to Local Ollama."
+        )
+    if active.provider == "openai_compatible" and _is_foreign_client_gateway(active.base_url):
+        # Named at the place the other provider refusals surface, before any connection: the
+        # endpoint answers only the program it ships with, and Ephe does not answer that with
+        # another program's identity. No setting brings the disguise back.
+        raise ProviderSetupError(
+            f"{active.base_url} answers only the program that ships it. Ephe identifies itself "
+            "as Ephe on every request, so it cannot use this endpoint — choose another one: "
+            "Local Ollama, or any OpenAI-compatible URL that answers its own API."
         )
     if active.provider == "openai_compatible" and active.api_key_configured and active.model:
         from core.engine_config import (
