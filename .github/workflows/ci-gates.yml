@@ -190,6 +190,15 @@ jobs:
         # and every flag it defines. A verb nobody wrote down is a verb nobody uses.
         run: python3 scripts/cli_docs_check.py
 
+      - name: Changelog names every release-note commit
+        # CONTRIBUTING.md asks contributors for Conventional Commits, so this is the leg where a
+        # pull request cannot arrive with a release-note commit no changelog entry carries: the
+        # same file the release cut runs, moved to where it can still be fixed at the commit
+        # instead of at the tag. The checkout above is full-depth for the provenance gate, and
+        # that is what keeps this one honest — a shallow clone would reduce the range to a
+        # single commit and let the step pass by reading nothing.
+        run: python3 scripts/changelog_unreleased.py --check
+
   readme-contract:
     name: README contract suite (offline)
     # Fork PRs are excluded for the reason given on the workflow-audit job.
