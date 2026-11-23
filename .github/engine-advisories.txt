@@ -77,10 +77,10 @@ RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=
 # versions: measured against pypi.org/pypi/wasmtime/json the 50.x line carries only
 # 50.0.1; 51.0.0 is the next release, and the databases report ZERO records for
 # wasmtime@51.0.0 and wasmtime-wasi@51.0.0 (queried 2026-11-23, full run in
-# /Users/sanji/ephe-plan/osv-wasmtime/). A crate with a published fix is moved, not
-# talked out of it: every row below is a written acceptance whose blocked_by names
-# exactly that open move, and the move is to the 51.0.0 wheel, not to the wheel versions
-# that were never published. These rows carry no state=fixed until 51.0.0 is locked.
+# /Users/sanji/ephe-plan/osv-wasmtime/). A crate with a published fix is moved; the register does not
+# talk it out of the move. Every row below is a written acceptance whose blocked_by names that open
+# move: 51.0.0 is the wheel carrying the fixes, while 50.0.2 and 50.0.3 exist on crates.io and were
+# never published to PyPI. These rows carry no state=fixed until 51.0.0 is locked.
 #
 # What the cell actually runs, measured 2026-11-23. ONE vendor builder sets every
 # engine flag (the ephemora_cell 1.1.0 wheel, `_engine_config.py:46-68`; the only
@@ -97,7 +97,7 @@ RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=
 # with connect denied at call time (wasi_02.py:27; egress_sidecar.py:6 — "The guest has
 # NO sockets"). The component path IS reachable through the opt-in sandbox tool, which
 # takes a host path with abi="auto" (core/tools/sandbox_tools.py:74) — that is the door
-# the stream and component rows (0566, 0572) are written against, not the CPython cell.
+# rows 0566 and 0572 are written against. The CPython cell reaches neither of them.
 #
 # UNPROVEN, so the rows do not claim more than they measured: the cargo feature set the
 # wheel was compiled with is not readable from the Python half, so the two
