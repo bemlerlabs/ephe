@@ -45,7 +45,12 @@ import argparse
 import json
 import re
 import sys
-import tomllib
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # the 3.10 shape the tree's TOML readers still carry
+    import tomli as tomllib  # type: ignore[no-redef]
+
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from importlib import metadata

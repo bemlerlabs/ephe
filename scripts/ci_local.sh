@@ -249,7 +249,7 @@ fi
 # path no committed baseline covers, this script reported `ci-local: pass`, and CI's New-file leg was
 # the first to see it. The instrument judges the whole tree by default and a path list through
 # --paths-from, so the hook now reads the same verdict the leg reads over exactly the staged scope.
-if [ "${#scope[@]}" -gt 0 ]; then
+if [ "${#scope[@]}" -gt 0 ] && [ -f scripts/new_file_check.py ]; then
     nf_list=$(mktemp)
     printf '%s\n' "${scope[@]}" > "$nf_list"
     python3 scripts/new_file_check.py --paths-from "$nf_list"
@@ -260,6 +260,8 @@ if [ "${#scope[@]}" -gt 0 ]; then
     elif [ "$nf_status" -ne 0 ]; then
         fail+=("new-file gate: a path no committed baseline covers carries a tell or a German line")
     fi
+elif [ "${#scope[@]}" -gt 0 ]; then
+    skip+=("new-file gate: scripts/new_file_check.py is not in this checkout, so unscored paths went unjudged")
 else
     skip+=("new-file gate: empty scope, nothing to judge")
 fi
