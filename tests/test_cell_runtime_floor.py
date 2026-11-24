@@ -1,8 +1,11 @@
 """The cell runtime floor: an engine that is patched where it runs, and a config that still builds.
 
 Ephemora Cell 1.1.0 declares ``wasmtime<48``. That bound predates the engine the advisories were
-patched in. PyPI publishes 48.0.0 but not the 48.0.6 fix, and not the 49.0.3 fix; 50.0.1 is the
-first published release outside every affected range. Ephe overrides the transitive bound.
+patched in. PyPI publishes 48.0.0 but not the 48.0.6 fix, and not the 49.0.3 fix; owner decision
+D29 (2026-10-23) put 50.0.1 in, the published release outside those ranges. On 2026-11-24 nine
+further advisories reached 50.0.1 and PyPI published neither of the crates.io fixes (50.0.2,
+50.0.3), so the floor moved to 51.0.0, the release the databases report no record for. Ephe
+overrides the transitive bound either way.
 
 Two different facts are checked here, and the file keeps them apart because they fail apart.
 The declaration is a fact about `pyproject.toml`, so it is read out of that file with `tomllib`.
@@ -215,10 +218,10 @@ class TestTheInstalledEngine:
         # THEN the refusal names both versions and the way out, so a red run is actionable
         message = str(info.value)
         assert "47.0.1" in message
-        assert ">=50.0.1" in message
+        assert ">=51.0.0" in message
         assert "uv.lock records an intention" in message
         assert INSTALLER_STEP in message and MEASURED_ON in message
-        assert f'pip install "{ENGINE}>=50.0.1,<51"' in message
+        assert f'pip install "{ENGINE}>=51.0.0,<52"' in message
         assert "env_lock_agreement.py" in message
 
     def test_given_a_planted_engine_at_or_above_the_ceiling_then_the_case_refuses_too(self):
@@ -227,13 +230,13 @@ class TestTheInstalledEngine:
         WHEN the case checks it
         THEN the ceiling is enforced as well as the floor."""
         with pytest.raises(AssertionError) as info:
-            _assert_installed_engine(reader=lambda name: "51.0.0")
-        assert "51.0.0" in str(info.value)
+            _assert_installed_engine(reader=lambda name: "52.0.0")
+        assert "52.0.0" in str(info.value)
 
     def test_given_a_planted_engine_exactly_at_the_floor_then_the_case_passes(self):
         # GIVEN the first published release outside every affected range
         # WHEN the case checks it
-        assert _assert_installed_engine(reader=lambda name: "50.0.1") == "50.0.1"
+        assert _assert_installed_engine(reader=lambda name: "51.0.0") == "51.0.0"
 
     def test_given_a_planted_floor_above_the_engine_then_the_same_engine_refuses(self):
         """GIVEN the engine version that satisfies the tree's own declaration, proven by the case
@@ -241,9 +244,9 @@ class TestTheInstalledEngine:
         WHEN that same version is checked against the raised declaration
         THEN it refuses, and names the raised floor in the way out. The bound arrives from the
         file, so nothing in this file can be the reason the case is green."""
-        raised = _pyproject_with_engine_floor(">=50.0.2,<51")
+        raised = _pyproject_with_engine_floor(">=51.0.1,<52")
         real = _installed_engine_version()
-        candidates = [value for value in dict.fromkeys([real, "50.0.1"]) if value]
+        candidates = [value for value in dict.fromkeys([real, "51.0.0"]) if value]
         for candidate in candidates:
             with pytest.raises(AssertionError) as info:
                 _assert_installed_engine(
@@ -251,15 +254,15 @@ class TestTheInstalledEngine:
                 )
             message = str(info.value)
             assert candidate in message
-            assert ">=50.0.2" in message
-            assert f'pip install "{ENGINE}>=50.0.2,<51"' in message
+            assert ">=51.0.1" in message
+            assert f'pip install "{ENGINE}>=51.0.1,<52"' in message
 
     def test_given_a_declaration_whose_floor_is_the_engine_itself_then_the_case_passes(self):
         """GIVEN a declaration raised to exactly the version the engine reports
         WHEN that version is checked against it
         THEN it passes, so the refusal above tracks the bound and is not a fixed mismatch."""
-        declaration = _pyproject_with_engine_floor(">=50.0.0,<51")
-        assert _assert_installed_engine(reader=lambda name: "50.0.0", declaration=declaration) == "50.0.0"
+        declaration = _pyproject_with_engine_floor(">=51.0.0,<52")
+        assert _assert_installed_engine(reader=lambda name: "51.0.0", declaration=declaration) == "51.0.0"
 
     def test_given_an_engine_that_was_never_installed_then_the_case_skips_with_the_reason(self):
         # GIVEN a machine where the opt-in sandbox extra was never requested
@@ -329,11 +332,11 @@ class TestTheDeclarationReader:
         # GIVEN the requirement the project actually declares
         clauses = _clauses(_declared_requirements(ENGINE)[0])
         # WHEN the interesting versions are asked
-        assert _unsatisfied(_version("47.0.1"), clauses) == [">=50.0.1"]
-        assert _unsatisfied(_version("50.0.0"), clauses) == [">=50.0.1"]
-        assert _unsatisfied(_version("50.0.1"), clauses) == []
-        assert _unsatisfied(_version("50.9.9"), clauses) == []
-        assert _unsatisfied(_version("51.0.0"), clauses) == ["<51"]
+        assert _unsatisfied(_version("47.0.1"), clauses) == [">=51.0.0"]
+        assert _unsatisfied(_version("50.0.1"), clauses) == [">=51.0.0"]
+        assert _unsatisfied(_version("51.0.0"), clauses) == []
+        assert _unsatisfied(_version("51.9.9"), clauses) == []
+        assert _unsatisfied(_version("52.0.0"), clauses) == ["<52"]
 
 
 class TestTheShippedDeclaration:
@@ -349,19 +352,19 @@ class TestTheShippedDeclaration:
 
     def test_the_project_overrides_the_transitive_upper_bound(self):
         """GIVEN ephemora-cell declares ``wasmtime<48``
-        THEN Ephe overrides that bound in its own file at or above 50.0.1, the first published
-        release outside every affected range."""
+        THEN Ephe overrides that bound in its own file at or above 51.0.0, the release the
+        databases report no record for."""
         text = (REPO / "pyproject.toml").read_text(encoding="utf-8")
         assert "override-dependencies" in text, "no uv override block"
         floor = _clauses(_declared_requirements(ENGINE)[0])
-        assert _unsatisfied(_version("50.0.1"), floor) == [], f"the declared wasmtime floor excludes 50.0.1: {floor}"
-        assert _compare(_locked_wasmtime(), _version("50.0.1")) >= 0
+        assert _unsatisfied(_version("51.0.0"), floor) == [], f"the declared wasmtime floor excludes 51.0.0: {floor}"
+        assert _compare(_locked_wasmtime(), _version("51.0.0")) >= 0
 
     def test_the_pip_install_path_restates_the_floor(self):
         """GIVEN install.sh adds the sandbox extra with pip, a resolver that never reads the uv
         override THEN the script puts wasmtime back at the floor itself and refuses to finish on
         a version below it. Measured 2026-11-01: this checkout's `.venv` had resolved 47.0.1 —
-        the release the floor above refuses — while uv.lock resolves 50.0.1, because only uv
+        the release the floor above refuses — while uv.lock resolved 50.0.1, because only uv
         honours `[tool.uv] override-dependencies`. The lock and the installer are two paths, and
         a floor that holds on one of them is a floor that ships an unpatched engine on the other.
         """

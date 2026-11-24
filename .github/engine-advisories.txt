@@ -29,30 +29,29 @@
 # every affected range below. Ephemora Cell 1.1.0 declares `wasmtime<48`; the uv
 # override in pyproject.toml replaces that bound, and `tests/test_cell_runtime_floor.py`
 # holds both the floor and the lock to it.
-# Evidence for the move: 142 cell, sandbox and fence tests passed on 50.0.1 on
-# 2026-10-23 (out/s4-20261023-_5_914gn/cell-tests-wasmtime50.log), including the cell
-# boot, the policy snapshot and the WASIConfig seam. The four cap figures in
-# core/cpython_cell.py were measured on the 47.x engine; re-running one live cell on
-# 50.0.1 is the next measurement, and until it runs this register does not claim the
-# fuel-per-second figure is re-measured.
+# Evidence for the move: the run recorded for it was 142 cell, sandbox and fence tests
+# on 2026-10-23, and that log is no longer on any machine here, so the figure is kept
+# as the claim it was and is no longer cited as support. Two measurements stand behind
+# the engine now: the 2026-11-24 run named below, and the fuel figures re-measured the
+# same hour in core/cpython_cell.py and core/cpython_guest.manifest.json.
 
 # GHSA-j2g9-4prp-pf6h = RUSTSEC-2026-0314 (the RustSec entry is the primary record;
 # the GHSA string is an alias of it, and the canonical advisory sits in the
 # bytecodealliance/wasmtime repository, not in the pip ecosystem).
-RUSTSEC-2026-0314  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.3 fixed_in=48.0.3 state=fixed alias=GHSA-j2g9-4prp-pf6h recheck=2027-01-23
+RUSTSEC-2026-0314  # package=wasmtime-wasi ecosystem=crates.io probe=51.0.0 affected=>=37.0.0,<48.0.3 fixed_in=48.0.3 state=fixed alias=GHSA-j2g9-4prp-pf6h recheck=2027-01-23
 
-RUSTSEC-2026-0321  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-j366-h8gg-77pm recheck=2027-01-23
+RUSTSEC-2026-0321  # package=wasmtime-wasi ecosystem=crates.io probe=51.0.0 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-j366-h8gg-77pm recheck=2027-01-23
 
-RUSTSEC-2026-0322  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-gqmc-89g8-p25r recheck=2027-01-23
+RUSTSEC-2026-0322  # package=wasmtime-wasi ecosystem=crates.io probe=51.0.0 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-gqmc-89g8-p25r recheck=2027-01-23
 
-RUSTSEC-2026-0323  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-96f6-r43r-8c24 recheck=2027-01-23
+RUSTSEC-2026-0323  # package=wasmtime-wasi ecosystem=crates.io probe=51.0.0 affected=>=37.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-96f6-r43r-8c24 recheck=2027-01-23
 
-RUSTSEC-2026-0324  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=48.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-mr2v-56j5-cmfc recheck=2027-01-23
+RUSTSEC-2026-0324  # package=wasmtime-wasi ecosystem=crates.io probe=51.0.0 affected=>=48.0.0,<48.0.4 fixed_in=48.0.4 state=fixed alias=GHSA-mr2v-56j5-cmfc recheck=2027-01-23
 
 # Filesystem sandbox escape when renaming symlinks with trailing slashes.
 # CVSS v4 AV:N/AC:L/AT:P/PR:L/UI:P/VC:H/VI:H/VA:L/SC:H/SI:H/SA:L.
 # Fixed ranges: 36.0.18, 48.0.6 and 49.0.3 — none of the latter two are on PyPI.
-RUSTSEC-2026-0352  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=37.0.0,<48.0.6 fixed_in=48.0.6 state=fixed alias=GHSA-m9f7-9w4p-gv38 recheck=2027-01-23
+RUSTSEC-2026-0352  # package=wasmtime-wasi ecosystem=crates.io probe=51.0.0 affected=>=37.0.0,<48.0.6 fixed_in=48.0.6 state=fixed alias=GHSA-m9f7-9w4p-gv38 recheck=2027-01-23
 
 # 2026-11-03 — what was missing here was a probe target.
 # Every row above names the `wasmtime-wasi` crate, and `--audit-engine` asks the
@@ -67,7 +66,7 @@ RUSTSEC-2026-0352  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affe
 # valid module escapes the guest. OSV events, copied out of the record:
 # introduced 0.0.0-0 fixed 36.0.19; introduced 37.0.0 fixed 48.0.7; introduced 49.0.0
 # fixed 49.0.4. 50.0.1 is outside all three. x86-64 was not affected; this Mac is.
-RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=49.0.0,<49.0.4 fixed_in=49.0.4 state=fixed alias=GHSA-mghf-wjfp-p5xm recheck=2027-02-03
+RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=49.0.0,<49.0.4 fixed_in=49.0.4 state=fixed alias=GHSA-mghf-wjfp-p5xm recheck=2027-02-03
 
 # 2026-11-23 — the nine records that reach the locked engine, measured against the
 # database and against this product. OSV reports, for {wasmtime, crates.io, 50.0.1},
@@ -78,9 +77,16 @@ RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=
 # 50.0.1; 51.0.0 is the next release, and the databases report ZERO records for
 # wasmtime@51.0.0 and wasmtime-wasi@51.0.0 (queried 2026-11-23 against api.osv.dev for each
 # crate at each version). A crate with a published fix is moved; the register does not
-# talk it out of the move. Every row below is a written acceptance whose blocked_by names that open
-# move: 51.0.0 is the wheel carrying the fixes, while 50.0.2 and 50.0.3 exist on crates.io and were
-# never published to PyPI. These rows carry no state=fixed until 51.0.0 is locked.
+# talk it out of the move. 51.0.0 is the wheel carrying those fixes: 50.0.2 and 50.0.3
+# exist on crates.io and were never published to PyPI, so no 50.x lock could take them.
+# 2026-11-24: the override moved to wasmtime>=51.0.0,<52 and uv.lock resolves 51.0.0, so
+# every row below now reads state=fixed. Evidence, all measured on this machine:
+# `pytest tests/ -q -n auto -p no:cacheprovider -k "cell or sandbox or wasm or fuel or
+# wasi"` on the 51.0.0 engine gave 312 passed, 22 skipped, 1 failed in 29.86 s, and the
+# one failure was the fence case that refuses an engine outside the declared band while
+# pyproject still read <51 — it is the designed refusal, and it went green when the floor
+# moved. Boot, the 20 G leash and the post-leash survival were re-read on both engines in
+# the same hour: core/cpython_guest.manifest.json carries both runs side by side.
 #
 # What the cell actually runs, measured 2026-11-23. ONE vendor builder sets every
 # engine flag (the ephemora_cell 1.1.0 wheel, `_engine_config.py:46-68`; the only
@@ -113,51 +119,51 @@ RUSTSEC-2026-0379  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=
 # fd_write (core/cpython_cell.py:231), and the one component door is the sandbox tool's
 # abi=auto on a caller-named path (core/tools/sandbox_tools.py:74).
 # UNPROVEN: an attacker plant of a component module through that path.
-RUSTSEC-2026-0566  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0566  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # Abort in wasmtime builds compiled without the threads cargo feature.
 # Exposure as measured: wasm_threads is set False in the vendor's single builder
 # (ephemora_cell/_engine_config.py:53), so no guest enables threads.
 # UNPROVEN: the cargo feature set the wheel itself was compiled with.
-RUSTSEC-2026-0567  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0567  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # Stale GC heap base pointer (CVSS AV:L/AC:H/PR:L A:H).
 # Exposure as measured: wasm_gc is set False (ephemora_cell/_engine_config.py:62), so
 # guest code never reaches GC-compiled paths; validation rejects GC instructions.
 # UNPROVEN: nothing further beyond the compile-time question shared with 0570.
-RUSTSEC-2026-0568  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0568  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # Panic in Caller::get_module_export when a host function is not called from Wasm.
 # Exposure as measured: no call site in product code — core/ drives the engine only
 # through run_isolated (core/cpython_cell.py:231, core/tools/sandbox_tools.py:74).
 # UNPROVEN: host-function internals inside the compiled wheel.
-RUSTSEC-2026-0569  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0569  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # Abort in wasmtime builds compiled without the gc cargo feature.
 # Exposure as measured: wasm_gc is set False (ephemora_cell/_engine_config.py:62);
 # guests cannot turn GC on from their side.
 # UNPROVEN: the cargo feature set the wheel itself was compiled with.
-RUSTSEC-2026-0570  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0570  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # wasmtime-wasi-http unbounded heap via empty body writes on HTTP/2.
 # Exposure as measured: wasi:http is never linked into the guest (wasi_02.py:25 —
 # unknown imports fail at instantiate, wasi_runtime.py:315) and the cell has no
 # network at all (core/cpython_cell.py:26, egress_sidecar.py:6).
 # UNPROVEN: none — no path reaches an HTTP/2 stream from the product.
-RUSTSEC-2026-0571  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0571  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # Panic when a component cancels a stream/future copy on the wrong end.
 # Exposure as measured: component path only; the CPython cell is preview1
 # (core/cpython_cell.py:231) and the component door is the sandbox tool's abi=auto
 # (core/tools/sandbox_tools.py:74), which takes a caller-named host path.
 # UNPROVEN: an attacker plant of a crafted component through that tool.
-RUSTSEC-2026-0572  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0572  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # Process abort when the GC heap reservation is not a multiple of the page size.
 # Exposure as measured: wasm_gc is set False (ephemora_cell/_engine_config.py:62),
 # so no GC heap reservation is ever made for guest code.
 # UNPROVEN: nothing further beyond the compile-time question shared with 0570.
-RUSTSEC-2026-0573  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0573  # package=wasmtime ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.2 fixed_in=50.0.2 state=fixed recheck=2026-12-23
 
 # wasmtime-wasi filesystem sandbox escape on Windows via a drive-prefixed path
 # component (CVSS 4.0 AV:N/AC:L/AT:P/PR:L/UI:P VC:H/VI:H/VA:H).
@@ -165,4 +171,4 @@ RUSTSEC-2026-0573  # package=wasmtime ecosystem=crates.io probe=50.0.1 affected=
 # product surface (AGENTS.md) and PyPI publishes win_amd64/win_arm64 wasmtime
 # wheels for 50.0.1 and 51.0.0 alike (measured 2026-11-23).
 # UNPROVEN: no Windows host was run here; the escape itself was not reproduced.
-RUSTSEC-2026-0587  # package=wasmtime-wasi ecosystem=crates.io probe=50.0.1 affected=>=50.0.0,<50.0.3 fixed_in=50.0.3 state=accepted blocked_by=pypi-publishes-neither-50.0.2-50.0.3-wheel-and-override-pins-lt51 recheck=2026-12-23
+RUSTSEC-2026-0587  # package=wasmtime-wasi ecosystem=crates.io probe=51.0.0 affected=>=50.0.0,<50.0.3 fixed_in=50.0.3 state=fixed recheck=2026-12-23

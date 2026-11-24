@@ -66,20 +66,109 @@
       "consequence": "Die gepinnten Hashes beschreiben den Installationsstand, gegen den bei jedem Load geprueft wird — nicht eine Erwartung an jede Neubau-Umgebung. Wer neu baut, laesst `record` laufen (genau das schreibt die Hashes zurueck), und `--stage-only` vergleicht gebaut gegen gepinnt, bevor irgendetwas installiert wird."
     },
     "measured": {
-      "boot_fuel": 1431007958,
-      "boot_wall_ms": 892,
-      "cpu_fuel_per_second": 13350000000,
-      "default_budget_guest_seconds": 1.39,
-      "engine": "ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64",
-      "measured_at": "2026-11-01",
-      "note": "Re-measured on the 3.13.18 guest. Boot is `print(1+1)` through core.cpython_cell.run_python(reset=True): 4 serial runs read 1,430,793,265 / 1,431,006,278 / 1,431,009,637 / 1,431,350,554 fuel (median 1,431,007,958) and 867 / 884 / 899 / 1,008 ms engine wall (median 892). Fuel is deterministic to 0.04%; wall is not. cpu_fuel_per_second is the slope of fuel against engine-measured time for counting loops of 0.8/1.6/3.2/4.8 M iterations with the boot cost subtracted (13.4G fitted over marginals 12.7-16.7G). It is a ratio over time, so it carries the host load of the run: the 3.13.16 figure of 11.0G came from another loop series on another day and is kept below as the record of that build. The enforced cap stays 20G fuel, which at this fit leaves 1.39 guest CPU seconds after boot (1.1-1.5 across the marginals).",
+      "boot_fuel": 1430900530,
+      "boot_wall_ms": 857,
+      "cpu_fuel_per_second": 14600000000,
+      "default_budget_guest_seconds": 1.27,
+      "engine": "ephemora-cell 1.1.0 / wasmtime 51.0.0 / Darwin arm64",
+      "measured_at": "2026-11-24",
+      "runs": {
+        "boot_fuel": [
+          1430900530,
+          1430777900,
+          1431059348
+        ],
+        "boot_wall_ms": [
+          919,
+          857,
+          837
+        ],
+        "loops": [
+          {
+            "iterations": 400000,
+            "fuel": 2085302985,
+            "guest_cpu_s": 0.045062833
+          },
+          {
+            "iterations": 1600000,
+            "fuel": 4242509811,
+            "guest_cpu_s": 0.18501237499999998
+          },
+          {
+            "iterations": 3200000,
+            "fuel": 6660012337,
+            "guest_cpu_s": 0.35793958299999995
+          }
+        ],
+        "fuel_leash": {
+          "status": "FUEL_EXHAUSTED",
+          "fuel": 20000000000,
+          "wall_s": 1.697
+        },
+        "next_run_after_leash": "OK"
+      },
+      "note": "Measured on the 3.13.18 guest after the engine moved to 51.0.0. Boot is `print(1+1)` through core.cpython_cell.run_python(reset=True), three serial runs, median taken; fuel repeats within 0.02% and wall does not. cpu_fuel_per_second is the difference of two counting loops (400k and 3.2M iterations) taken between them so the boot cost cancels; it is a ratio over guest time and carries the host load of the run. The control on wasmtime 50.0.1 in the same hour read 1,431,060,603 fuel / 880 ms and 14.3G per guest CPU second, so neither the boot cost nor the price of a fuel unit moved with the engine. The enforced cap stays 20G fuel: `while True` trips at exactly 20,000,000,000 and the next run answers OK. The wall leash stays timeout_seconds.",
       "previous": {
+        "boot_fuel": 1431007958,
+        "boot_wall_ms": 892,
+        "cpu_fuel_per_second": 13350000000,
+        "default_budget_guest_seconds": 1.39,
         "engine": "ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64",
-        "boot_fuel": 1433763027,
-        "boot_wall_ms": 880,
-        "cpu_fuel_per_second": 11000000000,
-        "guest": "3.13.16, measured 2026-10-23",
-        "note": "Measured on wasmtime 50.0.1: 1,433,763,027 fuel and 880 ms wall for `print(1+1)` (process start and module instantiation included). A counting loop of 0.4/1.6/3.2 M iterations cost 10.2-11.0 G fuel per guest CPU second (3.00/6.97/12.88 G fuel against 0.128/0.515/1.025 s); 6.4 M iterations exhausted the 20 G cap at 2.3 s wall. Fuel is an engine unit, not time; the wall leash stays timeout_seconds."
+        "measured_at": "2026-11-01",
+        "note": "Re-measured on the 3.13.18 guest. Boot is `print(1+1)` through core.cpython_cell.run_python(reset=True): 4 serial runs read 1,430,793,265 / 1,431,006,278 / 1,431,009,637 / 1,431,350,554 fuel (median 1,431,007,958) and 867 / 884 / 899 / 1,008 ms engine wall (median 892). Fuel is deterministic to 0.04%; wall is not. cpu_fuel_per_second is the slope of fuel against engine-measured time for counting loops of 0.8/1.6/3.2/4.8 M iterations with the boot cost subtracted (13.4G fitted over marginals 12.7-16.7G). It is a ratio over time, so it carries the host load of the run: the 3.13.16 figure of 11.0G came from another loop series on another day and is kept below as the record of that build. The enforced cap stays 20G fuel, which at this fit leaves 1.39 guest CPU seconds after boot (1.1-1.5 across the marginals).",
+        "previous": {
+          "engine": "ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64",
+          "boot_fuel": 1433763027,
+          "boot_wall_ms": 880,
+          "cpu_fuel_per_second": 11000000000,
+          "guest": "3.13.16, measured 2026-10-23",
+          "note": "Measured on wasmtime 50.0.1: 1,433,763,027 fuel and 880 ms wall for `print(1+1)` (process start and module instantiation included). A counting loop of 0.4/1.6/3.2 M iterations cost 10.2-11.0 G fuel per guest CPU second (3.00/6.97/12.88 G fuel against 0.128/0.515/1.025 s); 6.4 M iterations exhausted the 20 G cap at 2.3 s wall. Fuel is an engine unit, not time; the wall leash stays timeout_seconds."
+        },
+        "guest": "3.13.18",
+        "control_50_0_1": {
+          "boot_fuel": 1431060603,
+          "boot_wall_ms": 880,
+          "cpu_fuel_per_second": 14300000000,
+          "default_budget_guest_seconds": 1.3,
+          "engine": "ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64",
+          "measured_at": "2026-11-24",
+          "runs": {
+            "boot_fuel": [
+              1430421635,
+              1431060603,
+              1431060917
+            ],
+            "boot_wall_ms": [
+              907,
+              880,
+              850
+            ],
+            "loops": [
+              {
+                "iterations": 400000,
+                "fuel": 2237381085,
+                "guest_cpu_s": 0.05118400000000001
+              },
+              {
+                "iterations": 1600000,
+                "fuel": 4458482165,
+                "guest_cpu_s": 0.19625629200000003
+              },
+              {
+                "iterations": 3200000,
+                "fuel": 6660004036,
+                "guest_cpu_s": 0.360005708
+              }
+            ],
+            "fuel_leash": {
+              "status": "FUEL_EXHAUSTED",
+              "fuel": 20000000000,
+              "wall_s": 1.756
+            },
+            "next_run_after_leash": "OK"
+          },
+          "note": "Control run for the 51.0.0 measurement above: the same script, the same box, the same hour, with the engine the previous line named."
+        }
       },
       "guest": "3.13.18"
     },

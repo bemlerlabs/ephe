@@ -147,12 +147,22 @@ constraint-dependencies = [
 # ephemora-cell 1.1.0 declares wasmtime<48, a bound older than the engine the
 # advisories were patched in. An override replaces that requirement outright; a
 # constraint cannot, because the two ranges do not intersect. Owner decision D29
-# (2026-10-23): 50.0.1 is the first published pip release outside every affected
-# range — PyPI has no fixed 48.x (48.0.6) and no fixed 49.0.3 — and RUSTSEC-2026-0352
-# is a filesystem sandbox escape. A pip resolver still reads ephemora-cell's own bound
-# until upstream widens it; this override covers installs from this lock.
+# (2026-10-23) moved 48.0.0 to 50.0.1, the first published pip release outside every
+# affected range — PyPI has no fixed 48.x (48.0.6) and no fixed 49.0.3 — and
+# RUSTSEC-2026-0352 is a filesystem sandbox escape. A pip resolver still reads
+# ephemora-cell's own bound until upstream widens it; this override covers installs
+# from this lock.
+# 2026-11-24 moved the floor to 51.0.0. Nine advisories in .github/engine-advisories.txt
+# reached 50.0.1 — RUSTSEC-2026-0566..0573 fixed in 50.0.2, RUSTSEC-2026-0587 in 50.0.3 —
+# and PyPI published neither: 50.0.1 is followed by 51.0.0. crates.io reports no record
+# for {wasmtime, 51.0.0} or {wasmtime-wasi, 51.0.0}, so 51.0.0 is the published release
+# outside all nine ranges. Measured on this machine the same hour on both engines: 312
+# cell, sandbox, wasm and fuel tests pass, 22 skipped; boot fuel for `print(1+1)` reads
+# 1,430,777,900 on 51.0.0 against 1,431,060,603 on 50.0.1, and the fuel leash still trips
+# at exactly 20,000,000,000 with the guest answering on the next run. PyPI publishes the
+# same wheel set for 51.0.0 as for 50.0.1, win_amd64 and win_arm64 included.
 override-dependencies = [
-    "wasmtime>=50.0.1,<51",
+    "wasmtime>=51.0.0,<52",
 ]
 
 [tool.hatch.build.targets.wheel]

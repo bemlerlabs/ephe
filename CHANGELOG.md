@@ -172,6 +172,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   changes its mind the key is gone and no diagnostic says why. The setup screen stopped offering it as a
   quick pick and stopped linking its key page, so a first run cannot be sold a path ending in a refusal
   (`aa5edf0`, owner decision 2026-11-23).
+- sandbox: the cell engine moved to wasmtime 51.0.0 and nine advisories in
+  `.github/engine-advisories.txt` closed with it. Eight (RUSTSEC-2026-0566..0573) were fixed on
+  crates.io in 50.0.2 and one (RUSTSEC-2026-0587) in 50.0.3, and PyPI published neither: that line
+  carries only 50.0.1 there, so no 50.x lock could take a fix that exists upstream. The nine rows
+  carried `state=accepted` with that block named in `blocked_by`; they read `state=fixed` now, and
+  the uv override, `uv.lock`, the pip path in `install.sh` and the floor in
+  `tests/test_cell_runtime_floor.py` moved together to `>=51.0.0,<52`. What a fuel unit costs was
+  re-measured on both engines in the same hour on one arm64 box before the move: 14.6G fuel per
+  guest CPU second on 51.0.0 against 14.3G on 50.0.1, boot 1,430,900,530 fuel against
+  1,431,060,603, the 20,000,000,000 leash tripping identically and the guest answering on the next
+  run. The caps in `core/cpython_cell.py` and `core/cpython_guest.manifest.json` are therefore the
+  numbers this engine produced, with the older series kept beside them, and
+  `docs/SANDBOX_EXECUTION.md` holds the table.
 ## [0.1.0] - 2026-11-21
 
 The first public release. Every entry below names a surface this repository

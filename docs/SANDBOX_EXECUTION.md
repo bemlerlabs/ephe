@@ -209,13 +209,13 @@ state that every load is checked against — not an expectation for every rebuil
 rebuilding runs `record`, and `--stage-only` compares built against pinned before anything is installed.
 A bit-for-bit reproducible build would be the next step and is not claimed here.
 
-**Measured caps** (ephemora-cell 1.1.0 / wasmtime 50.0.1 / Darwin arm64, fuel re-measured 2026-10-23):
+**Measured caps** (ephemora-cell 1.1.0 / wasmtime 51.0.0 / Darwin arm64, fuel re-measured 2026-11-24):
 
 | Cap | Value | Evidence |
 |---|---|---|
-| Fuel per run | 20.000.000.000 (`EPHE_CELL_MAX_FUEL`) | `while True` → `FUEL_EXHAUSTED`, `fuel_consumed == fuel_budget`, Ephe survives and the next run proceeds |
-| Boot fixed cost | ~1.43 G fuel / ~880 ms wall | `print(1+1)` — before any model code |
-| Conversion | ~11.0 G fuel per guest CPU second | a counting loop of 0.4/1.6/3.2 M iterations: guest CPU 0.128/0.515/1.025 s against 3.00/6.97/12.88 G fuel (10.2–11.0 G/s); 6.4 M iterations exhausted the 20 G cap at 2.3 s wall. The 47.x engine measured 9.0 G on the same loop, so the default cap is now ~1.7 s of compute time |
+| Fuel per run | 20.000.000.000 (`EPHE_CELL_MAX_FUEL`) | `while True` → `FUEL_EXHAUSTED`, `fuel_consumed == fuel_budget` (re-read 2026-11-24 on 51.0.0: exactly 20,000,000,000 at 1.70 s wall), Ephe survives and the next run proceeds |
+| Boot fixed cost | ~1.43 G fuel / ~857 ms wall | `print(1+1)` — before any model code. Three serial runs read 1,430,777,900 / 1,430,900,530 / 1,431,059,348 fuel, median 1,430,900,530; the 50.0.1 control in the same hour read 1,431,060,603 fuel and 880 ms |
+| Conversion | ~14.6 G fuel per guest CPU second | two counting loops of 400k and 3.2M iterations: guest CPU 0.045 and 0.358 s against 2.086 and 6.661 G fuel, the difference taken between them so the boot cost cancels. The 50.0.1 control read 14.3 G/s, so the engine move did not change the price of a unit. Earlier series stand as measured: 13.4 G/s on the 3.13.18 guest (2026-11-01, four loops, boot subtracted) and 11.0 G/s on 3.13.16 (2026-10-23, the 0.4/1.6/3.2 M series, 6.4 M exhausting the cap at 2.3 s wall) — three series, three days, no host idle |
 | Memory | 256 MB | a 512 MB allocation → `MemoryError` **inside the guest**, no host OOM |
 | Wall timeout | 30 s | Ephemora watchdog, independent of fuel |
 | `/work` per **file** | 32 MiB (`disk_quota_bytes`) | The engine sets RLIMIT_FSIZE in the worker: 64 × 1 MiB in *one* file → `OSError [Errno 22] File too large` at exactly 33.554.432 bytes, the file sits on the cap (measured) |
