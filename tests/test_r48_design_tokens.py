@@ -1,8 +1,8 @@
-"""R48 — design-token gates for app/src/styles/globals.css (plan: ephe-plan-design-system.md).
+"""R48 — design-token gates for app/src/styles/globals.css.
 
-Checks the presence of the new token layers (S1–S6) directly at the CSS source —
-cheap, deterministic, no build. The 1:1 values are documented in the plan; what
-matters here are the anchors that would disappear first in a regression.
+Checks the presence of the token layers (S1–S6) directly at the CSS source —
+cheap, deterministic, no build. What matters here are the anchors that would
+disappear first in a regression.
 """
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def test_ios_input_token_fixed_16px():
     """S2: iOS focus-zoom threshold — the input token fixed at 16px/20px."""
     css = _css()
     assert "--text-ui-input: 16px" in css
-    assert "font-size: 16px" in css  # the .ios-input fix cover (plan items 14, 15, 16)
+    assert "font-size: 16px" in css  # .ios-input threshold: WebKit zooms the viewport on focus below 16px
 
 def test_dead_radius_token_removed():
     """S6: the dead token --radius: 0.75rem is removed."""

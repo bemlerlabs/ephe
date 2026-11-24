@@ -84,11 +84,10 @@ this account: **146.4 hosted Linux minutes for one push**, itemised by job.
 | npm fallback | 1.0 |
 
 Two additions matter. The macOS job's 4.1 wall minutes are billed at a multiplier GitHub
-publishes for macOS runners; the multiplier here comes from the plan notes in the planning
-tree and was never read off a billing endpoint, so treat it as an estimate and put it at
-roughly 41 equivalent minutes. With that, one push is about 150 to 190 billable minutes,
-which is 11 to 13 pushes on the 2 000 free minutes of a Free plan and 26 to 34 on the
-5 000 of Pro. A repository that pushes more than twice a day needs either the workshop
+publishes for macOS runners; the multiplier here was never read off a billing endpoint, so treat
+it as an estimate at roughly 41 equivalent minutes. With that, one push is about 150 to 190
+billable minutes, which is 11 to 13 pushes on the 2 000 free minutes of a Free plan and 26 to 34 on
+the 5 000 of Pro. A repository that pushes more than twice a day needs either the workshop
 lane back or a plan that matches the push rate.
 
 ## What this plan refuses
