@@ -17,6 +17,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `UPDATES.md` | The three update paths: desktop app, PWA, terminal; release vs commit channels |
 | `OPERATIONS.md` | Starting, stopping and owning the backend, and the one promise about this machine |
 | `RELEASE_POLICY.md` | What earns a release tag and what rolls untagged: milestones are tagged, QoL and fixes ride the rolling channel |
+| `NPM_PUBLISHING.md` | The npm publish path: what ships today (nothing to the registry), what a publish job must satisfy, what the dry run must show, what gets revoked |
 | `MOBILE.md` | Pairing a phone over the LAN, the QR walkthrough and the public-access rule |
 | `TELEGRAM.md` | The Telegram channel: gateway status, pairing, hardening |
 | `VOICE.md` | The offline voice loop (Piper TTS) |

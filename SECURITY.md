@@ -104,6 +104,47 @@ Where a finding is accepted rather than fixed, it is recorded here and in the re
   `tests/test_user_folder_choice.py` are what a reviewer reads instead of the alert.
 - **Virtual Environment Isolation** — Python dependencies run from the project environment
 
+## Publishing to the package registry
+
+The distribution path of Ephe is the source tree: `install.sh`, `install.ps1`, and the release
+bundles that `release.yml` drafts as GitHub Release assets, which the owner publishes by hand.
+One npm package wraps the CLI; it is not published at the time of writing. The registry owner
+holds it under appeal after the incident described below, and no workflow in this repository
+publishes anything to the registry in the meantime. The full path — flow, approvals, dry run,
+revocation — is in [`docs/NPM_PUBLISHING.md`](docs/NPM_PUBLISHING.md); this section is the short
+version a reviewer needs on this page.
+
+What happened once, so the shape is not repeated: a published wrapper of ours fetched a release
+tag's remote install scripts and handed them to `bash` and to `iex` without reading a byte. The
+registry blocked the package. `scripts/registry_guard.py` is the gate that refuses that shape in
+the files a user, a registry or a runner installs; it runs in the pre-commit hook (through
+`scripts/ci_local.sh`) and as its own step in the repository gates, so the rule no longer depends
+on a single developer machine remembering it.
+
+A publish path exists only when all of the following hold, and this page states them before any
+such job exists:
+
+- **One registry, named.** The target is the public npm registry and nothing else; a publish
+  aimed at any other host is a misconfiguration, not a mirror.
+- **Short-lived credentials only.** The publish step authenticates with the OIDC identity the
+  runner can mint for this repository, environment and tag, requested with a step-scoped
+  `id-token` permission. No long-lived registry token exists, and none may be created: not in
+  repository secrets, not in an environment, not on a laptop.
+- **A human stands in front of the environment.** The step runs in the release environment —
+  the one `release.yml` already names for its signing material — behind required reviewers: a
+  run does not publish because a tag appeared, it publishes because a person approved that run
+  on the commit it checked out. No such reviewer exists today and none can be configured on the
+  current plan; the fact, its measurement and the consequence — no approval environment, no
+  publish path, by design — are owned by [`docs/NPM_PUBLISHING.md`](docs/NPM_PUBLISHING.md).
+  The credential side fails closed independently: the registry accepts the OIDC identity only
+  for a publisher the package owner configured on its side.
+- **On suspicion, revoke first and prove later.** The credential is revoked, the trust
+  relationship behind the publish identity is revoked, the affected versions are unpublished,
+  and the release is re-issued from a commit the registry gate has read. The account is the
+  scarcer asset: protected first, restored last.
+
+Nothing here promises a date; the appeal and the conditions above are the gate, not a schedule.
+
 ## Scope
 
 The following are **in scope** for security reports:

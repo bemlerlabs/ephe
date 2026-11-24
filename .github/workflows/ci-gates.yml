@@ -182,6 +182,17 @@ jobs:
         # well-written prose.
         run: python3 scripts/citation_check.py
 
+      - name: Shipped files carry no remote script piped into a shell
+        # An npm wrapper of ours handed a release tag's remote install scripts to `bash` and to
+        # `iex` from the bin entry every installer runs; the registry blocked the package.
+        # scripts/registry_guard.py refuses that shape in packaging/, scripts/, server/, core/
+        # and .github/, and until 2026-11-24 it ran only where a developer remembered it: the
+        # pre-commit hook, through scripts/ci_local.sh, and no workflow. A gate that runs in
+        # `make verify` alone is local-only, so this is the copy that cannot be skipped by a
+        # clone without hooks. A finding exits 1 and an unreadable input exits 2: no verdict
+        # arrives as a pass.
+        run: python3 scripts/registry_guard.py
+
       - name: Agent instruction hub and areas
         # AGENTS.md is the first file an agent loads, and prose no check reads is the
         # version that drifts. The gate holds the caps, the section order, the routing
