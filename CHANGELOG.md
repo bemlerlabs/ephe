@@ -92,6 +92,20 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   Measured in a second worktree of the same repository after one run: a staged file carrying a German
   identifier was refused with `language gate: FAIL` naming the file and its `0 -> 1 (+1)` delta, and a
   ratchet-clean file was accepted by the hook itself (`3c3d937`).
+- ci: the registry guard runs where a clone cannot skip it. `scripts/registry_guard.py`
+  refuses a remote script handed to a shell in every file under `packaging/`, `scripts/`,
+  `server/`, `core/` and `.github/`, and until now it ran only in the pre-commit hook and in
+  `make verify` — a clone without hooks installed never saw it. It is a step of its own in the
+  repository gates now, the same call the hook makes, line for line, pinned by
+  `tests/test_registry_guard_in_ci.py` (12 passed with the docs test, exit 0; cutting the step
+  out of the workflow turns `5 failed`, exit 1). Measured here: `registry-guard: PASS 558
+  file(s)`, exit 0 (`7875447`).
+- docs: `NPM_PUBLISHING.md`, the publish path written against what exists rather than against
+  intention. Nothing is published to the registry; a future publish job needs the release
+  environment with a human in front of it and a short-lived OIDC credential minted for one job,
+  and neither exists today — `gh api repos/bemlerlabs/ephe/environments` answers
+  `total_count: 0`, and GitHub refuses the required-reviewer rule on this plan. The page says so,
+  names the dry run a first upload must pass, and holds the revocation order (`7875447`).
 
 ### Fixed
 
@@ -230,6 +244,24 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   the SPKI case, while `test_the_pin_names_a_release...` passes on an interpreter that cannot pass
   its own tarfile cases and still trusts the eMudhra keys; CPython 3.13.18 gives 10 passed. A minor
   with no measured floor makes no claim, pinned as a decision instead of left silent (`0c27499`).
+- docs: the release runbook described a job that has never run. It promised that "the publish job
+  measures the released DMG and source archive, refuses a template hash that matches neither,
+  renders the tap and bucket manifests, and then publishes them and the npm wrapper" —
+  `.github/workflows/release.yml` defines four jobs (version guard, test gate, frontend gate,
+  Tauri bundles) and uploads nothing to any registry, and no tap or bucket manifest exists in the
+  tree. The section now names the steps that are there: the draft bundle build, the macOS seal
+  audit that reports `state=adhoc-not-notarized` instead of claiming notarisation, and the
+  updater-feed decision (`3a99e87`).
+- docs: `DEMO_VIDEO.md` pointed at a README that never carried the film. The page called
+  `docs/media/ephe-film-studio.mp4` "the README's film block"; no README names the file in any of
+  the three languages, measured with `git grep -n` over `README.md`, `README.es.md` and
+  `README.zh-CN.md`, and the same page listed a checksum for a render under `renders/` that no
+  clone contains. Both are gone, and the two gallery pages describe what a reader can open today
+  (`f2e0366`).
+- scripts: `record_demo.py` stopped reading its own arguments as case names. `--help` reached the
+  browser as a case and failed there with an error naming neither the flag nor the choices; now
+  `.venv/bin/python scripts/record_demo.py --help` prints the usage and exits 0, and an unknown
+  case prints it on stderr and exits 2, both measured on this machine (`f2e0366`).
 
 ### Changed
 
@@ -274,6 +306,19 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   run. The caps in `core/cpython_cell.py` and `core/cpython_guest.manifest.json` are therefore the
   numbers this engine produced, with the older series kept beside them, and
   `docs/SANDBOX_EXECUTION.md` holds the table.
+
+### Removed
+
+- docs: the media tree carries only what is current for the brand, by owner decision. Twelve
+  files left `docs/media/` — the ten WebP clips `docs/DEMOS.md` tabulated and the Film Studio
+  film with its poster — taking the directory from 29 407 597 bytes in 15 files to 1 149 659
+  bytes in 3: `paper-moth-master.png`, the mark every README renders and the social preview drawn
+  from it. Nothing was recorded or generated in their place, `docs/screenshots/` and the first-run
+  film under `app/public/onboarding/` are untouched, and `git grep -n` finds no reference to any
+  deleted name (`f2e0366`). The bytes are out of the working tree, not out of the repository's
+  history: a clone still carries them until the history is rewritten, which is an owner decision
+  and has not been done.
+
 ## [0.1.0] - prepared 2026-11-21, not published
 
 The version this tree carries — `pyproject.toml`, `app/package.json`,
