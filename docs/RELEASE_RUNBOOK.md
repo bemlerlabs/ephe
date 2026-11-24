@@ -185,9 +185,22 @@ gate run first; the Tauri bundles land as a draft release.
 
 The owner publishes the draft. That click is what moves `releases/latest` and
 the updater feed. `readme_check.py --public` is the check that the install lines
-name a tag that exists. The publish job measures the released DMG and source
-archive, refuses a template hash that matches neither, renders the tap and bucket
-manifests, and then publishes them and the npm wrapper.
+name a tag that exists.
+
+There is no publish job, and this page used to describe one. What `release.yml`
+runs is four jobs — version guard, test gate, frontend gate, Tauri bundles — and
+the last of them ends at the draft: `Build Tauri bundles (draft release)` posts
+the bundles, `Audit the macOS bundle seal` records what
+`codesign --verify --deep --strict` says about the app (an ad-hoc seal is
+reported as `state=adhoc-not-notarized`, never as notarisation), and
+`Decide whether this run can produce a feed` lets the action assemble
+`latest.json` from the `.sig` files the bundler wrote. Nothing in this
+repository uploads to a package registry: the npm wrapper is not published, and
+[`NPM_PUBLISHING.md`](NPM_PUBLISHING.md) names the conditions a publish job
+would have to satisfy before it may exist. No Homebrew tap and no Scoop bucket
+is rendered or maintained by any workflow or script in this tree. The install
+paths this runbook documents are the ones that exist: the source tree,
+`install.sh`, `install.ps1`, and the release bundles.
 
 ## 7. After the tag
 
