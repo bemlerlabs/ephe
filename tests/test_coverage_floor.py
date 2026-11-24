@@ -1,6 +1,6 @@
 """Ephe — the coverage floor is a per-module ratchet over a committed baseline.
 
-`docs/COVERAGE_GAPS_2026-10-11.md` measures where the suite is thin; a measurement a
+`docs/COVERAGE_GAPS.md` measures where the suite is thin; a measurement a
 human reads is a wish. `scripts/coverage_floor.py` turns it into a gate: a coverage.py
 JSON report is grouped into modules, each module is compared against its floor in
 `scripts/coverage-floor-baseline.json`, and a module that falls below its floor fails

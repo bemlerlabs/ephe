@@ -70,6 +70,14 @@ and that child gets `env = child_env(home=home)` — an allow-listed copy of the
 No amount of testing raises this module inside the current recipe; the number is a property of how the
 child is started.
 
+The invariant behind it has a holder: `tests/test_child_env_carries_no_trace.py` starts `child_env()`
+with `PYTHONPATH`, `COVERAGE_PROCESS_START` and `COVERAGE_FILE` set in the parent and asserts the child
+receives none of them, including no route to a `.pth` hook, and it fails the moment one of those keys
+reaches the allow-list by name or by prefix. So the 0.0 % is a statement about what a plugin or sandbox
+child may inherit, recorded here as a measurement and defended there as a rule. Reaching the module
+with coverage would mean widening that list, which is a product-code decision about the child
+environment; no test asks for it.
+
 ## The thinnest modules the trace does reach
 
 Percentages from the same run. A cause is stated only where it was verified in this session.

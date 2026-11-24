@@ -6,40 +6,41 @@ Principle (brief): TOLERANCE GATES, not absolute times — flaky-free through
   3. skip option via EPHE_BENCH_GATE=0 (debugging).
 
 Measured values:
-  - startup (CLI `--version`): baseline p50 = 60ms locally (Phase 1 DoD,
-    2026-08-13, /usr/bin/time, 7 runs). Budget 150ms (100ms + 50% tolerance).
-  - TTFB (time-to-first-token, SSE stream): fake provider with 50ms/token
-    latency + a real uvicorn server (pattern from test_serve_openai.py /
-    test_jcode_e2e.py). Expectation ~50-55ms. Budget 500ms (3x tolerance).
-  - long-session memory: the 1000-message campaign (docs/STRESS_1000_2026-09-06.md
-    section 4) measured server RSS 528.2 -> 663.1 MB over 1000 real messages, a net
-    +0.14 MB/message (oscillating 560-660, no runaway). The 1000-turn in-process profile
-    (docs/RSS_PROFILE_1000_2026-10-11.md, scripts/rss_profile_1000.py) held retained RSS at
-    ~126 MB, +0.0014 MB/turn. Budget 0.5 MB/turn (~3.6x the campaign, ~357x the profile).
+  - startup (CLI `--version`) and TTFB: the readings, the machine, the engine and the command to
+    re-take them are in docs/LATENCY_BUDGETS.md, which is also where a budget figure lives when it
+    is quoted in prose. The budgets below are the ones the gates enforce and are not restated there.
+  - long-session memory: the budget is RSS_GROWTH_BUDGET_MB_PER_TURN, enforced by
+    test_long_session_memory_budget over N_MEMORY_TURNS turns with the engine stubbed. The two
+    campaigns that once justified numbers in this file are not in this tree, so the one profile
+    figure here is the reading scripts/rss_profile_1000.py produced today, pinned in
+    RSS_PROFILE_1000_MB_PER_TURN with its machine, its engine and its command beside it. The script
+    drives the same REST route this gate drives and names the loopback host and origin
+    `LocalRequestGuardMiddleware` (server/middleware.py:398) trusts; the guard itself is untouched.
 
 Determinism: fake latency via asyncio.sleep (no real LLM), a WARMUP round before
 the measurement. TTFB runs through pytest-benchmark; the serial step writes that
 JSON report into .benchmarks/ (gitignored) and uploads it, so the report the two
 TTFB gates name is a step that exists.
 
-Instrument decision (2026-10-11, docs/PLAN_GAP_2026-10-11.md P4-17). The startup
+Instrument decision (2026-10-11). The startup
 gate is a local-only instrument that stands down under load:
   - Local-only: the budget is one machine's p50; no percentile absorbs a shared
-    runner, and the macOS leg's own median (162.7 ms) already sat past the 150 ms
-    budget. `_LOCAL_BASELINE_ONLY` skips it under `GITHUB_ACTIONS`, and
+    runner. `_LOCAL_BASELINE_ONLY` skips it under `GITHUB_ACTIONS`, and
     tests/test_cli_dx.py::test_cli_keeps_heavy_imports_lazy is the CI-enforceable form.
   - Stand-down: tests/timing_segment.py hands the serial-segment items a skip under an
-    xdist worker or >= 2.0 runnable tasks per CPU, wired in tests/conftest.py.
-  - Re-run rule: a red on a loaded box is not a finding; confirm it on an idle box
-    (115.7 ms median alone, 287 ms p90 under two concurrent lanes).
+    xdist worker or >= 2.0 runnable tasks per CPU (core/load_bar.py LOAD_BAR_PER_CPU), wired in
+    tests/conftest.py.
+  - Re-run rule: a red on a loaded box is not a finding; confirm it on an idle box, and read the
+    skip reason the segment leaves behind before believing a pass.
   - Recording: with `EPHE_STARTUP_RECEIPT=<path>` the gate writes the window it read, but
     only under the load bar — the absolute p50 is one machine's constant, so a loaded window
-    would record the queue (docs/STARTUP_GATE_LOAD_ROBUST_2026-10-11.md, "Re-baseline rule").
+    would record the queue.
 
-CI runs this file in its own serial step and excludes it from the `-n auto` leg:
-measured 2026-10-09 on the owner's 10-CPU Mac, p90 startup exceeded the 150 ms budget
-under `-n auto` (load ~20) and passed in 5.6 s run alone. Do not fold it back into the
-parallel leg and do not raise the budgets to make it fit — the budget is the measurement.
+CI runs this file in its own serial step and excludes it from the `-n auto` leg: measured
+2026-11-24 on this 10-CPU box, a full xdist run beside the segment took the load to 2.1 runnable
+tasks per CPU and all 18 gates skipped with the segment's own reason, while the same gates pass on
+an idle machine. Do not fold it back into the parallel leg and do not raise the budgets to make it
+fit — the budget is the measurement.
 """
 from __future__ import annotations
 
@@ -77,36 +78,41 @@ N_CHUNKS = 3
 # 10 runs, not 5: with 5 samples the "p90" index resolved to runs[4] — the WORST run —
 # so the gate was a maximum while its docstring promised tolerance for outliers.
 N_MEASURE_RUNS = 10
-# long-session memory: server RSS across the 1000-message campaign was 528.2 -> 663.1 MB
-# over 1000 messages = net +0.14 MB/message (oscillating 560-660, no runaway) —
-# docs/STRESS_1000_2026-09-06.md section 4. Budget 0.5 MB/turn = ~3.6x that ceiling:
+# long-session memory: the ceiling this budget was set against came from a 1000-message campaign
+# whose report is not in this tree, so the number is gone and the budget stands on the gate below:
 # allocator noise is absorbed, an unbounded per-turn leak is not.
 RSS_GROWTH_BUDGET_MB_PER_TURN = 0.5
-# retained per-turn growth of the full 1000-turn in-process profile (two passes: +0.0013 and
-# +0.0014 MB/turn — docs/RSS_PROFILE_1000_2026-10-11.md, scripts/rss_profile_1000.py). The gate
-# below asserts it stays under the budget, so a future leak that lifts the profile and the
-# budget's 357x headroom (0.5 / 0.0014) cannot drift apart unnoticed.
-RSS_PROFILE_1000_MB_PER_TURN = 0.0014
+# Retained per-turn growth of the full 1000-turn in-process profile, re-measured 2026-11-24 with
+# scripts/rss_profile_1000.py: 136.4MB -> 151.8MB over 1000 turns = +0.0155MB/turn, least-squares
+# trend +0.0158MB/turn, retained after gc 151.8MB, peak 151.8MB, 2000 messages stored. A second pass
+# in the same window gave 136.5MB -> 152.0MB, the same +0.0155MB/turn. Engine: none -- the script
+# stubs server.routes.chat.react_loop, so the curve is server-side accumulation alone (the REST
+# mirror write, the post-turn worker, the history fed back each turn). Machine: Apple Silicon,
+# macOS 26.6, arm64, 10 CPU, idle at 0.27-0.30 runnable tasks per CPU. The gate below asserts the
+# profile stays under the budget, so a leak that lifts it cannot drift away from the budget
+# unnoticed.
+RSS_PROFILE_1000_MB_PER_TURN = 0.0155
 # Turn warmup excludes caches and allocator setup from the retained-growth window.
 N_MEMORY_TURNS = 60
 N_MEMORY_WARMUP_TURNS = 10
 # Startup is decided as a RATIO against a bare interpreter boot measured in the same
-# window, because the wall clock carries one machine's speed: on 2026-10-11 this box at
-# load1 8.6-27.5 gave boot p50 12-24ms and startup p50 81-141ms, so the ratio held at
-# 4.7-7.2 while either absolute number swung by 2x. Budget 10 is that band plus about
-# 40%; a heavier top-level import lifts the startup alone, which is the regression the
-# gate exists for (the deterministic form of the same guarantee runs in CI regardless:
-# tests/test_cli_dx.py::test_cli_keeps_heavy_imports_lazy).
+# window, because the wall clock carries one machine's speed: read on an idle box on
+# 2026-11-24 the same window gave boot p50 24.2 ms and startup p50 143.1 ms for a ratio of
+# 5.92 (docs/LATENCY_BUDGETS.md names the machine, the engine and the command), and the
+# ratio is the half that survives a busy machine while either absolute number swings.
+# Budget 10 is that band plus headroom; a heavier top-level import lifts the startup alone,
+# which is the regression the gate exists for (the deterministic form of the same guarantee
+# runs in CI regardless: tests/test_cli_dx.py::test_cli_keeps_heavy_imports_lazy).
 STARTUP_RATIO_BUDGET = 10.0
 # Beyond this many runnable tasks per CPU the ratio itself drifts, because the startup's
-# imports contend harder than a bare boot (2026-10-11: ratio 18 at 6.9/CPU with no
-# product change), so the verdict turns advisory there. Same bar the serial timing
-# segment stands down on (tests/timing_segment.py LOAD_BAR_PER_CPU).
+# imports contend harder than a bare boot, so the verdict turns advisory there.
+# Same bar the serial timing segment stands down on
+# (tests/timing_segment.py LOAD_BAR_PER_CPU, core/load_bar.py).
 STARTUP_LOAD_BAR_PER_CPU = 2.0
 # Set to a path and `test_startup_budget` writes the window it just read there; unset, the
 # gate writes nothing and stays a pure assertion. The write happens only under the load bar,
-# because the absolute p50 is one machine's constant (2026-08-13) and a loaded window would
-# record the queue (docs/STARTUP_GATE_LOAD_ROBUST_2026-10-11.md, "Re-baseline rule").
+# because the absolute p50 is one machine's constant and a loaded window would
+# record the queue.
 STARTUP_RECEIPT_ENV = "EPHE_STARTUP_RECEIPT"
 ENGINE_JSON = Path.home() / ".ephe" / "engine.json"
 
@@ -343,8 +349,8 @@ def record_startup_number(
     """Write the startup window to `receipt_path`, or refuse on a busy box.
 
     A loaded box writes nothing: the absolute p50 there is the queue running through the
-    machine rather than the product's startup, so writing it would launder load into a baseline
-    (docs/STARTUP_GATE_LOAD_ROBUST_2026-10-11.md, "Re-baseline rule"). The ratio rides along
+    machine rather than the product's startup, so writing it would launder load into a baseline.
+    The ratio rides along
     because it is the load-tolerant half of the same window, and the gate's own verdict is
     recorded so the number and its decision stay together.
     """
@@ -501,22 +507,22 @@ def test_ttfb_deterministic_within_tolerance(engine_base_url):
     print(f"\n  [ttfb-spread] p50={p50 * 1000:.1f}ms worst={worst * 1000:.1f}ms")
     assert worst < TTFB_BUDGET_S, f"TTFB spread too large: worst {worst * 1000:.1f}ms"
 
-# Long-session memory gate (docs/PLAN_GAP_2026-10-11.md P1-5)
+# Long-session memory gate: the per-turn leak class the 60-turn loop stands in for.
 def test_long_session_memory_budget(tmp_path, monkeypatch):
     """GATE: per-turn RSS growth of a long session < RSS_GROWTH_BUDGET_MB_PER_TURN.
 
-    Deterministic proxy for the 1000-message campaign: one session_id is driven through
+    Deterministic proxy for a long session: one session_id is driven through
     POST /api/chat with the engine stubbed, so the route persists every turn into the
-    `rest-<id>` mirror and feeds the growing history back on the next turn — the same
-    path the campaign hammered. Warmup first, then the process RSS is sampled before and
-    after N_MEMORY_TURNS turns. BUDGET is the campaign ceiling + tolerance rather than the
-    loop's own noise floor: the loop holds no engine state, so its own measured growth is
+    `rest-<id>` mirror and feeds the growing history back on the next turn — the accumulation
+    path a 1000-message session walks. Warmup first, then the process RSS is sampled before and
+    after N_MEMORY_TURNS turns. BUDGET sits above this loop's own noise floor rather than at it:
+    the loop holds no engine state, so its own measured growth is
     ~0 and the budget catches a per-turn leak while absorbing allocator swing.
     """
     psutil = pytest.importorskip("psutil", reason="psutil is a main dependency")
 
-    # The documented 1000-turn profile (docs/RSS_PROFILE_1000_2026-10-11.md, measured by
-    # scripts/rss_profile_1000.py) must sit under the budget this gate enforces. Pinned here
+    # The 1000-turn profile recorded in RSS_PROFILE_1000_MB_PER_TURN (scripts/rss_profile_1000.py,
+    # re-measured 2026-11-24) must sit under the budget this gate enforces. Pinned here
     # rather than in a test of its own: a second function would change the four-gate skip
     # count tests/test_bench_gate_switch.py asserts.
     assert RSS_PROFILE_1000_MB_PER_TURN < RSS_GROWTH_BUDGET_MB_PER_TURN, (
@@ -573,6 +579,6 @@ def test_long_session_memory_budget(tmp_path, monkeypatch):
           f"(Budget {RSS_GROWTH_BUDGET_MB_PER_TURN:.2f}MB/turn)")
     assert growth_per_turn < RSS_GROWTH_BUDGET_MB_PER_TURN, (
         f"Long-session memory regression: {growth_per_turn:+.3f}MB/turn > budget "
-        f"{RSS_GROWTH_BUDGET_MB_PER_TURN:.2f}MB/turn (campaign +0.14MB/message, "
-        f"profile +{RSS_PROFILE_1000_MB_PER_TURN}MB/turn)"
+        f"{RSS_GROWTH_BUDGET_MB_PER_TURN:.2f}MB/turn (the 1000-turn profile stands at "
+        f"+{RSS_PROFILE_1000_MB_PER_TURN}MB/turn, scripts/rss_profile_1000.py)"
     )

@@ -3,9 +3,7 @@
 
 A wave lands many commits at once, and the repository's gates (`architecture`, `language`,
 `prose`) can already be red when it starts -- a file another strand owns, a ratchet line another
-package moved. The post-wave run cannot tell that red from a red the wave wrote, and
-`docs/DECISIONS_2026-10-10.md` records a day when both kinds stood side by side and were argued
-about by hand.
+package moved. The post-wave run cannot tell that red from a red the wave wrote.
 
 `freeze` runs each gate and writes its verdict to a snapshot file. `attribute` runs the gates
 again and reads the two verdicts side by side: `fail -> fail` is pre-existing and is named as the

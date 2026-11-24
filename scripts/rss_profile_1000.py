@@ -2,9 +2,11 @@
 """Server RSS profile across a 1000-turn session (WE-36).
 
 Measurement behind tests/test_bench_gates.py::test_long_session_memory_budget. That gate
-drives 60 turns and reads one before/after delta; the campaign it stands in for ran 1000
-messages. This script drives the full 1000-turn session and samples the server process RSS
-the whole way, so the budget has a measured curve behind it rather than a single gap.
+drives 60 turns and reads one before/after delta; this script drives the full 1000-turn
+session and samples the server process RSS the whole way, so the budget has a measured curve
+behind it rather than a single gap. The number it prints is the one pinned in
+RSS_PROFILE_1000_MB_PER_TURN, and a new value there means a run of this script, quoted with
+its machine, its engine and the load it ran under.
 
 Deterministic and in-process: the engine is stubbed (`server.routes.chat.react_loop`), so
 the curve describes server-side accumulation alone — the REST mirror write, the post-turn
@@ -31,7 +33,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))  # invoked by path, so core.* is not importable otherwise
 
-#: The session length the 2026-09-06 campaign ran and the gate's budget is set against.
+#: The session length the profile runs: long enough that a per-turn leak shows above the
+#: allocator swing the samples carry.
 N_TURNS = 1000
 N_WARMUP_TURNS = 50
 SAMPLE_EVERY = 10
@@ -128,8 +131,20 @@ def run_profile(turns: int, warmup: int, sample_every: int, home: Path) -> dict:
 
     from unittest.mock import AsyncMock, patch
 
+    # The profile posts to an authority-spending route, so `LocalRequestGuardMiddleware`
+    # (server/middleware.py:398) asks two questions: is the Host a loopback authority
+    # (`host_allowed`, server/middleware.py:240) and does the caller hold app authority
+    # (`caller_holds_app_authority`, server/middleware.py:208). The guard is not relaxed for
+    # this run: the script names the host the guard already trusts, the loopback address and
+    # the matching origin on the port the server would start on -- exactly the pair
+    # `_app_origins` (server/middleware.py:61) serves. The suite does not need this because
+    # `host_allowed` admits TestClient's synthetic `testserver` host only while
+    # `PYTEST_CURRENT_TEST` is set, and a standalone script run has no such marker.
+    port = os.environ.get("EPHE_PORT") or "8765"
+    local_headers = {"Host": f"127.0.0.1:{port}", "Origin": f"http://127.0.0.1:{port}"}
+
     with (
-        TestClient(create_app()) as client,
+        TestClient(create_app(), headers=local_headers) as client,
         patch("server.routes.chat.react_loop", new=AsyncMock(return_value="ok")),
     ):
         for i in range(warmup):
