@@ -85,6 +85,8 @@ UNRESOLVABLE = {
     "478b8aa2": 'the commit that made the engine token a file the desktop app can write',
     "2e095893": "before this tree's published history; the performance baseline names the commit the panel storage arrived whole in",
     "3ccca950": "before this tree's published history; the video wrapper names the commit that deleted the script it used to call",
+    "766a4293": "not this repository: the tip of the version branch an upstream action publishes, cited as that action's state",
+    "e834788a": "not this repository: the commit an upstream action's annotated tag points at, cited as that action's state",
 }
 
 

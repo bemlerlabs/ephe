@@ -228,7 +228,7 @@ jobs:
         # The pinned action, never a `curl | sh` (Semgrep: gha-curl-pipe-shell); the same pin the
         # cargo job in rust-shell.yml uses.
         if: env.RUST_TOOLCHAIN_MISSING == '1'
-        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        uses: dtolnay/rust-toolchain@766a42937d994bd78bb4591385445c188ccb3f09 # 1.97.1
 
       - name: Assert the toolchains the suite proves against
         # A capability mark skips when its tool is missing. That is honest on a

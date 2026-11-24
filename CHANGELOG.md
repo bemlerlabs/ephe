@@ -32,6 +32,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   went public, and the account lock turned out to cover public repositories of the same
   account while an organization's public repository ran normally at the same minute
   (`5ebce54`, placed under `decisions/` per the public-docs policy).
+- CI: two action pins corrected against upstream. `dtolnay/rust-toolchain` was pinned to a
+  commit that no upstream ref names any more and labelled `# stable`; it now pins the tip of
+  the version branch `1.97.1`, which is the rustc every Rust number in this repository was
+  produced with. `tauri-apps/tauri-action` was pinned to the annotated tag object of
+  `v0.5.23` rather than the commit it points at, which no `uses:` line resolves; it now
+  names the commit, and the major bump upstream has since published waits for a release
+  dry-run. Zizmor at `--persona=auditor` reports no finding at warning or above for the
+  whole workflow tree, online rules included (was four high and one warning).
 - docs: `E2E_CI.md`, the measurements the `frontend-build` browser legs promised in a dated
   page the tree never held. It names the versions the leg installs (`@playwright/test`
   1.64.0, chromium v1248 / Chrome for Testing 156.0.8078.4), the download it is sized for,

@@ -293,7 +293,7 @@ jobs:
         # Pinned by commit, not by the mutable `@stable` ref (zizmor: unpinned-uses).
         # The compiler version itself stays stable; `app/src-tauri/Cargo.toml` records
         # the MSRV (rust-version = 1.77.2) that the code must satisfy.
-        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        uses: dtolnay/rust-toolchain@766a42937d994bd78bb4591385445c188ccb3f09 # 1.97.1
 
       # No build cache in this workflow, on purpose: a published bundle must not be
       # assembled from state restored by an earlier run (zizmor: cache-poisoning).
@@ -457,7 +457,13 @@ jobs:
           fi
 
       - name: Build Tauri bundles (draft release)
-        uses: tauri-apps/tauri-action@2d3036b306d86c3198f05a460dcd23cf55ef41b9 # v0.5.23
+        # The commit v0.5.23 points at, resolved against upstream 2026-11-24: the tag
+        # `v0.5.23` is an annotated tag object (2d3036b3) whose object is this commit, and a
+        # `uses:` line resolves commits. action.yml is present at e834788a (3320 bytes).
+        # Upstream has since released action-v1.0.0 (1deb371b, 2026-06-29); that bump waits
+        # for a release dry-run someone can read, because this step assembles the signed
+        # bundles and a major version is not changed without a build to inspect.
+        uses: tauri-apps/tauri-action@e834788a94591d81e3ae0bd9ec06366f5afb8994 # v0.5.23
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}

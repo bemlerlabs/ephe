@@ -52,7 +52,13 @@ jobs:
         # The pinned action, never a `curl | sh`: a workflow that pipes a download into a
         # shell is the finding Semgrep blocks (gha-curl-pipe-shell), and it is right.
         if: env.RUST_TOOLCHAIN_MISSING == '1'
-        uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
+        # A version branch, not `stable`: the pinned commit is the tip of the upstream
+        # branch `1.97.1` (measured 2026-11-24 -- commit 766a4293, "toolchain: 1.97.1",
+        # action.yml present at the pin), which is the rustc every Rust number in this
+        # repository was produced with (`cargo 1.97.1 (c980f4866 2026-06-30)`, Homebrew,
+        # macOS 26.6 arm64). A moving branch would compile the release with a compiler no
+        # measurement of ours names.
+        uses: dtolnay/rust-toolchain@766a42937d994bd78bb4591385445c188ccb3f09 # 1.97.1
 
       - name: Linux system deps (webkit2gtk)
         # Measured 2026-10-26: this step takes 25 s on a healthy runner. One attempt
