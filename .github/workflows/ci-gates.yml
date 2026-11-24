@@ -58,7 +58,7 @@ jobs:
 
       - name: Move a pull request's install out of the shared interpreter
         if: github.event_name == 'pull_request'
-        # `pip install zizmor==1.30.1` is one pinned name, but its dependency tree is resolved at
+        # `pip install zizmor==1.33.1` is one pinned name, but its dependency tree is resolved at
         # PR time and lands in `_tool/Python/3.12/.../site-packages` -- the listener's tool cache,
         # which outlives the job. The rule and the Dependabot receipt are written out on the step of
         # this name in `tests.yml`.
@@ -82,15 +82,21 @@ jobs:
         # diff. Offline keeps the verdict equal to what was verified locally; the
         # online-only rules (bot actors, remote-repo audits) are a follow-up once this
         # gate has proven itself, and this line is where they would be switched on.
+        #
+        # The pin moved from 1.30.1 to 1.33.1 on 2026-11-24 on a measured parity: this job's
+        # own invocation over .github/workflows/ printed the same 19 findings (4 informational,
+        # 15 low, 0 medium) on both versions, with the version banner the only differing line.
+        # 1.33.0 adds dangerous-checkout, which flags an unsafe-pr-checkout opt-out no workflow
+        # here writes, and every checkout step here is pinned to v7.0.1 by SHA.
         run: |
           installed=0
           for attempt in 1 2 3; do
-            if pip install "zizmor==1.30.1"; then installed=1; break; fi
+            if pip install "zizmor==1.33.1"; then installed=1; break; fi
             echo "zizmor install attempt $attempt failed; retrying" >&2
             sleep 15
           done
           if [ "$installed" != 1 ]; then
-            echo "::error::zizmor==1.30.1 could not be installed from PyPI; an audit that did not run is not a clean audit"
+            echo "::error::zizmor==1.33.1 could not be installed from PyPI; an audit that did not run is not a clean audit"
             exit 1
           fi
           # This job has no preflight step, so the leg reads its own routing back: on a pull request
