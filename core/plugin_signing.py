@@ -28,16 +28,21 @@ key back to a `kid`. Nothing in this module treats `kid` as an authorization.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import os
 import threading
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from core.plugin_manifest import SIG_FILENAME  # noqa: F401 — re-exported single source
+from core.plugin_manifest import (  # noqa: F401 — SIG_FILENAME is re-exported
+    SIG_FILENAME,
+    VERIFY_FILENAME,
+)
 from core.plugin_store import config_root
 
 SIG_ALG = "ES256"
@@ -95,6 +100,12 @@ def verify(payload: dict[str, Any], signature_b64: str, public_pem: bytes) -> bo
         return False
 
 
+#: Files the verifier itself leaves inside a bundle. A signature covers what the
+#: builder shipped, so neither the record it signs nor the scanner's own verdict may
+#: move the hash — and an artifact that ships either of them is refused at install.
+_SIGNED_OUTSIDE = frozenset({SIG_FILENAME, VERIFY_FILENAME})
+
+
 def _stray_signature_records(plugin_dir: Path) -> list[Path]:
     """Signature records below the plugin root.
 
@@ -103,7 +114,10 @@ def _stray_signature_records(plugin_dir: Path) -> list[Path]:
     hidden in a subdirectory invisible to the signature — content there is not
     covered by any key. Such a package is refused rather than trusted."""
     root = Path(plugin_dir)
-    return [p for p in sorted(root.rglob(SIG_FILENAME)) if p.parent != root]
+    stray: list[Path] = []
+    for name in (SIG_FILENAME, VERIFY_FILENAME):
+        stray.extend(p for p in sorted(root.rglob(name)) if p.parent != root)
+    return sorted(stray)
 
 
 def sign_plugin_dir(plugin_dir: Path, private_pem: bytes, kid: str = "first-party") -> dict[str, Any]:
@@ -136,22 +150,81 @@ def sign_plugin_dir(plugin_dir: Path, private_pem: bytes, kid: str = "first-part
 FIRST_PARTY = "first-party"
 USER = "user"
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+FIRST_PARTY_PEM_PATH = REPO_ROOT / "plugins" / "first-party.pub.pem"
+
+
+def key_fingerprint(public_pem: bytes) -> str:
+    """SHA-256 of the DER subject public key, so the same key prints the same value
+    under any PEM encoding. Empty for bytes that are not a public key."""
+    try:
+        der = serialization.load_pem_public_key(public_pem).public_bytes(
+            serialization.Encoding.DER,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+    except Exception:  # noqa: BLE001 — an unparseable key has no identity, never a wrong one
+        return ""
+    return hashlib.sha256(der).hexdigest()
+
+
+@dataclass(frozen=True)
+class TrustedKey:
+    """One key the verifier may use, the class it was installed as, and where it came
+    from. `origin` is printed by the install verb, so it names a folder the reader
+    owns (`config:trusted-keys/<file>`) or a file of this checkout (`checkout:<path>`)
+    — an absolute path would be somebody else's machine on every run."""
+
+    pem: bytes
+    trust_class: str
+    origin: str
+
+    @property
+    def fingerprint(self) -> str:
+        return key_fingerprint(self.pem)
+
+
+def load_trusted_key_records(extra_dir: Path | None = None) -> list[TrustedKey]:
+    """Every key the verifier may use, each with its class and origin.
+
+    Three sources and no fourth: a key of this checkout, a key the user placed in the
+    `trusted-keys` folder of the config dir, and the test seam. A marketplace index, a
+    listing entry or a fetched bundle adds none of them, which is the only reason a
+    first-party signature says anything about who published the bytes.
+    """
+    if TRUSTED_KEYS_LOADER is not None:
+        seam: list[TrustedKey] = []
+        for item in TRUSTED_KEYS_LOADER():
+            pem, key_class = item if isinstance(item, tuple) else (item, USER)
+            seam.append(
+                TrustedKey(pem=pem, trust_class=str(key_class), origin="loader")
+            )
+        return seam
+    keys: list[TrustedKey] = []
+    if FIRST_PARTY_PEM_PATH.is_file():
+        keys.append(
+            TrustedKey(
+                pem=FIRST_PARTY_PEM_PATH.read_bytes(),
+                trust_class=FIRST_PARTY,
+                origin=f"checkout:{FIRST_PARTY_PEM_PATH.relative_to(REPO_ROOT).as_posix()}",
+            )
+        )
+    base = Path(extra_dir) if extra_dir is not None else config_root() / "trusted-keys"
+    if base.is_dir():
+        for pem_file in sorted(base.glob("*.pub.pem")):
+            keys.append(
+                TrustedKey(
+                    pem=pem_file.read_bytes(),
+                    trust_class=USER,
+                    origin=f"config:trusted-keys/{pem_file.name}",
+                )
+            )
+    return keys
+
 
 def load_trusted_keys_with_class(extra_dir: Path | None = None) -> list[tuple[bytes, str]]:
     """Trusted keys with the class they were installed as; the class is not a label
     a signature can choose."""
-    if TRUSTED_KEYS_LOADER is not None:
-        loaded = list(TRUSTED_KEYS_LOADER())
-        return [tuple(item) if isinstance(item, tuple) else (item, USER) for item in loaded]
-    keys: list[tuple[bytes, str]] = []
-    first_party = Path(__file__).resolve().parent.parent / "plugins" / "first-party.pub.pem"
-    if first_party.is_file():
-        keys.append((first_party.read_bytes(), FIRST_PARTY))
-    base = Path(extra_dir) if extra_dir is not None else config_root() / "trusted-keys"
-    if base.is_dir():
-        for f in sorted(base.glob("*.pub.pem")):
-            keys.append((f.read_bytes(), USER))
-    return keys
+    return [(key.pem, key.trust_class) for key in load_trusted_key_records(extra_dir)]
 
 
 def trusted_pems_for_class(trust_class: str | None) -> list[bytes]:
@@ -159,6 +232,127 @@ def trusted_pems_for_class(trust_class: str | None) -> list[bytes]:
     if trust_class is None:
         return load_trusted_public_keys()
     return [pem for pem, cls in load_trusted_keys_with_class() if cls == trust_class]
+
+
+def _key_set(
+    trusted_public_pems: list[bytes] | None, trust_class: str | None
+) -> list[TrustedKey]:
+    """The keys one verification may try.
+
+    A named class narrows to keys installed as that class, and a class with no keys
+    narrows to nothing: an `official` artifact is never satisfied by a key the user
+    happened to install. A caller that passes PEMs and no class is answerable to those
+    PEMs alone — this function never falls back to the keyring on its own."""
+    if trust_class is not None:
+        return [key for key in load_trusted_key_records() if key.trust_class == trust_class]
+    if trusted_public_pems is None:
+        return []
+    return [
+        TrustedKey(pem=pem, trust_class="caller", origin="caller-supplied")
+        for pem in trusted_public_pems
+    ]
+
+
+def _verify_against_keys(
+    plugin_dir: Path,
+    record: dict[str, Any],
+    keys: list[TrustedKey],
+    *,
+    trust_class: str | None,
+    require_dir_name: bool,
+) -> tuple[bool, str]:
+    """One record against one key set.
+
+    The order of checks is the contract: identity and drift are answered before any
+    cryptographic attempt, so a bundle whose manifest disagrees with the record is
+    refused without the verifier ever trusting the record's own hash."""
+    from core.plugin_manifest import dir_sha256, load_manifest
+
+    plugin_dir = Path(plugin_dir)
+    if not isinstance(record, dict) or not record.get("signature"):
+        return False, "no signature record"
+    # A rollback backup is named `.previous-<name>`; only that caller may skip
+    # the directory-name rule, so the enable gate keeps it.
+    manifest, err = load_manifest(plugin_dir, require_dir_name=require_dir_name)
+    if err or manifest is None:
+        return False, f"invalid plugin: {err}"
+    stray = _stray_signature_records(plugin_dir)
+    if stray:
+        return (
+            False,
+            f"stray {SIG_FILENAME} below the plugin root is not covered by the hash: {stray[0]}",
+        )
+    if record.get("name") != manifest["name"] or record.get("version") != manifest["version"]:
+        return False, "identity mismatch"
+    if record.get("alg") != SIG_ALG:
+        return False, "unsupported algorithm"
+    current = dir_sha256(plugin_dir, exclude_names=_SIGNED_OUTSIDE)
+    if record.get("sha256") != current:
+        return (
+            False,
+            f"drift: directory changed after signing (recorded {str(record.get('sha256'))[:12]}…, now {current[:12]}…)",
+        )
+    if not keys:
+        if trust_class is not None:
+            return False, f"no_trusted_key for class {trust_class}"
+        return False, "no_trusted_key"
+    payload = {k: record[k] for k in ("alg", "kid", "name", "version", "sha256") if k in record}
+    for key in keys:
+        if verify(payload, str(record["signature"]), key.pem):
+            return True, ""
+    return False, "signature not from a trusted key"
+
+
+def _accepted_key(
+    record: dict[str, Any],
+    keys: list[TrustedKey],
+    *,
+    trust_class: str | None,
+) -> dict[str, str] | None:
+    """Which key answered, once the verdict is yes.
+
+    Asked after the fact and separately, so the verdict stays the single authority:
+    a caller that replaces `verify_plugin_dir` still decides the outcome, and this
+    only names the key. No key matching a verdict of yes means the answer came from
+    somewhere else, and the record says so by being absent."""
+    payload = {k: record[k] for k in ("alg", "kid", "name", "version", "sha256") if k in record}
+    for key in keys:
+        if verify(payload, str(record["signature"]), key.pem):
+            return {
+                "alg": str(record.get("alg") or SIG_ALG),
+                "kid": str(record.get("kid") or ""),
+                "sha256": str(record.get("sha256") or ""),
+                "trust_class": str(trust_class or key.trust_class),
+                "key_fingerprint": key.fingerprint,
+                "key_origin": key.origin,
+            }
+    return None
+
+
+def verify_plugin_dir_with_key(
+    plugin_dir: Path,
+    record: dict[str, Any],
+    trusted_public_pems: list[bytes] | None = None,
+    *,
+    trust_class: str | None = None,
+    require_dir_name: bool = True,
+) -> tuple[bool, str, dict[str, str] | None]:
+    """`verify_plugin_dir`, plus which key accepted.
+
+    The install verb prints that record: a verdict a reader cannot attribute to a key
+    is the ceremony the plan's pre-mortem names. The dictionary carries the signed
+    `kid` beside the fingerprint of the key that answered, because a `kid` is what the
+    signer called itself and only the fingerprint is ours."""
+    ok, reason = verify_plugin_dir(
+        plugin_dir,
+        record,
+        trusted_public_pems,
+        trust_class=trust_class,
+        require_dir_name=require_dir_name,
+    )
+    if not ok:
+        return False, reason, None
+    return True, "", _accepted_key(record, _key_set(trusted_public_pems, trust_class), trust_class=trust_class)
 
 
 def verify_plugin_dir(
@@ -174,52 +368,69 @@ def verify_plugin_dir(
     Returns (ok, reason). Reasons: drift (content changed), identity
     (record does not match the manifest), signature (crypto failure),
     no_trusted_key, stray signature record."""
-    from core.plugin_manifest import dir_sha256, load_manifest
+    return _verify_against_keys(
+        plugin_dir,
+        record,
+        _key_set(trusted_public_pems, trust_class),
+        trust_class=trust_class,
+        require_dir_name=require_dir_name,
+    )
 
-    plugin_dir = Path(plugin_dir)
+
+def verify_detached_artifact(
+    payload: bytes,
+    record: dict[str, Any],
+    trusted_public_pems: list[bytes] | None = None,
+    *,
+    trust_class: str | None = FIRST_PARTY,
+) -> tuple[bool, str, dict[str, str] | None]:
+    """Verify a record that stands beside an artifact file against its bytes.
+
+    A source folder whose index carries no signature can still say who built an
+    artifact, but only through a key the source does not hold: the record is read from
+    beside the file and must verify against the checkout's or the user's keys, with
+    the digest recomputed from the bytes being installed. The signed fields are the
+    algorithm, the signer's own name and that digest — a record inside the archive
+    would be the artifact signing itself."""
     if not isinstance(record, dict) or not record.get("signature"):
-        return False, "no signature record"
-    # A rollback backup is named `.previous-<name>`; only that caller may skip
-    # the directory-name rule, so the enable gate keeps it.
-    manifest, err = load_manifest(plugin_dir, require_dir_name=require_dir_name)
-    if err or manifest is None:
-        return False, f"invalid plugin: {err}"
-    stray = _stray_signature_records(plugin_dir)
-    if stray:
-        return False, f"stray {SIG_FILENAME} below the plugin root is not covered by the hash: {stray[0]}"
-    if record.get("name") != manifest["name"] or record.get("version") != manifest["version"]:
-        return False, "identity mismatch"
+        return False, "no signature record", None
     if record.get("alg") != SIG_ALG:
-        return False, "unsupported algorithm"
-    current = dir_sha256(plugin_dir)
-    if record.get("sha256") != current:
-        return False, f"drift: directory changed after signing (recorded {str(record.get('sha256'))[:12]}…, now {current[:12]}…)"
-    payload = {k: record[k] for k in ("alg", "kid", "name", "version", "sha256") if k in record}
-    keys = trusted_public_pems or []
-    if trust_class is not None:
-        keys = trusted_pems_for_class(trust_class)
+        return False, "unsupported algorithm", None
+    digest = hashlib.sha256(payload).hexdigest()
+    if record.get("sha256") != digest:
+        return (
+            False,
+            "drift: artifact bytes changed after signing "
+            f"(recorded {str(record.get('sha256'))[:12]}…, now {digest[:12]}…)",
+            None,
+        )
+    keys = _key_set(trusted_public_pems, trust_class)
     if not keys:
-        return False, f"no_trusted_key for class {trust_class}" if trust_class else "no_trusted_key"
-    for pem in keys:
-        if verify(payload, str(record["signature"]), pem):
-            return True, ""
-    return False, "signature not from a trusted key"
+        if trust_class is not None:
+            return False, f"no_trusted_key for class {trust_class}", None
+        return False, "no_trusted_key", None
+    signed = {k: record[k] for k in ("alg", "kid", "sha256") if k in record}
+    for key in keys:
+        if verify(signed, str(record["signature"]), key.pem):
+            return (
+                True,
+                "",
+                {
+                    "alg": str(record.get("alg") or SIG_ALG),
+                    "kid": str(record.get("kid") or ""),
+                    "sha256": digest,
+                    "trust_class": str(trust_class or key.trust_class),
+                    "key_fingerprint": key.fingerprint,
+                    "key_origin": key.origin,
+                },
+            )
+    return False, "signature not from a trusted key", None
 
 
 def load_trusted_public_keys(extra_dir: Path | None = None) -> list[bytes]:
     """Trusted public PEMs: the seam (if set), the repo first-party key (if
     present) and `~/.ephe/trusted-keys/*.pub.pem` (scanned by DEFAULT)."""
-    if TRUSTED_KEYS_LOADER is not None:
-        return list(TRUSTED_KEYS_LOADER())
-    pems: list[bytes] = []
-    first_party = Path(__file__).resolve().parent.parent / "plugins" / "first-party.pub.pem"
-    if first_party.is_file():
-        pems.append(first_party.read_bytes())
-    base = Path(extra_dir) if extra_dir is not None else config_root() / "trusted-keys"
-    if base.is_dir():
-        for f in sorted(base.glob("*.pub.pem")):
-            pems.append(f.read_bytes())
-    return pems
+    return [key.pem for key in load_trusted_key_records(extra_dir)]
 
 
 def pins_path() -> Path:

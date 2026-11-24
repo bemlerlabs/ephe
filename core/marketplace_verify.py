@@ -20,6 +20,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from core.plugin_manifest import VERIFY_FILENAME
+
 HIGH = "high"
 INFO = "info"
 
@@ -76,8 +78,9 @@ _SHELL_PIPE = re.compile(r"\b(?:curl|wget)\b[^|]{0,200}\|\s*(?:ba|z|da)?sh\b")
 
 _TEXT_SUFFIXES = {".json", ".md", ".yaml", ".yml", ".toml"}
 
-#: The verdict file written beside an installed artifact.
-VERDICT_FILENAME = "VERIFY.json"
+#: The verdict file written beside an installed artifact; one name, owned by the
+#: manifest module that also decides what a signature covers.
+VERDICT_FILENAME = VERIFY_FILENAME
 
 
 def _walk_env(payload: Any) -> set[str]:

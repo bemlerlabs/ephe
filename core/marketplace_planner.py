@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 from typing import Any
 
 from core import __version__, marketplace_index, marketplace_sources, plugin_manifest
@@ -94,6 +95,7 @@ def plan(
     *,
     approve_permissions: bool = False,
     allow_local_trust: bool = False,
+    expected_sha256: str = "",
 ) -> dict[str, Any]:
     source = _source(source_id)
     read = marketplace_sources.read_source(source)
@@ -131,7 +133,21 @@ def plan(
     delta = permission_delta(old_manifest, entry.get("permissions"))
     signature = entry["source"].get("signature")
     plugin_trust = str(entry["plugin"].get("trust") or "local")
-    local_unsigned = plugin_trust in {"local", "bundled"} and not isinstance(signature, dict)
+    # A source folder that carries a plain index can still publish the record beside
+    # the artifact file, and that record is read from outside the archive. The
+    # artifact is then not unsigned, so the trust word is not what decides.
+    sidecar: dict[str, Any] | None = None
+    if source.get("kind") in {"local", "bundled"}:
+        sidecar, sidecar_error = marketplace_sources.detached_record(
+            Path(str(source.get("url") or "")), str(entry["source"]["url"])
+        )
+        if sidecar_error:
+            return _refused("signature_record_invalid", sidecar_error)
+    local_unsigned = (
+        plugin_trust in {"local", "bundled"}
+        and not isinstance(signature, dict)
+        and sidecar is None
+    )
     if local_unsigned and not allow_local_trust:
         return _refused("local_trust_required", "this artifact carries no signature")
     added = bool(delta["tool_families_added"] or delta["data_roots_added"])
@@ -154,11 +170,13 @@ def plan(
         "url": entry["source"]["url"],
         "trust": plugin_trust,
         "signature": signature if isinstance(signature, dict) else None,
+        "sidecar_signature": sidecar is not None,
         "permissions": entry.get("permissions") or {},
         "components": entry.get("components") or [],
         "delta": delta,
         "approved_delta": delta["digest"] if approve_permissions and added else "",
         "allow_local_trust": allow_local_trust,
+        "expected_sha256": str(expected_sha256 or "").strip().lower(),
         "source_id": source["id"],
         "source_title": source["title"],
         "stale": read.get("status") == "error",

@@ -295,6 +295,8 @@ def _install_from_marketplace(
     trusted_public_keys: list[bytes] | None = None,
     allow_local_trust: bool = False,
     inspect: Callable[[Path, dict[str, Any]], str | None] | None = None,
+    detached_signature: dict[str, Any] | None = None,
+    expected_sha256: str = "",
 ) -> dict[str, Any]:
     """Install one marketplace plugin, verifying everything in staging.
 
@@ -303,6 +305,12 @@ def _install_from_marketplace(
     require a valid signature regardless of the enable-time drift setting; a
     local unsigned artifact needs `allow_local_trust`, lands disabled and
     carries the local-trust warning.
+
+    `detached_signature` is a record over the artifact bytes, read from beside the
+    file rather than from the archive, and it is verified against the trusted keys.
+    `expected_sha256` is a second comparison value supplied by the caller: an
+    artifact whose digest disagrees with it is refused even when the listing that
+    delivered the artifact names the digest the bytes carry.
     """
     if not _SLUG_RE.fullmatch(str(name)):
         return {
@@ -347,7 +355,10 @@ def _install_from_marketplace(
             "trust": trust,
             "error": "the trust class requires a verified artifact signature",
         }
-    if not signed and trust == "local" and not allow_local_trust:
+    if not signed and detached_signature is None and trust == "local" and not allow_local_trust:
+        # The record beside the file is a signature too, and the one an operator can
+        # place where the artifact lives; demanding the trust word as well would only
+        # train people to type it for artifacts that were in fact signed.
         return {
             "status": "local_trust_required",
             "name": name,
@@ -371,13 +382,51 @@ def _install_from_marketplace(
     except Exception:  # noqa: BLE001 — honest status, never a crash
         return {"status": "fetch_failed", "name": name, "error": "fetch_failed"}
 
+    digest = sha256_hex(payload)
     expected = str(entry.get("sha256") or "")
-    if not expected or sha256_hex(payload) != expected:
+    if not expected or digest != expected:
         return {
             "status": "hash_mismatch",
             "name": name,
             "error": "artifact hash does not match the marketplace entry",
+            "expected": expected,
+            "actual": digest,
         }
+    wanted = str(expected_sha256 or "").strip().lower()
+    if wanted and digest != wanted:
+        # A second witness the caller supplies. The listing and the bytes can agree
+        # with each other and still disagree with the value the operator read before
+        # asking for this install, which is the case a catalog cannot vouch for.
+        return {
+            "status": "hash_mismatch",
+            "name": name,
+            "error": "artifact hash does not match the expected hash given at install",
+            "expected": wanted,
+            "actual": digest,
+        }
+    verified: dict[str, Any] = {
+        "name": name,
+        "version": str(entry.get("version") or ""),
+        "sha256": digest,
+        "trust": trust,
+        "signature_kind": "none",
+    }
+    if isinstance(detached_signature, dict) and not signed:
+        from core import plugin_signing
+
+        detached_ok, detached_reason, accepted = plugin_signing.verify_detached_artifact(
+            payload, detached_signature
+        )
+        if not detached_ok:
+            return {
+                "status": "quarantined",
+                "code": "signature_invalid",
+                "name": name,
+                "kid": str(detached_signature.get("kid") or ""),
+                "error": f"signature_invalid: {detached_reason}",
+            }
+        verified["signature"] = accepted
+        verified["signature_kind"] = "detached"
 
     plugins_root = (
         Path(root)
@@ -398,6 +447,7 @@ def _install_from_marketplace(
                 staging=staging,
                 plugins_root=plugins_root,
                 trusted_public_keys=trusted_public_keys,
+                verified=verified,
             )
         finally:
             shutil.rmtree(staging, ignore_errors=True)
@@ -414,9 +464,11 @@ def _commit_staged(
     staging: Path,
     plugins_root: Path,
     trusted_public_keys: list[bytes] | None,
+    verified: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Verify the staged bytes and move exactly that directory into place."""
     signed = isinstance(signature, dict)
+    verified = verified if verified is not None else {}
     payload_dir = staging / "payload"
     err = _safe_extract(payload, payload_dir)
     if err:
@@ -461,6 +513,17 @@ def _commit_staged(
             "error": merr,
         }
 
+    if (candidate / plugin_manifest.VERIFY_FILENAME).is_file():
+        # The scanner writes its own verdict into the installed directory and a
+        # signature does not cover that name, so an artifact arriving with one
+        # already inside carries content no key answered for.
+        return {
+            "status": "quarantined",
+            "code": "verdict_file_present",
+            "name": name,
+            "error": f"the archive ships its own {plugin_manifest.VERIFY_FILENAME}",
+        }
+
     # Identity has three witnesses — the listing, the manifest, the signature —
     # and the listing is the one the user read before pressing install. An
     # artifact that carries another version than the entry promised is refused,
@@ -502,7 +565,7 @@ def _commit_staged(
             if trust in {"official", "verified"}
             else plugin_signing.USER
         )
-        ok, reason = plugin_signing.verify_plugin_dir(
+        ok, reason, accepted = plugin_signing.verify_plugin_dir_with_key(
             candidate,
             signature,
             pems,
@@ -511,14 +574,20 @@ def _commit_staged(
         if not ok:
             # The verifier's reason is a closed vocabulary (drift, identity,
             # signature, no_trusted_key, stray record) plus two short hashes; the
-            # surface names it instead of answering a bare "quarantined".
+            # surface names it instead of answering a bare "quarantined". The `kid`
+            # travels with the refusal because the record demanded a signer the key
+            # set does not hold, and that is a different next step than a mismatch.
             return {
                 "status": "quarantined",
                 "code": "signature_invalid",
                 "reason": reason[:240],
                 "name": name,
+                "kid": str(signature.get("kid") or ""),
+                "trust_class": verify_class or "",
                 "error": f"signature_invalid: {reason}",
             }
+        verified["signature"] = accepted or {}
+        verified["signature_kind"] = "listing"
         # Persist the verified record inside the dir for enable-time drift checks.
         (candidate / plugin_manifest.SIG_FILENAME).write_text(
             json.dumps(signature, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -563,6 +632,8 @@ def _commit_staged(
         }
         if trust == "local" and not signed:
             result["warning"] = "local_trust"
+        if verified:
+            result["verified"] = dict(verified)
         return result
 
     try:
@@ -614,6 +685,8 @@ def _commit_staged(
     }
     if trust == "local" and not signed:
         result["warning"] = "local_trust"
+    if verified:
+        result["verified"] = dict(verified)
     lock_error = _rebuild_lock(plugins_root)
     if lock_error:
         result["lockfile_error"] = lock_error
@@ -629,6 +702,8 @@ def install_from_marketplace(
     trusted_public_keys: list[bytes] | None = None,
     allow_local_trust: bool = False,
     inspect: Callable[[Path, dict[str, Any]], str | None] | None = None,
+    detached_signature: dict[str, Any] | None = None,
+    expected_sha256: str = "",
 ) -> dict[str, Any]:
     """Install and record every outcome in the audit log.
 
@@ -645,6 +720,8 @@ def install_from_marketplace(
             trusted_public_keys=trusted_public_keys,
             allow_local_trust=allow_local_trust,
             inspect=inspect,
+            detached_signature=detached_signature,
+            expected_sha256=expected_sha256,
         )
     except Exception as exc:
         _audit_install(name, {"status": "raised", "error": type(exc).__name__}, marketplace)

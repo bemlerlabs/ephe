@@ -382,3 +382,29 @@ def read_source(
 
 def refresh_all(fetcher: Callable[[str], bytes] | None = None) -> list[dict[str, Any]]:
     return [read_source(source, fetcher=fetcher) for source in load_sources()["sources"]]
+
+
+def detached_record(index_path: Path, artifact_url: str) -> tuple[dict[str, Any] | None, str]:
+    """Read the signature that sits beside an artifact file, when one is there.
+
+    A local or bundled source ships a plain index that carries no signature of its
+    own, so the artifact is the only thing that can say who built it. The record is
+    read from `<artifact>.sig` on the source's own disk and verified against the keys
+    of this checkout and the user's key folder; a record inside the archive would be
+    the artifact signing itself. A file that is there and unreadable is a refusal: a
+    truncated record is the shape an attacker leaves behind.
+    """
+    base = index_path.parent
+    target = path_guard.confine(base / artifact_url, base)
+    if target is None:
+        return None, "the artifact path leaves the source folder"
+    sidecar = target.with_name(target.name + ".sig")
+    if not sidecar.is_file():
+        return None, ""
+    try:
+        loaded = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None, f"the signature file beside {artifact_url} could not be read"
+    if not isinstance(loaded, dict):
+        return None, f"the signature file beside {artifact_url} is not a record"
+    return loaded, ""

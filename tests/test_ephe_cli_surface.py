@@ -1493,7 +1493,7 @@ def test_cmd_amber_explicit_and_default_month(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(eph, "crystallize", crystallize)
     assert ephe_cli.cmd_amber(_parser().parse_args(["amber", "--month", "2026-05"])) == 0
     out = capsys.readouterr().out
-    assert "2026-05" in out and "sitzungen  1" in out and "spitzstunde —" in out
+    assert "2026-05" in out and "sessions    1" in out and "peak hour   —" in out
     assert captured["month"] == "2026-05"
     assert captured["amber_dir"] == device / "amber"
 

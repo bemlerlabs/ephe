@@ -249,6 +249,15 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
         verdict_out=verdict_holder,
     )
     signature = plan_data.get("signature")
+    detached: dict[str, Any] | None = None
+    unverified_source = False
+    if source["kind"] in {"local", "bundled"}:
+        detached, record_error = marketplace_sources.detached_record(
+            Path(source["url"]), str(plan_data["url"])
+        )
+        if record_error:
+            return _audit_refusal(name, _refused("signature_record_invalid", record_error))
+        unverified_source = not isinstance(signature, dict) and detached is None
     listing_entry = {
         "name": name,
         "version": version,
@@ -268,6 +277,8 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
         fetcher=fetcher,
         allow_local_trust=bool(plan_data.get("allow_local_trust")),
         inspect=inspect,
+        detached_signature=detached,
+        expected_sha256=str(plan_data.get("expected_sha256") or ""),
     )
     if result.get("status") == "refused" and str(result.get("error", "")).startswith(
         "permission_delta:"
@@ -312,6 +323,16 @@ def install(plan_data: dict[str, Any]) -> dict[str, Any]:
     if result.get("status") == "extracted":
         if verdict_holder:
             result["verification"] = dict(verdict_holder)
+        result["source"] = {
+            "id": str(source.get("id") or ""),
+            "title": str(source.get("title") or ""),
+            "kind": str(source.get("kind") or ""),
+        }
+        if unverified_source:
+            # The name of the fact: this artifact reached the disk on a hash alone.
+            # A source index of kind `local` or `bundled` carries no signature, so
+            # nothing about it was checked against a key.
+            result["unverified_source"] = True
         _invalidate()
         lock_error = _write_lock()
         _audit(

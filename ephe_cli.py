@@ -2224,14 +2224,14 @@ def cmd_amber(args: argparse.Namespace) -> int:
         month=month,
         amber_dir=config_root() / "amber",
     )
-    print(f"◍ Bernstein {month}")
-    print(f"  sitzungen  {amber['sitzungen']}")
-    print(f"  werkzeuge  {amber['werkzeuge']}")
-    print(f"  artefakte  {amber['artefakte']}")
-    print(f"  bahnen     {amber['bahnen']}")
-    print(f"  tage_aktiv {amber['tage_aktiv']}")
-    print(f"  spitzstunde {amber['spitzstunde'] or '—'}")
-    print(f"  abgelegt   ~/.ephe/amber/{month}.json")
+    print(f"◍ Amber {month}")
+    print(f"  sessions    {amber['sitzungen']}")
+    print(f"  tools       {amber['werkzeuge']}")
+    print(f"  artifacts   {amber['artefakte']}")
+    print(f"  orbits      {amber['bahnen']}")
+    print(f"  active days {amber['tage_aktiv']}")
+    print(f"  peak hour   {amber['spitzstunde'] or '—'}")
+    print(f"  saved       ~/.ephe/amber/{month}.json")
     return 0
 
 
@@ -2720,9 +2720,270 @@ def _bundled_plugins_for(plugin_id: str) -> list[str]:
     ]
 
 
+def _install_verified_lines(name: str, result: dict) -> list[str]:
+    """The four facts an install owes the reader: version, hash, key, source.
+
+    An install that answers `installed` tells the reader nothing about whether a key
+    answered for those bytes, so the verb prints what the chain actually checked and
+    which key of the trust set signed the artifact.
+    """
+    verified = result.get("verified") or {}
+    version = str(verified.get("version") or result.get("version") or "?")
+    lines = [f"  version  {version}"]
+    digest = str(verified.get("sha256") or "")
+    lines.append(f"  hash     sha256 {digest}" if digest else "  hash     none recorded")
+    signature = verified.get("signature") or {}
+    if signature:
+        signed_digest = str(signature.get("sha256") or "")
+        if signed_digest and signed_digest != digest:
+            lines.append(f"  signed   sha256 {signed_digest} — what the key covers")
+        lines.append(
+            "  key      {alg} kid={kid}, verified by the {cls} key {fingerprint} ({origin})".format(
+                alg=signature.get("alg") or "?",
+                kid=signature.get("kid") or "?",
+                cls=signature.get("trust_class") or "?",
+                fingerprint=signature.get("key_fingerprint") or "?",
+                origin=signature.get("key_origin") or "?",
+            )
+        )
+        if verified.get("signature_kind") == "detached":
+            lines.append("           record read beside the artifact file")
+    else:
+        lines.append("  key      none — the artifact carried no signature to verify")
+    source = result.get("source") or {}
+    if source:
+        title = str(source.get("title") or "")
+        quoted = f' "{title}"' if title else ""
+        lines.append(
+            f"  source   {source.get('kind') or '?'}{quoted} (id {source.get('id') or '?'})"
+        )
+    if result.get("unverified_source"):
+        lines.append(
+            "           this source's index carries no signature; the artifact was"
+            " verified by hash alone"
+        )
+    if result.get("warning") == "local_trust":
+        lines.append("           installed on explicit local trust")
+    state = None
+    try:
+        from core import plugin_runtime
+
+        state = bool(plugin_runtime.lifecycle().snapshot(name).enabled)
+    except Exception:  # noqa: BLE001 — a bundle with no lifecycle row is reported by its absence
+        state = None
+    if state is not None:
+        word = (
+            f"ephe plugin disable {name}"
+            if state
+            else f"ephe plugin enable {name}"
+        )
+        lines.append(f"  state    {'on' if state else 'off'} — change it with `{word}`")
+    return lines
+
+
+def _plugin_install_refusal(name: str, answer: dict, *, stream=None) -> int:
+    """Print one install refusal with the code, the reason and the word that answers it."""
+    stream = stream or sys.stderr
+    code = str(answer.get("code") or answer.get("status") or "refused")
+    reason = str(answer.get("error") or code)
+    print(f"[error] install of '{name}' failed: {code} ({reason})", file=stream)
+    if code == "local_trust_required":
+        print(
+            "next: this artifact carries no signature — install it deliberately with"
+            " --trust-local and the expected --expected-sha256",
+            file=stream,
+        )
+    elif code in {"permission_review", "permission_delta"}:
+        delta = answer.get("delta") or {}
+        digest = str(delta.get("digest") or "")
+        added = ", ".join(
+            [
+                *(f"tool family {item}" for item in (delta.get("tool_families_added") or [])),
+                *(f"data root {item}" for item in (delta.get("data_roots_added") or [])),
+            ]
+        )
+        print(
+            "next: this artifact adds permissions the plan did not approve"
+            + (f" ({added})" if added else "")
+            + (f" — re-run with --approve-permissions {digest}" if digest else ""),
+            file=stream,
+        )
+    elif code == "signature_invalid":
+        kid = str(answer.get("kid") or "")
+        demanded = f" the record names kid={kid}" if kid else ""
+        print(
+            f"next: no trusted key answered for this artifact;{demanded} a key of your"
+            " own belongs in trusted-keys/*.pub.pem under the Ephe config directory",
+            file=stream,
+        )
+    elif code in {"unknown_version", "incompatible", "revoked", "downgrade"}:
+        print("next: `ephe plugin list` shows what this catalog offers", file=stream)
+    return 1
+
+
+def _plugin_install_v1(args: argparse.Namespace, name: str) -> int:
+    """The v1 listing path: one entry, one url, one hash, kept as the fallback."""
+    from core import plugin_market
+
+    status = plugin_market.install_from_marketplace(
+        name,
+        allow_local_trust=bool(getattr(args, "trust_local", False)),
+    )
+    if status["status"] == "extracted":
+        suffix = " (local trust)" if status.get("warning") == "local_trust" else ""
+        verified = status.get("verified") or {}
+        digest = str(verified.get("sha256") or "")
+        kind = str(verified.get("signature_kind") or "none")
+        if kind == "none":
+            proof = "verified by the hash in plugin-marketplace.json; that entry"
+            proof += " carries no signature" if digest else " carries no hash either"
+        else:
+            signature = verified.get("signature") or {}
+            proof = (
+                f"signature verified by the {signature.get('trust_class', '?')} key"
+                f" {signature.get('key_fingerprint', '?')} ({signature.get('key_origin', '?')})"
+            )
+        print(
+            f"installed: {name} (v{status.get('version', '?')}){suffix} — {proof}"
+            + (f"; sha256 {digest}" if digest else "")
+        )
+        return 0
+    if status["status"] == "unknown_plugin":
+        bundled = _bundled_plugins_for(name)
+        if bundled:
+            # Nothing is downloadable under this id: it is a name for a plugin
+            # that ships with Ephe, so the honest answer is the switch
+            # failed download of an artifact that was never published.
+            named = (
+                f"'{name}'"
+                if bundled == [name]
+                else f"'{name}' ships with Ephe as {', '.join(bundled)}"
+            )
+            print(
+                f"  ⓘ {named} — nothing to install. Turn it on with "
+                f"`ephe plugin enable {bundled[0]}`.",
+                file=sys.stderr,
+            )
+            return 1
+    reason = status.get("error") or status["status"]
+    print(
+        f"[error] install of '{name}' failed: {status['status']} ({reason})",
+        file=sys.stderr,
+    )
+    if status["status"] == "unknown_plugin":
+        print(
+            "next: this id is not in plugin-marketplace.json — list the ids with "
+            "`ephe plugin list`",
+            file=sys.stderr,
+        )
+    elif status["status"] == "local_trust_required":
+        print("next: an unsigned local artifact needs --trust-local", file=sys.stderr)
+    return 1
+
+
+def _plugin_install(args: argparse.Namespace) -> int:
+    """Install one bundle through the catalog that carries its signature.
+
+    The plan is the thing being installed: exact version, exact hash, the source it
+    came from. The answer then names what was verified, because a verb that reaches
+    for a catalog and finds nothing has to say so instead of reporting a bundled
+    plugin that was never the thing the reader asked for.
+    """
+    from core import marketplace_planner, marketplace_service, marketplace_sources
+    from core.marketplace_service import ServiceError
+
+    name = str(args.plugin_id)
+    trust_local = bool(getattr(args, "trust_local", False))
+    expected = str(getattr(args, "expected_sha256", "") or "").strip().lower()
+    approved = str(getattr(args, "approve_permissions", "") or "").strip().lower()
+    source_id = str(getattr(args, "source", "") or marketplace_sources.BUNDLED_ID)
+    wanted_version = str(getattr(args, "version", "") or "")
+    as_json = bool(getattr(args, "json", False))
+
+    def planned(approve: bool) -> dict:
+        try:
+            return marketplace_planner.plan(
+                source_id,
+                name,
+                wanted_version,
+                approve_permissions=approve,
+                allow_local_trust=trust_local,
+                expected_sha256=expected,
+            )
+        except ServiceError as exc:
+            return {"status": "refused", "code": exc.code, "error": exc.detail}
+
+    plan = planned(False)
+    status = str(plan.get("status") or "")
+    if status == "refused" and plan.get("code") == "unknown_plugin":
+        return _plugin_install_v1(args, name)
+    if status == "already_installed":
+        print(
+            f"{name} {plan.get('version')} is already installed — the catalog offers"
+            " no other version to install"
+        )
+        return 0
+    if status != "ready":
+        return _plugin_install_refusal(name, plan)
+
+    delta_digest = str((plan.get("delta") or {}).get("digest") or "")
+    if approved and delta_digest and approved != delta_digest:
+        print(
+            f"[error] install of '{name}' failed: permission_digest_mismatch (the"
+            f" approved digest {approved} is not the digest of this artifact's"
+            f" permissions {delta_digest})",
+            file=sys.stderr,
+        )
+        print("next: re-run with --approve-permissions " + delta_digest, file=sys.stderr)
+        return 1
+    if approved:
+        plan = planned(True)
+        if str(plan.get("status") or "") != "ready":
+            return _plugin_install_refusal(name, plan)
+
+    unsigned_local = plan.get("signature") is None and not plan.get("sidecar_signature")
+    if unsigned_local and not expected:
+        print(
+            f"[error] install of '{name}' failed: unverified_source (this source's"
+            " index carries no signature and the artifact carries none, so the hash"
+            " you supply is the only comparison value available)",
+            file=sys.stderr,
+        )
+        print(
+            "next: re-run with --expected-sha256 <hash> from the value the publisher"
+            " states, or place a <artifact>.sig beside the file and it will be"
+            " verified against the trusted keys",
+            file=sys.stderr,
+        )
+        return 1
+
+    try:
+        result = marketplace_service.install(plan)
+    except ServiceError as exc:
+        return _plugin_install_refusal(name, {"status": "refused", "code": exc.code, "error": exc.detail})
+    except Exception as exc:  # noqa: BLE001 — the terminal answers with a code, never a traceback
+        return _plugin_install_refusal(
+            name,
+            {"status": "refused", "code": "install_failed", "error": type(exc).__name__},
+        )
+
+    result_status = str(result.get("status") or "")
+    if as_json:
+        print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+        return 0 if result_status in {"extracted", "already_installed"} else 1
+    if result_status in {"extracted", "already_installed"}:
+        version = result.get("version") or plan.get("version") or "?"
+        verb = "installed" if result_status == "extracted" else "already installed"
+        print(f"{verb}: {name} {version}")
+        for line in _install_verified_lines(name, result):
+            print(line)
+        return 0
+    return _plugin_install_refusal(name, result)
+
+
 def cmd_plugin(args: argparse.Namespace) -> int:
     """E4a: plugin management (list / enable / disable / install / remove)."""
-    from core import plugin_market, plugin_runtime
+    from core import plugin_runtime
     from core.plugin_lifecycle import LifecycleError
 
     action = getattr(args, "action", "list")
@@ -2752,49 +3013,7 @@ def cmd_plugin(args: argparse.Namespace) -> int:
         return 0
 
     if action == "install":
-        pid = str(args.plugin_id)
-        status = plugin_market.install_from_marketplace(
-            pid,
-            allow_local_trust=bool(getattr(args, "trust_local", False)),
-        )
-        if status["status"] == "extracted":
-            suffix = " (local trust)" if status.get("warning") == "local_trust" else ""
-            print(
-                f"installed: {pid} (v{status.get('version', '?')}){suffix} — "
-                "disabled until you enable it"
-            )
-            return 0
-        if status["status"] == "unknown_plugin":
-            bundled = _bundled_plugins_for(pid)
-            if bundled:
-                # Nothing is downloadable under this id: it is a name for a plugin
-                # that ships with Ephe, so the honest answer is the switch
-                # failed download of an artifact that was never published.
-                named = (
-                    f"'{pid}'"
-                    if bundled == [pid]
-                    else f"'{pid}' ships with Ephe as {', '.join(bundled)}"
-                )
-                print(
-                    f"  ⓘ {named} — nothing to install. Turn it on with "
-                    f"`ephe plugin enable {bundled[0]}`.",
-                    file=sys.stderr,
-                )
-                return 1
-        reason = status.get("error") or status["status"]
-        print(
-            f"[error] install of '{pid}' failed: {status['status']} ({reason})",
-            file=sys.stderr,
-        )
-        if status["status"] == "unknown_plugin":
-            print(
-                "next: this id is not in plugin-marketplace.json — list the ids with "
-                "`ephe plugin list`",
-                file=sys.stderr,
-            )
-        elif status["status"] == "local_trust_required":
-            print("next: an unsigned local artifact needs --trust-local", file=sys.stderr)
-        return 1
+        return _plugin_install(args)
 
     print(f"[error] unknown plugin action: {action}")
     return 2
@@ -3733,10 +3952,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     amber = sub.add_parser(
         "amber",
-        help="monthly crystal of the ephemeris (Bernstein JSON)",
+        help="monthly crystal of the ephemeris (amber JSON)",
         description=(
-            "Crystallises one month into Bernstein: monthly sums, active days, "
-            "Spitzstunde — filed under ~/.ephe/amber/<month>.json."
+            "Crystallises one month into amber: monthly sums, active days, "
+            "peak hour — filed under ~/.ephe/amber/<month>.json."
         ),
     )
     amber.add_argument(
@@ -4161,8 +4380,10 @@ def build_parser() -> argparse.ArgumentParser:
             "list       installed bundles first (state = switch state, tools), the catalog second\n"
             "enable     turn a plugin on  (affects the next agent turn)\n"
             "disable    turn a plugin off (its tools stop being offered)\n"
-            "install    install an artifact from plugin-marketplace.json; an "
-            "unsigned local bundle needs --trust-local\n"
+            "install    install the artifact the catalog offers: the plan names the\n"
+            "           version, the hash and the signing key, and the answer repeats\n"
+            "           them. An unsigned local artifact needs --trust-local plus\n"
+            "           --expected-sha256, or a .sig file beside the artifact\n"
             "           (sha256-verified, manifest-validated, quarantined on error)\n"
             "remove     preview removes a bundle; --yes commits, --keep-data keeps\n"
             "           its stored files\n"
@@ -4181,11 +4402,36 @@ def build_parser() -> argparse.ArgumentParser:
     pdisable.add_argument("plugin_id", help="Plugin id from `ephe plugin list`")
     pdisable.set_defaults(func=cmd_plugin)
     pinstall = psub.add_parser("install", help="Install a marketplace plugin")
-    pinstall.add_argument("plugin_id", help="Plugin id from plugin-marketplace.json")
+    pinstall.add_argument("plugin_id", help="Plugin id from `ephe plugin list`")
+    pinstall.add_argument(
+        "--version",
+        default="",
+        help="Install this catalog version instead of the newest compatible one",
+    )
+    pinstall.add_argument(
+        "--source",
+        default="",
+        help="Catalog source id (default: the bundled source)",
+    )
     pinstall.add_argument(
         "--trust-local",
         action="store_true",
         help="Explicitly trust an unsigned local artifact",
+    )
+    pinstall.add_argument(
+        "--expected-sha256",
+        default="",
+        help="Refuse the artifact unless its hash equals this value the publisher states",
+    )
+    pinstall.add_argument(
+        "--approve-permissions",
+        default="",
+        help="Approve this permission-delta digest printed by a refused install",
+    )
+    pinstall.add_argument(
+        "--json",
+        action="store_true",
+        help="Machine-readable JSON answer instead of the printed facts",
     )
     pinstall.set_defaults(func=cmd_plugin)
     premove = psub.add_parser(

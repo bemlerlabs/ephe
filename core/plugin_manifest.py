@@ -70,6 +70,10 @@ from core.plugin_manifest_contract import (
 
 MANIFEST_FILENAME = "ephe-plugin.json"
 SIG_FILENAME = "ephe-plugin.sig.json"
+#: The marketplace scanner's own answer about a bundle, written into the installed
+#: directory after the scan passed. A product record the publisher does not author, so
+#: a signature does not cover it — and an artifact that ships one is refused at install.
+VERIFY_FILENAME = "VERIFY.json"
 PLUGINS_DIRNAME = "plugins"
 
 #: Env seam - when set, the second scan root is this path. Resolved per call, like
