@@ -40,6 +40,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   names the commit, and the major bump upstream has since published waits for a release
   dry-run. Zizmor at `--persona=auditor` reports no finding at warning or above for the
   whole workflow tree, online rules included (was four high and one warning).
+- docs: `LATENCY_BUDGETS.md`, `COVERAGE_GAPS.md` and `CI_HYBRID_CAPACITY.md`, the three pages the
+  scheduled legs cited by a dated name the tree never held. Each number names its machine,
+  interpreter and load; two counts the workflows carried could not be reproduced and were
+  replaced rather than copied -- the five loaded per-task latencies in `tests.yml` now show
+  the skip reason they actually produce, and the "about five times" tracing cost in
+  `ci-gates.yml` is the measured 1.47x (200.32 s traced against 136.01 s untraced, same tree,
+  same box, two minutes apart). One claimed mechanism did not reproduce: under `-n 4` the two
+  coverage forms agree to the statement on both subsets tried, so the comment points at the
+  measurement instead of repeating the assertion.
 - docs: `E2E_CI.md`, the measurements the `frontend-build` browser legs promised in a dated
   page the tree never held. It names the versions the leg installs (`@playwright/test`
   1.64.0, chromium v1248 / Chrome for Testing 156.0.8078.4), the download it is sized for,

@@ -1,6 +1,6 @@
 name: Lockfile agreement
 
-# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, rows 6 and 36 of the residue: the two lockfiles
+# Wave II of docs/CI_HYBRID_CAPACITY.md: the two lockfiles
 # agree with the manifests that generated them, the package manager that ran is the one the pin names,
 # and the last merge's dependency movement prints as a table.
 #

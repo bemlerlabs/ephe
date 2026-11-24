@@ -1,6 +1,6 @@
 name: Container and shell lint
 
-# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, row 12 of the residue: hadolint plus shellcheck over
+# Wave II of docs/CI_HYBRID_CAPACITY.md: hadolint plus shellcheck over
 # the things a container runs, with both binaries resolved rather than assumed. Neither is a dependency
 # of this project, and `scripts/docker-lint-baseline.json` records counts per tool version, so the leg
 # must not depend on whatever a listener happens to carry: it downloads the pinned copies into

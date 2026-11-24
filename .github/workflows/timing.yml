@@ -1,9 +1,9 @@
 name: Runner timing report
 
-# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, and the first scheduled workflow in this
-# repository. Section 1.5 lists five numbers that only a run can give, and four of them have always
-# been sitting in the Actions API unread: the serial timing segment's p90 while three listeners work
-# at once, a cold install inside a leg, the wall of each leg, and whether a leg exists at all.
+# Wave II in the sense of docs/CI_HYBRID_CAPACITY.md, and the first scheduled workflow in this
+# repository. It reads the five numbers only a run can give, four of them sitting unread in the
+# Actions API all along: the serial timing segment's p90 while three listeners work at once, a cold
+# install inside a leg, the wall of each leg, and whether a leg exists at all.
 # `scripts/ci_timing_report.py` reads `runs/{id}/jobs` -- one call per run -- and reduces the step
 # stamps to median/p90/p95/max per leg and step.
 #

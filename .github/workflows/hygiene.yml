@@ -1,6 +1,6 @@
 name: Repository hygiene
 
-# Wave I of docs/CI_HYBRID_CAPACITY_2026-10-11.md, plus the new-commit half of the attribution rule the
+# Wave I of docs/CI_HYBRID_CAPACITY.md, plus the new-commit half of the attribution rule the
 # owner landed in `f15190aa`. Three rules, all measured clean on the tree they were written against
 # (2032 tracked files at landing, 0 case-collision groups, 0 tracked artifacts, and every author
 # address in the range the register accepts), so a red X here can only come from a new entry. The first

@@ -1,6 +1,6 @@
 name: Shipped asset checks
 
-# Wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md, rows 19 and 20. The icon parity suite is already in
+# Wave II of docs/CI_HYBRID_CAPACITY.md. The icon parity suite is already in
 # the tracked tests (`tests/test_r68_brand_icons.py` checks the Tauri set, the PWA dimensions, the
 # manifest's own entries and the RGBA that `tauri::generate_context!` demands); this leg adds the three
 # things no assertion covered, over the surface a user actually receives: references resolving, headers

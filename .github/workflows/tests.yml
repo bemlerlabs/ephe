@@ -373,16 +373,16 @@ jobs:
       # is left in the parallel leg or if this list stops being excluded there, so the next
       # timing assertion has to be placed here on purpose.
       #
-      # What the segment buys is the absence of this leg's own workers, not an idle machine. The
-      # four Linux legs share one box through three listeners ("Scale-out",
-      # docs/decisions/ci-capacity-and-runners.md), so a sibling leg in its `-n auto` phase can
-      # load a leg that is measuring. Measured with the parallel leg running beside
-      # this segment at load ~15: startup p90 127.7 ms against a 150 ms budget, TTFB mean 54.5 ms
-      # against 500 ms and the search route 2.4 ms against 200 ms all held (p90 61.8 ms for the same
-      # segment on an idle machine), and
-      # `test_build_skill_index_cold_latency` — one cold sample against 50 ms — missed at 54.6 ms.
-      # The fix for that gate is the sampling `test_startup_budget` already uses (N runs, nearest-rank
-      # percentile); the 50 ms number stays where `docs/LATENCY_BUDGETS.md` put it.
+      # What the segment buys is the absence of this leg's own workers. The four Linux legs share
+      # one box through three listeners ("Scale-out", docs/decisions/ci-capacity-and-runners.md), so
+      # a sibling leg in its `-n auto` phase can load a leg that is measuring, and
+      # tests/timing_segment.py then refuses the reading rather than recording it. Measured
+      # 2026-11-24 on macOS 26.6 arm64 (10 CPU) with `pytest tests/ -n auto` running beside this
+      # segment: load 2.1 runnable tasks per CPU against the 2.0 bar in core/load_bar.py, and all 18
+      # timing gates skipped with "a budget read here measures the machine". The numbers the segment
+      # does produce, each with the load and the machine it was taken on, are in
+      # docs/LATENCY_BUDGETS.md. A wall clock read under load is recorded nowhere, which is the
+      # reason this step carries no budget figure of its own.
       - name: Run timing gates (serial)
         run: >-
           python -m pytest -q
@@ -400,10 +400,10 @@ jobs:
           --benchmark-json=.benchmarks/bench-timing-py${{ matrix.python-version }}.json
 
       - name: Upload timing benchmark report
-        # The TTFB gate runs through pytest-benchmark, and this is the JSON report the test module's
-        # docstring names — the serial step writes it into .benchmarks/, which no step produced before
-        # (docs/PLAN_GAP_2026-10-11.md P4-17). `always()` keeps the report when a gate above went red,
-        # which is when it is read; `warn` because a serial segment stood down under load
+        # The TTFB gate runs through pytest-benchmark, and this is the JSON report that module's
+        # docstring names: the serial step above writes it into .benchmarks/, which is gitignored and
+        # produced by this leg alone. `always()` keeps the report when a gate above went red, which is
+        # when it is read; `warn` because a serial segment that stood down under load
         # (tests/timing_segment.py) runs no benchmark, so there is legitimately nothing to upload.
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

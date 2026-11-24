@@ -1,6 +1,6 @@
 name: Python lint and types
 
-# Wave I of docs/CI_HYBRID_CAPACITY_2026-10-11.md. The first time either tool ran anywhere on this
+# Wave I of docs/CI_HYBRID_CAPACITY.md. The first time either tool ran anywhere on this
 # repository: `.pre-commit-config.yaml` listed ruff, ruff-format, mypy and pytest, and
 # `core.hooksPath` points at `.husky`, so that file was never executed by anything and the
 # guarantee it read like was not held by any machine.

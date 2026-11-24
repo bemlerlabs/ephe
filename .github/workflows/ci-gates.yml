@@ -245,12 +245,13 @@ jobs:
 
   coverage-floor:
     name: Coverage floor (per-module ratchet)
-    # Cost, measured on the owner's idle box 2026-10-11
-    # (docs/COVERAGE_GAPS_2026-10-11.md): the process-start tracer runs the whole tracked
-    # suite in 308 s where the same suite untraced takes 61.7 s, about five times. That price
-    # is paid on every event: this job is a required check on `main`, and a skipped required
-    # check counts as a success — which is how a module that had fallen to 99% merged. A pull
-    # request must fail here before the merge; a push after it is too late. The fork guard is
+    # The tracer is what makes this leg slow. On this project's machine the traced leg costs 1.47
+    # times the same suite untraced: 200.32 s against 136.01 s, macOS 26.6 arm64 (10 CPU), Python
+    # 3.13.18, tree 0405b51, taken 2026-11-24 with no other suite on the box; the run is recorded in
+    # docs/COVERAGE_GAPS.md. The hosted lane pays its own price, documented beside the budget below.
+    # That price is paid on every event: this job is a required check on `main`, and a skipped
+    # required check counts as a success, so a module that thins out can only be stopped here. A
+    # pull request must fail here before the merge; a push after it is too late. The fork guard is
     # the one the other runner jobs carry.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
@@ -335,10 +336,12 @@ jobs:
         # The startup hook is written into a directory this job owns and is reached over
         # PYTHONPATH, so nothing lands in the shared runner's tool cache. parallel=True
         # gives the main process, every xdist worker and every subprocess its own data
-        # file and `coverage combine` merges them; the `pytest-cov --cov` form drops
-        # worker data and reads a false low (docs/COVERAGE_GAPS_2026-10-11.md). The
-        # timing files stand down under xdist via tests/conftest.py, so their wall clocks
-        # are never read on this leg.
+        # file and `coverage combine` merges them; a child that inherits this environment
+        # picks the hook up, which is what the recipe is for. The `pytest-cov --cov` form
+        # was compared against it on two subsets under `-n 4` and agreed within one
+        # statement, so this leg keeps the recipe and docs/COVERAGE_GAPS.md holds that
+        # comparison. The timing files stand down under xdist via tests/conftest.py, so
+        # their wall clocks are never read on this leg.
         run: |
           hook="$RUNNER_TEMP/coverage-hook"
           mkdir -p "$hook"
