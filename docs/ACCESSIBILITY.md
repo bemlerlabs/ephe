@@ -43,8 +43,11 @@ future small control is held to the same rule instead of a hand-written gap.
   the settings focus handback, the composer popup rectangles and the standing toast
   live region.
 - `app/tests/playwright/a11y-b6.spec.ts` — the phone floors from the 2026-11-11 audit.
-- `app/tests/playwright/theme-parity.spec.ts` — text and boundary contrast on both
-  themes at 1280 and 390.
+- `app/tests/playwright/theme-parity.spec.ts` — text and boundary contrast on the one
+  shipped ground at 1280 and 390. `const GROUNDS = ['forest']`
+  (`app/tests/playwright/theme-parity.spec.ts:724`) is the whole set since the paper ground
+  was retired by owner decision 2026-10-19, and `tests/test_forest_only.py` refuses a second
+  ground in the source rather than trusting this page.
 
 The audit that produced these numbers is the W2 read-only run; the 44 px note above is
 its open item, recorded here as a decision rather than a styling debt.

@@ -166,14 +166,14 @@ jobs:
             tests/playwright/r33-a11y.spec.ts \
             tests/playwright/r4-motion-paint.spec.ts
 
-      - name: E2E theme parity (every surface, both themes, both widths)
+      - name: E2E theme parity (every surface, one ground, both widths)
         if: env.PLAYWRIGHT_NO_BROWSER != '1'
         # D0's instrument. It measures contrast off the painted DOM, so it needs the routes to
         # settle rather than a quiet frame; it still runs alone because it reads eight-second
         # route timeouts, and a browser pool of ten can make a slow route look like a dead one.
-        # One ground ships: the spec's own header dates the paper ground's removal to owner
-        # decision 2026-10-19 (app/tests/playwright/theme-parity.spec.ts:10-11), and the step
-        # name below has not caught up with it.
+        # One ground ships: `const GROUNDS = ['forest']` (theme-parity.spec.ts:724), the paper
+        # ground having been retired by owner decision 2026-10-19, and
+        # `tests/test_forest_only.py` refuses a second one at the source.
         # The counts it reports, and the surfaces where one of them is above zero, live in
         # app/tests/playwright/theme-parity.baseline.json (163 rows of surface, ground and width,
         # six rows above zero); the contrast floor they serve is docs/ACCESSIBILITY.md:39-48,
