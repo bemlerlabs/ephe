@@ -32,6 +32,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   went public, and the account lock turned out to cover public repositories of the same
   account while an organization's public repository ran normally at the same minute
   (`5ebce54`, placed under `decisions/` per the public-docs policy).
+- docs: `E2E_CI.md`, the measurements the `frontend-build` browser legs promised in a dated
+  page the tree never held. It names the versions the leg installs (`@playwright/test`
+  1.64.0, chromium v1248 / Chrome for Testing 156.0.8078.4), the download it is sized for,
+  the 98 tests in the 19 named spec files with the measured run and each of the 31 skips
+  traced to the guard that decides it, the theme leg with its 163-row baseline and the six
+  rows above zero, and a chapter of what was never measured. Three stale counts in the
+  workflow comments it replaces -- 91 specs, ~150 MB, a 1400-test vitest suite -- are
+  corrected to what the commands print today.
 - scripts: `env_lock_agreement.py` compares the environment that is running against the lock it is
   pointed at and refuses the difference. It found what no leg could see: the interpreter every gate and
   every suite run on this machine uses had `wasmtime` 47.0.1 installed while uv.lock pins 50.0.1,

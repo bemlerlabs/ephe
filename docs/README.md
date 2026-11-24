@@ -62,6 +62,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 |---|---|
 | `DEMO_VIDEO.md` | The 40 second Film Studio film in the README, and where each of its frames came from |
 | `PERFORMANCE_BASELINE.md` | Measured start-up and window-memory numbers, with the commands that take them |
+| `E2E_CI.md` | What the browser legs of the frontend build run, the numbers measured locally on 2026-11-24, and the coverage this tree cannot claim |
 | `benchmark-mapping.md` | Why Ephe measures its own harness instead of attaching to an external suite |
 | `DEMOS.md` | The demo clips and how they were captured |
 | `HISTORY.md` | The product's own account of how it came to be, written for the release it ships in |

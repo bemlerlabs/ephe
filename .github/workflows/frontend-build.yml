@@ -29,9 +29,15 @@ jobs:
     # timing gate belongs to the public release-candidate CI on GitHub-hosted runners.
     if: github.repository == 'bemlerlabs/ephe' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ${{ vars.CI_LINUX_RUNNER || 'ubuntu-latest' }}
-    # Not 20: the e2e step below downloads a Chromium (~150 MB) before it runs its 91
-    # specs, on top of the pnpm install, the 1400-test vitest suite and the build.
-    # tests.yml:50 gives its browser-downloading Python leg 25 minutes for the same reason.
+    # Not 20: the e2e step below downloads a Chromium before it runs its 98 tests in 19
+    # spec files, on top of the pnpm install, the vitest suite (568 files, 4073 tests,
+    # measured 2026-11-24 on this tree) and the build. The leg installs @playwright/test
+    # 1.64.0, which pulls chromium v1248 (Chrome for Testing 156.0.8078.4): the mac-arm64
+    # artifacts measured 185.8 MiB plus a 99.0 MiB headless shell, so the ~150 MB this note
+    # carried understates the download. The runner's linux artifact of the same revision was
+    # not measured here. Collected counts, the measured run and the skip classes sit in
+    # docs/E2E_CI.md. tests.yml:50 gives its browser-downloading Python leg 25
+    # minutes for the same reason.
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -165,8 +171,17 @@ jobs:
         # D0's instrument. It measures contrast off the painted DOM, so it needs the routes to
         # settle rather than a quiet frame; it still runs alone because it reads eight-second
         # route timeouts, and a browser pool of ten can make a slow route look like a dead one.
-        # The counts it reports are held by app/tests/playwright/theme-parity.baseline.json,
-        # and the defect list they describe is docs/THEME_SWEEP_2026-10-18.md.
+        # One ground ships: the spec's own header dates the paper ground's removal to owner
+        # decision 2026-10-19 (app/tests/playwright/theme-parity.spec.ts:10-11), and the step
+        # name below has not caught up with it.
+        # The counts it reports, and the surfaces where one of them is above zero, live in
+        # app/tests/playwright/theme-parity.baseline.json (163 rows of surface, ground and width,
+        # six rows above zero); the contrast floor they serve is docs/ACCESSIBILITY.md:39-48,
+        # which names this spec as where text and boundary contrast live. The sweep document this
+        # step used to promise was never added to the tree. Its capture pass, EPHE_THEME_SWEEP=1,
+        # writes PNGs into out/, which .gitignore:166-168 keeps out of version control, so the
+        # baseline is the only committed record a sweep leaves. Measured locally 2026-11-24 with
+        # @playwright/test 1.64.0: exit 0, 1 passed in 1.3m on one worker.
         run: |
           cd app
           pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list --workers=1 \
@@ -184,14 +199,18 @@ jobs:
         # The nineteen spec files that the default project collects are named here, one by
         # one, so this leg's contents stay readable in the workflow and a spec added
         # tomorrow does not join it by accident (the `chromium` project alone would collect
-        # it). The three timing files run in the step above, alone. Until W10-51 four of
-        # the then-21 were left out and carried ten red assertions between them: r14 (two
-        # navigations to the Vite dev server — ERR_CONNECTION_REFUSED on this leg — plus a
-        # probe for the old "?" shortcut and one for a settings toggle the product has
-        # since dropped), q-quality (four tests that seed the DEV-only
-        # window.__epheStore), r12 and panel (two surfaces the bundle no longer names as
-        # the tests did). Each now carries the guard or the current label it needs; the
-        # measurements and the reasoning are in docs/E2E_CI_2026-10-11.md.
+        # it). The three timing files run in the step above, alone. Collected here on
+        # 2026-11-24: 98 tests in these 19 files, and the step as invoked below ran them in
+        # 47.7s to exit 0, 67 passed and 31 skipped, on five workers (Playwright's default of
+        # half the 10 logical CPUs of the machine). Every one of the 31 skips is decided by a
+        # guard in the spec, in three classes: no window.__epheStore handle in a production
+        # bundle, no backend behind a static dist, and lanes that are opted into elsewhere.
+        # docs/E2E_CI.md lists them file by file with the line that decides each,
+        # together with the download sizes and the version the leg installs. The four files
+        # this step left out before W10-51 — r14, q-quality, r12 and panel — carry those
+        # guards today (q-quality.spec.ts:260 is one of them). The wave tag names nothing in
+        # the tree, no commit carries it and no document held its numbers, so what those four
+        # once failed is not restated here.
         run: |
           cd app
           pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list \
