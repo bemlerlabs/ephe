@@ -185,10 +185,17 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   run. The caps in `core/cpython_cell.py` and `core/cpython_guest.manifest.json` are therefore the
   numbers this engine produced, with the older series kept beside them, and
   `docs/SANDBOX_EXECUTION.md` holds the table.
-## [0.1.0] - 2026-11-21
+## [0.1.0] - prepared 2026-11-21, not published
 
-The first public release. Every entry below names a surface this repository
-contains, and the counts are taken from this tree on the release date.
+The version this tree carries — `pyproject.toml`, `app/package.json`,
+`app/src-tauri/tauri.conf.json` and `app/src-tauri/Cargo.toml` all read 0.1.0 —
+prepared on 2026-11-21 and never published. `git ls-remote --tags origin` returns
+nothing and `https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.sh`
+answers 404, both measured on 2026-11-24. The first tag arrives with the first run
+of `scripts/release_cut.sh`, which needs the release environment's signing key pair
+(`docs/RELEASE_POLICY.md`); the cut writes the release date it records into this header.
+Every entry below names a surface this repository
+contains, and the counts are taken from this tree on the date it was prepared.
 
 ### Added
 
