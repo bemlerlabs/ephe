@@ -1,13 +1,12 @@
 """R61: the three glass layers, and what the ink on each of them is worth.
 
-Wave 1 of docs/UI_4X_PROGRAM_2026-10-11.md measured this grid over the two translucent
-classes the stylesheet then carried; work item #67 (U3) replaced those with three layers
-named by role, and the grid follows. Section 8 of the programme holds the rule, this file
-holds the arithmetic that enforces it.
+The stylesheet once carried two translucent classes; work item #67 (U3) replaced those with
+three layers named by role, and the grid follows. This file holds the arithmetic those layers
+are checked against.
 
 A glass panel fills with an alpha colour over the theme canvas, so the text on it sits on a
 colour no token names: the fill blended at the fill's own alpha. The model below is the same
-relative luminance and compositing arithmetic `tests/test_r48_design_tokens.py:111-126`
+relative luminance and compositing arithmetic `tests/test_r48_design_tokens.py:100-113`
 carries, applied one layer further. r48's own cases composite a role against the flat canvas
 and stop there, which is why the muted role reads 5.31:1 in that gate (`globals.css:68-69`)
 and read 4.43:1 on the panel a user was looking at.

@@ -1,6 +1,6 @@
 """The Superpowers pack: adapted skills, nothing executable, attribution intact.
 
-The upstream review (docs/SUPERPOWERS_REVIEW_PACKAGE_2026-10-23.md) refused a
+The upstream review refused a
 core import for three reasons. This pack answers them in the marketplace shape:
 provenance names the exact archive, the four skills that run local scripts are
 excluded, and every skill parses in the Ephe loader.

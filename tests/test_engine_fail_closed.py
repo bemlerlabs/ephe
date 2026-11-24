@@ -128,8 +128,7 @@ class TestCliFailClosed:
         The branch used to apply a placeholder local_ollama + the shipped default tag
         into the child env. The server then looked configured, EPHE_SETUP_MODE stayed
         unset, the chat gate at server/routes/chat.py never armed, and a first turn
-        answered for a model nobody chose (H4 in docs/UNBACKED_CLAIMS_2026-10-10.md;
-        closed 2026-10-11).
+        answered for a model nobody chose; the branch was closed on 2026-10-11.
         """
         import ephe_cli
 

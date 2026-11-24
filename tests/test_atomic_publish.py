@@ -44,7 +44,7 @@ def new_repo(tmp_path: Path) -> Path:
 
 @dataclass
 class FakeWorkspace:
-    """Stands in for ``core/ephemeral_workspace.py``: it exposes the repo root as ``.path``."""
+    """Stands in for ``core/workspace_lifecycle.Workspace``: it exposes the repo root as ``.path``."""
 
     path: Path
 

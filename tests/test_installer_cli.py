@@ -1736,8 +1736,7 @@ def test_given_a_pip_less_venv_when_the_ps1_block_runs_then_it_seeds_pip_and_nev
 
 
 # `install.sh` installs the `ephe` console script into `.venv/bin` and edits no shell rc,
-# so `ephe configure` typed into a fresh terminal answered "command not found" — the
-# finding recorded in docs/UI_AUDIT_2026-10-12.md. The closing block prints the
+# so `ephe configure` typed into a fresh terminal answered "command not found". The closing block prints the
 # activation line first and the commands after it, and docs/INSTALL.md repeats exactly
 # those lines. The three tests below pin the path end to end: the printed set is a subset
 # of the documented set, which is a subset of the real subparsers of

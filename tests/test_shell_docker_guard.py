@@ -14,7 +14,7 @@ from server.main import create_app
 
 XHR_HEADERS = {"X-Requested-With": "XMLHttpRequest"}
 
-# The probe from docs/HOST_EXEC_BOUNDARY_REVIEW_2026-10-11.md, verbatim.
+# The container escape this guard must refuse: a privileged run mounting the host root.
 HOST_ROOT_ESCAPE = "docker run --privileged -v /:/host alpine sh -c 'cat /host/etc/shadow'"
 
 

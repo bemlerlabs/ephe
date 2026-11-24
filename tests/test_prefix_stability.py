@@ -7,9 +7,8 @@ assembly so the longest possible prefix is byte-identical turn over turn and
 only the genuinely volatile blocks (per-turn memory, the daily date) sit at the
 tail.
 
-``_shared_prefix_len`` is the "prefix-stability counter" item 10 of
-``docs/RESEARCH_ADOPTION_2026-10-09.md`` asks for — measured here, not taken
-from a docstring.
+``_shared_prefix_len`` is the prefix-stability counter the module needs: measured here, not
+taken from a docstring.
 """
 
 from __future__ import annotations

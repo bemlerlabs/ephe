@@ -35,9 +35,11 @@ EPHE_RUFF_ADVISORY="F,I001,BLE001,PLW1510,S110,B008,B015,B018,SIM201,SIM212,RUF0
 # PLW1514 (`open()` without an explicit encoding) is in neither set, and the reason is the line ruff
 # itself prints for it: "Selection `PLW1514` has no effect because preview is not enabled." Left in
 # the blocking set it would be a rule that cannot fire, which is the shape of coverage. Turned on
-# with `--preview` it reports 15 findings here, all `Path(...).read_text`/`write_text` calls in
-# tests/. The Windows-encoding row of docs/CI_EXPANSION_2026-10-10.md therefore stays open until the
-# 15 are fixed or the owner accepts `--preview` for the leg.
+# with `--preview` it reports 11 findings with the repository's own config -- 8 in `tests/`, all
+# `Path(...).read_text`/`write_text`, plus three plain `open()` calls at
+# `core/multi_session.py:174` and `scripts/smoke_skills_edit.py:41,48` -- measured 2026-11-24 with
+# ruff 0.16.10, `ruff check --preview --select PLW1514 .`. The Windows-encoding question therefore
+# stays open until those are fixed or the owner accepts `--preview` for the leg.
 
 # evals/repo_verify holds the held-out verification tasks: synthetic broken repositories whose whole
 # purpose is to fail (`tasks/rv02-missing-import/fixture/notifier/send.py` imports nothing and is

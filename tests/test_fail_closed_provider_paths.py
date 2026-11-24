@@ -16,8 +16,8 @@ user gave or refuse:
   persistence      core/engine_config.persist_engine_choice
   call sites       core/model_provider.chosen_model
 
-These pins are the audit's executable half; ``docs/FAIL_CLOSED_PROVIDER_AUDIT.md``
-is the written half. The scan reads the shipped sources.
+These pins are the whole of the audit: nothing about it lives outside this file and the
+sources it scans. The scan reads the shipped sources.
 """
 from __future__ import annotations
 

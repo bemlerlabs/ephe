@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """The shipped icon and asset surface: references resolve, files decode, marks survive 16 px.
 
-`docs/CI_HYBRID_CAPACITY_2026-10-11.md` rows 19 and 20 slot hermes' `icons-freshness-check.yml` and
-`infographic-check.yml` here. The parity half already lives inside the tracked suite
+`docs/CI_HYBRID_CAPACITY.md` schedules this leg (the `asset-checks.yml` job, 04:30 daily) and names the
+two hermes checks it stands in for, `icons-freshness-check.yml` and `infographic-check.yml`. The parity
+half already lives inside the tracked suite
 (`tests/test_r68_brand_icons.py`: the Tauri set, the PWA sizes, manifest entries that exist, RGBA where
 `tauri::generate_context!` panics otherwise) and this script does not repeat it. What nothing checks is
 the three things below, which is why the leg is a job that names the failing asset rather than a second

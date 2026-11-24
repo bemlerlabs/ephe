@@ -1,6 +1,6 @@
 """Migrate flat skills (skills/{name}.md) into the pack format (skills/{name}/SKILL.md).
 
-R16 (docs/ROADMAP.md): versioned pack format for ALL built-in skills.
+R16: versioned pack format for ALL built-in skills.
 The pack format carries the skill metadata in YAML frontmatter (name, version,
 trigger, tools, …); the Markdown body stays unchanged (the parser reads both,
 frontmatter wins). Existing references folders (e.g. skills/pdf-creator/

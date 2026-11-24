@@ -6,7 +6,7 @@ Measured, not assumed:
 - the answer is the `data` field of the `chunk` frame and the route forwards it unfiltered, so an
   engine that echoes its own context block would reach the transcript through the same field.
 
-The audit bubble (docs/UX_PERSONA_AUDIT_2026-10-10.md, B2) was reproduced from the client's own
+The audit bubble was reproduced from the client's own
 compaction: the placeholder it shows ("- Keine stabilen Fakten erkannt.") exists only in (language-gate: ignore — quoted client-side placeholder)
 app/src/lib/compact.ts:228, while the Python producer writes the English form
 (core/conversation_compactor.py:222). These tests therefore pin the server half of the contract and

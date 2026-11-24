@@ -1,6 +1,6 @@
 """tests/test_run_record.py — B1: the machine-readable run record for `ephe code`/`ephe goal`.
 
-docs/CODING_AGENT_VS_PI_DESIGN.md §3.5 states the gap: both coding entry points printed
+The gap these tests close: both coding entry points printed
 prose, accepted no machine-readable flag, and therefore could not emit the run record
 the measurement protocol needs. These tests are the proof it now can, at the two levels
 that matter:

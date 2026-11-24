@@ -1,6 +1,6 @@
 """The setup surface's port hints are keyed, the way the reader's refusals are.
 
-`docs/SERVER_SURFACE_LANGUAGE_DECISION_2026-10-09.md` §6, second slice: six
+Six
 `_ENGINE_PORTS` sentences reached two surfaces that worked around their language
 instead of translating them. The code is the contract, the sentence stays what an
 old client and the log read.

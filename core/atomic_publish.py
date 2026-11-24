@@ -48,8 +48,8 @@ Interface contract (duck-typed; the owners' types are not imported)
 ``core/change_set.py`` (w1-changeset) stores — ``ChangeSet(id, workspace_id, summary,
 files=[FileChange(path, op, diff_sha)], provenance, state)`` — a set of *paths*, never file
 bytes: the bytes stay in the workspace worktree and are read from there. The workspace root
-comes from ``change_set.workspace`` (``core/workspace_lifecycle.Workspace`` exposes ``.path``,
-and ``core/ephemeral_workspace.py`` is expected to as well) or ``change_set.workspace_id``;
+comes from ``change_set.workspace`` (``core/workspace_lifecycle.Workspace`` is the only class
+in this tree that exposes ``.path``) or ``change_set.workspace_id``;
 failing those, ``change_set.repo_root`` / ``change_set.workspace_root`` / ``$EPHE_PUBLISH_REPO``
 / the current directory. ``op`` of ``delete`` removes the path; ``create``/``modify`` (and any
 entry) are read from ``<workspace>/<path>``. For a fake or an inline call an entry may instead

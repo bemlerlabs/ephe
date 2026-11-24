@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Lockfile agreement: what the manifest declares, what the lock recorded, and which tool ran.
 
-Wave II of `docs/CI_HYBRID_CAPACITY_2026-10-11.md`, rows 6 and 36 of the residue. The npm group merge
-`c10b9a99` moved 16 packages in `app/pnpm-lock.yaml` and it moved through `origin/main` without a
-frozen-install check on the path, which is the class this file exists to close: a lock that no longer
+`docs/CI_HYBRID_CAPACITY.md` schedules this leg (the `lockfile.yml` job, 03:30 daily). The merge that
+first exposed the class -- an npm group update that moved packages in `app/pnpm-lock.yaml` through
+`origin/main` with no frozen-install check on the path -- predates this tree, whose only commit touching
+that lock is the 0.1.0 publication `2942348`, so the hash and the package count belong to the private
+history and are not checkable from here. What the gate holds is the class: a lock that no longer
 agrees with its manifest installs something other than what the developer resolved, and
 `pnpm install --frozen-lockfile` is the only command that says so.
 

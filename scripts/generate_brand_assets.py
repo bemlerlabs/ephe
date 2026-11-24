@@ -3,7 +3,7 @@ scripts/generate_brand_assets.py
 
 The shipped icon kit is the paper moth of `scripts/paper_moth.py`: a figure folded
 from one sheet, tied at the wing roots with the product red (owner decision
-2026-10-29, `docs/brand/paper-moth-decision.md`). This script composes the emblems
+2026-10-29). This script composes the emblems
 and rasters around that figure, so the tab, the PWA tiles, the Tauri bundle and the
 tray all carry the vector the app inlines. The cut follows the size, not the other
 way round — the whole figure from 48 px, the plain red head-and-blade cut below —

@@ -196,7 +196,7 @@ class TestCommands:
         assert "scripts/absent.py" in capsys.readouterr().out
 
     def test_a_script_under_app_resolves(self, tmp_path, capsys):
-        """`scripts/bundle_budget.py` is a real command inside `app/`, so the gate looks there."""
+        """`app/scripts/bundle_budget.py` is a real command, so the gate resolves it under `app/`."""
         root = ROOT_OK.replace("make test", "make test\ncd app && python scripts/bundle_budget.py dist")
         files = base_tree(**{"AGENTS.md": root, "app/scripts/bundle_budget.py": "print()\n"})
         assert run(tmp_path, files) == 0

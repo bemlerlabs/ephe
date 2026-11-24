@@ -21,8 +21,7 @@ Freeze numbers (``create_app().openapi()``, 2026-10-14, HEAD-only tree):
 
   177 operations (method + path) over 154 paths, on from 169 over 149. Wave 5D
   (2026-10-20) adds the server-authoritative store's create, read, rename and
-  activate; the existing sessions routes stay and
-  ``docs/SESSION_STORE_DECISION.md`` records the store decision. The three
+  activate; the existing sessions routes stay and the server owns the store they write. The three
   sessions additions (list, delete, prune) landed with ``core/session_lifecycle.py``:
   the store had no reachable hold on the files it wrote. ``POST /api/sessions/clear``
   is the one-action counterpart (every namespace, nothing kept). The ten isolation

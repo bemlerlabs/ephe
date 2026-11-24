@@ -37,8 +37,8 @@ command line and the environment entry that proves it:
 * **unreaped server child** — any process still running ``run_server.py`` whose
   environment names a test temporary directory, on *any* port. A test that moves to an
   ephemeral port and forgets to reap its child does not squat :8765, but it does leave a
-  product server holding a deleted home; ``tests/test_engine_e2e_qwen.py`` shows the
-  child exists for a second after a clean kill, which is why this rule re-checks before
+  product server holding a deleted home; a child can outlive a clean kill by a second,
+  which is why this rule re-checks before
   it reports.
 
 Naming that last class was never enough to end it. Under ``-n 8`` on a loaded runner a

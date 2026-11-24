@@ -6,7 +6,7 @@ the case it has to prove. Nothing here measures performance, so nothing here is 
 
 The defect: `get(X) or get(X, "1") != "0"` returned the raw STRING "0" from the first
 operand whenever the variable was set — and "0" is truthy. So the documented debugging
-switch (docs/CLI_ROADMAP.md: "EPHE_BENCH_GATE=0 to skip while debugging") never skipped
+switch (`EPHE_BENCH_GATE=0` to skip while debugging) never skipped
 anything: measured before the fix, `EPHE_BENCH_GATE=0` gave `3 passed`.
 """
 from __future__ import annotations

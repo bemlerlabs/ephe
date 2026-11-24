@@ -2,7 +2,7 @@
 Ephe — R33: bundle budget as a test (DoD: "messbare Performance-Tests,  # language-gate: ignore (quoted German R33 DoD requirement — opening line of the quote, kept verbatim)
 Budgets als Tests wie test_r25_latency_budgets.py").  # language-gate: ignore (quoted German R33 DoD requirement — continuation line of the same quote)
 
-scripts/bundle_audit.py encodes the product budget: the INITIAL payload the
+app/scripts/bundle_audit.py encodes the product budget: the INITIAL payload the
 browser fetches on first paint (entry chunks + static graph + HTML-linked CSS,
 gzip) must stay under 500 KB. Lazy route chunks are excluded by design —
 React.lazy keeps them out of the initial load (App.tsx). This wrapper turns

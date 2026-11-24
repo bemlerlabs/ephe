@@ -1,8 +1,9 @@
 """WA-10 — the vision module's inference and sandbox paths (core/vision.py).
 
-Item 9 of docs/COVERAGE_GAPS_2026-10-11.md left core/vision.py at 55%: the
+The gap this file closes in `core/vision.py`: the
 screen-grab fallback, the bounding-box inference and the sandbox gate were not
-exercised because the GUI libraries are absent. These tests stand in for the
+exercised because the GUI libraries are absent. Where the module stands today is in
+`docs/COVERAGE_GAPS.md`. These tests stand in for the
 model client and the screenshot, so the parse/refuse branches run without a
 display, a camera or an engine.
 """

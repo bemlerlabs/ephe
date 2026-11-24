@@ -1,6 +1,6 @@
 """Audit 2026-09-13 — fixes from the skill/tool deep audit.
 
-Findings (docs/skill-tool-audit-2026-09-13.md):
+The audit of 2026-09-13 found:
 1. xlsx: a silent data-corruption bug (English thousands '1,234' → 1.234).
 2. xlsx: echo leak — prose with commas was parsed as a table; mixed
    prompts (inline table + file reference) bypassed the data gate.

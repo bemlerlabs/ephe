@@ -385,7 +385,8 @@ class TestDeadIgnoreFlags:
     def test_no_leg_carries_an_ignore_flag_for_a_path_that_does_not_exist(self):
         """`--ignore=tests/playwright` names nothing from the repository root: the specs live in
         `app/tests/playwright/`, so the flag excluded no test and read like a decision had been made.
-        The lane that runs those specs is wave II of docs/CI_HYBRID_CAPACITY_2026-10-11.md.
+        The lane that runs those specs is the `e2e` step of `.github/workflows/frontend-build.yml`,
+        recorded in `docs/E2E_CI.md`.
         """
         offenders: list[str] = []
         for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):

@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """Catalog freshness: the committed catalogs are what their sources imply.
 
-Wave II of `docs/CI_HYBRID_CAPACITY_2026-10-11.md`, rows 40 and 41 (hermes' `skills-index-freshness.yml`
-and `skills-index.yml`, the regenerate-and-diff half). Surfaces, decided differently because the
+`docs/CI_HYBRID_CAPACITY.md` schedules this leg (the `catalog-freshness.yml` job, 04:01 daily) and names
+the two hermes checks it absorbs, `skills-index-freshness.yml` and `skills-index.yml` -- the
+regenerate-and-diff half. Surfaces, decided differently because the
 acceptance for a gate is that it is green on the tree it was written against:
 
 * `skills-lock.json` through `scripts/generate_skills_lock.py --check`, which already answers with
-  `skills_lock_mismatch pack=<slug> lock=<hash> disk=<hash>`. Proven red on 2026-10-11 by appending one
-  space to `skills/api-designer/SKILL.md` and restoring it.
-* `plugin-catalog.json` through `scripts/generate_plugin_catalog.py --check`, the check mode added by
-  this wave. Proven red by adding a file to `plugins/browser-use/`, which moves that pack's `dir_sha256`
-  and prints `sha256 af307177d0be... != ff6389797bd7...`.
+  `skills_lock_mismatch pack=<slug> lock=<hash> disk=<hash>`. Re-proven red on 2026-11-24 by appending
+  one space to `skills/api-designer/SKILL.md`: it answered
+  `skills_lock_mismatch pack=api-designer lock=d58293b84a84 disk=d5355c6c95e4` and exited 1, and the
+  file was restored.
+* `plugin-catalog.json` through `scripts/generate_plugin_catalog.py --check`, the check mode added with
+  this leg. Re-proven red on 2026-11-24 by adding a file to `plugins/browser-use/`, which moves that
+  pack's `dir_sha256` and prints `plugin-catalog: FAIL browser-use: sha256 5925af361eea... !=
+  a8563cf50917...` at exit 1; the file was removed and the check returned to green.
 * `marketplace/index.json` through `scripts/build_marketplace.py --check`, which repacks every bundle
   in a temporary directory and compares the index and the ZIP bytes against the committed shelf.
   Proven red on 2026-11-22: the committed index carried `countdown` under `meta` while the builder

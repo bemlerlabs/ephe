@@ -163,6 +163,19 @@ jobs:
         # cannot bring such a tell along unnoticed.
         run: python3 scripts/prose_tells.py --strict
 
+      - name: Citations point at files that exist
+        # A comment that cites a document is a claim with a claimed home, and this tree
+        # shipped comments pointing at pages no commit ever wrote: a bench comment cited a
+        # dated design page for a number, and a test docstring cited a checker that never
+        # existed here. scripts/citation_check.py reads comments and docstrings only -- a
+        # fixture path a test invents in a string is the test's own business -- and refuses
+        # a path with no file behind it, a line range past the end of a real file, and the
+        # dated/PLAN/DRAFT naming style a working note takes before it is deleted. It
+        # started at zero findings on this tree, which is what makes it a gate and not
+        # noise; scripts/prose_tells.py cannot see this class because a phantom path is
+        # well-written prose.
+        run: python3 scripts/citation_check.py
+
       - name: Agent instruction hub and areas
         # AGENTS.md is the first file an agent loads, and prose no check reads is the
         # version that drifts. The gate holds the caps, the section order, the routing

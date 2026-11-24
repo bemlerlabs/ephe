@@ -14,8 +14,9 @@ The commits already written keep their addresses. The standing decision keeps th
 the lab notebook and publishes a clean-room snapshot later, so the gate is over new commits:
 `--identity` from the pre-commit hook judges the commit that does not exist yet, `--range` from
 `hygiene.yml` judges the commits a change carries, and `--report` is what reads the old ones.
-`tests/test_attribution_history.py` holds the written history to the exceptions listed here, so
-"history is out of scope" stays a measured statement rather than a sentence.
+`--report` over a whole branch is the only thing that holds the written history to the exceptions
+listed here, and no test in this tree runs it: a claim about history is only as fresh as the last
+run of this instrument, and the sentence carrying it should say which run that was.
 """
 from __future__ import annotations
 

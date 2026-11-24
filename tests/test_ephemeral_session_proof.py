@@ -39,7 +39,6 @@ walk as a red. The strict marks came off as the product satisfied each row, whic
 strict mark exists to force. Widening the declared set here would be the same error as an
 unenforced cap — a claim that grades itself.
 
-Sources: `docs/EPHEMERAL_PROOF_2026-10-11.md`.
 """
 from __future__ import annotations
 

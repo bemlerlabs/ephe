@@ -1,6 +1,7 @@
 """The server-authoritative session store: create, read, rename, activate, write-through.
 
-The store decision is in `docs/SESSION_STORE_DECISION.md`; these tests pin the
+The server owns the store, so a rename or an activation survives a second surface; these
+tests pin the
 0.1.0 behavior the surfaces share.
 """
 from __future__ import annotations

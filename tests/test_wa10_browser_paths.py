@@ -1,8 +1,8 @@
 """WA-10 — the browser manager's page-interaction paths (core/browser.py).
 
-The ranked gap (docs/COVERAGE_GAPS_2026-10-11.md item 9) left core/browser.py at
-57%: the constructor and the singleton were pinned, everything a session
-actually does was not. These tests drive one manager per fake page and pin the
+The gap this file closes in `core/browser.py`: the constructor and the singleton were
+pinned, everything a session actually does was not. Where the module stands today is in
+`docs/COVERAGE_GAPS.md`. These tests drive one manager per fake page and pin the
 contract each method carries — a readable answer instead of a traceback, the URL
 policy as the only navigation door, and the browser_exec helper namespace bound
 to one session loop.

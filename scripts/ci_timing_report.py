@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """Runner timings, read from the Actions API and reduced to the numbers a queue decision needs.
 
-`docs/CI_HYBRID_CAPACITY_2026-10-11.md` section 1.5 lists figures no run in this repository has ever
-printed: the serial timing segment's p90 while several listeners work at once, a cold install inside a
-leg, the Playwright lane's first wall, the runner cost of the two Wave I legs. `GET
+Four figures this repository has never printed: the serial timing segment's p90 while several listeners
+work at once, a cold install inside a leg, the Playwright lane's first wall, the runner cost of the two
+push-time legs. `GET
 /repos/{owner}/{repo}/actions/runs/{run_id}/jobs` already answers all of it -- one call per run, and
 each job entry carries `started_at`, `completed_at`, `runner_name` and a `steps` array with its own
-timings. The unit that matters is the step: measured on run 38095759973, `pytest-linux (py3.12)` has an
-81 s job wall whose `Run tracked pytest suite` step is 47 s, and the difference is checkout, install and
-`Set up job`, which belong to no timing budget.
+timings. The unit that matters is the step: measured on run 45202253195 (`Shipped asset checks`, job
+wall 2026-11-23T15:10:40Z to 15:11:01Z, 21 s), the step that runs the gate,
+`Check the shipped surface`, occupies under a second of it, while `Set up job`, `Checkout` and
+`Install the Pillow this lock records` account for 14 s that belong to no timing budget.
+`docs/CI_HYBRID_CAPACITY.md` schedules this instrument under `timing.yml` (02:30 daily).
 
 Two things the instrument treats as findings rather than blanks:
 

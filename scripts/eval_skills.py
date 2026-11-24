@@ -1,8 +1,8 @@
 """Local deterministic skill evals for Ephe.
 
 Scores mocked or future local model responses against expected tool use and required
-output terms. Scoring is deterministic: no cloud call and no LLM judge, the posture the
-Harness Lab demands of every suite (`docs/HARNESS_LAB_RRSI_DESIGN.md` 4.3(4)).
+output terms. Scoring is deterministic: no cloud call and no LLM judge, the posture every
+local suite is held to.
 
 Three case families share one file format under `evals/skills/`:
 

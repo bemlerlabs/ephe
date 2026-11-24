@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """hadolint and shellcheck counts against a committed baseline, in one gate.
 
-`docs/CI_HYBRID_CAPACITY_2026-10-11.md` row 12 of the residue refuses a docker-lint job that assumes
-the two binaries exist, and this repository's history says a gate that silently finds nothing because
+`docs/CI_HYBRID_CAPACITY.md` schedules this leg (the `docklint.yml` job, 03:00 daily), and this
+repository's history says a gate that silently finds nothing because
 its tool was missing is worse than no gate. So the instrument resolves both, refuses naming the tool
 that did not resolve, and compares what they report against `scripts/docker-lint-baseline.json`:
 

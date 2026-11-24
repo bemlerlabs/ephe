@@ -1,6 +1,6 @@
 """Every coded engine line has both halves, and the bundle has no silent key.
 
-`docs/SERVER_SURFACE_LANGUAGE_DECISION_2026-10-09.md` §5 splits the dual-sink text: the
+The split this file holds: the
 sentence the engine reads stays in the producer (`core/net_guard.py`, the tool modules,
 `core/browser_url.py`), the sentence the user reads becomes `reader.<reason_code>` in
 `app/src/locales/{de,en}.json`. Four things have to stay true for that split, and all four

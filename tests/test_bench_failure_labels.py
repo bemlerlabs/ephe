@@ -10,7 +10,9 @@ reaches the assertion carries the plan instead of the result. `_error_class` fil
 under `assertion`; these assertions hold that label and the end state that
 produced it, so a later re-classification is a visible change.
 
-The full label table and trace citations are in `docs/ERROR_ANALYSIS_W3_2026-10-11.md`.
+The two cohorts were read from `~/.ephe/bench` on the machine that ran them; that store is
+not in this tree and is empty here, so the labels below are the assertion and the traces they
+came from are named, not linked.
 """
 from __future__ import annotations
 

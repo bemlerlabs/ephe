@@ -1,9 +1,9 @@
 """The evidence uploads pin one retention value, so the plan and the tree cannot drift apart.
 
-`docs/SOAK_GATE_2026-10-11.md` reads the retention figure off the workflows that upload
-evidence. Two of them disagreed with the plan: `frontend-build.yml` carried 7 days, and
-`bench-trend.yml` set nothing at all and so inherited an account default no file here
-controls. The plan's 14 days is the chosen value, and this test holds both uploads to it.
+Two uploads once disagreed: `frontend-build.yml` carried 7 days, and `bench-trend.yml` set
+nothing at all and so inherited an account default no file here
+controls. 14 days is the chosen value, and this test holds both uploads to it: read on
+2026-11-24 both carry `retention-days: 14` (`frontend-build.yml:246`, `bench-trend.yml:62`).
 """
 from __future__ import annotations
 

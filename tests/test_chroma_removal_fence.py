@@ -7,11 +7,13 @@ and `uv.lock` no longer carry it, `core/memory_chroma.py` is gone, and both the 
 and the vision store run on `core/memory_kepta.py`.
 
 That closes those rows by removing the ground they stood on, and a later commit can put
-the ground back by accident. This file is the reader for the state, where
-`tests/test_chroma_server_fence.py` used to be the reader for the acceptance. It holds three
+the ground back by accident. This file is the reader for the state. It holds three
 things: the dependency is absent from both lockfiles, no shipped module imports it, and the
 server surface those advisories are about stays absent too — because an import is how the
 acceptance would come back.
+
+`citation:absent core/memory_chroma.py` - the module the chroma store lived in; naming it is
+how this fence forbids it coming back.
 
 `scripts/import_legacy_store.py` is the one exception and it is marked: the lines that name
 the package carry `# gate:legacy`, and the read runs under `uv run --with …` in an

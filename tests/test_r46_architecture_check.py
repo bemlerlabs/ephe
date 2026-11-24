@@ -21,9 +21,9 @@ Pins:
    not depend on where the tracked freeze sits above the tree.
 
 The tracked `.architecture-baseline.json` is a read-only input here.
-`tests/test_harness_lab_gate.py` loads it at import,
-`scripts/harness_lab_gate.py` reads it inside a round, and the `check`
-mode reads it too — so the earlier shape of pin 4, an update
+`scripts/architecture_check.mjs` reads it in `check` mode and inside a `baseline:update`
+round, and any other reader in the tree parses the same tracked file — so the earlier shape
+of pin 4, an update
 against the tracked path plus a restore in `finally`, wrote state every
 parallel worker could see: under `pytest tests -n 8` the updater's write
 overlaps the readers' `JSON.parse`. Private paths keep the suite off
@@ -183,8 +183,8 @@ def test_baseline_update_then_check_zero(tmp_path: Path) -> None:
     """baseline:update --baseline <path> writes it; check stays exit 0 against it.
 
     The private path keeps the suite's own parallelism out of the picture: an update
-    against the tracked path rewrote a file that `check` here, tests/test_harness_lab_gate
-    at import, and scripts/harness_lab_gate.py inside a round all read, so the restore in
+    against the tracked path rewrote a file that `check` here and every other reader of the
+    tracked freeze parse, so the restore in
     `finally` raced readers in other workers.
     """
     private = tmp_path / ".architecture-baseline.json"

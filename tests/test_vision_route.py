@@ -1,7 +1,6 @@
 """server/routes/vision.py — the HTTP face of the vision pipeline, instrumented.
 
-The endpoint census (docs/ENDPOINT_SURFACE_AND_GUARD_CENSUS_2026-10-09.md §4.2a)
-found both vision endpoints with 0 tests and the base64 twin uncapped; these
+Both vision endpoints stood with 0 tests and the base64 twin uncapped; these
 tests are the missing instrumentation. Three contracts are pinned, each with
 the written rule it enforces:
 

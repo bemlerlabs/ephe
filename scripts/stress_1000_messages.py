@@ -143,12 +143,10 @@ def classify_language(text: str) -> str:
 def tolerant_language_check(expected: str | None, text: str) -> tuple[str, str]:
     """Classify with explicit tolerance for the stopword heuristic's blind spot.
 
-    The 1000-message campaign logged 62 "lang_unclassifiable" hits and ZERO
-    hard mismatches: ultra-short replies (emoji / one-word acknowledgments)
-    simply give a stopword classifier no evidence. That is a harness limit,
-    not a product defect, so it is reported as "tolerated" (note) instead of
-    a validation failure — while evidence-backed mismatches and long
-    unclassifiable blobs keep failing loudly.
+    Ultra-short replies (emoji / one-word acknowledgments) give a stopword classifier no
+    evidence at all, so the classifier has nothing to check and the row is a harness limit.
+    Such rows are reported as "tolerated" (note) and stay out of the validation failure count,
+    while evidence-backed mismatches and long unclassifiable blobs keep failing loudly.
     """
     if not expected or expected == "any":
         return "pass", ""

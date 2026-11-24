@@ -1,7 +1,7 @@
 """An endpoint decides whether it wants a token — not its host name.
 
-`docs/ENGINE_ENDPOINT_AUTH_RUNBOOK.md` §"Package N": the Spark is about to sit behind
-a Caddy that answers 401 to anonymous requests. `core/model_provider.py` decided the
+The Spark is about to sit behind a Caddy that answers 401 to anonymous requests.
+`core/model_provider.py` decided the
 requirement from the host (`*.ts.net`, RFC1918, loopback → "needs no key"), which is a
 claim about the infrastructure; the response is a claim about the endpoint. These tests
 run a real loopback endpoint that refuses the anonymous request and accepts the keyed

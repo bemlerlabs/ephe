@@ -4,7 +4,7 @@
 The product audit log keys every tool execution to a turn, and the turn event names the skill that
 was active, so a session's array type and its tool use are readable without a session id:
 `kind=turn` carries `tool=<skill name>` and `detail="mode=… tools=<calls in the turn>"`, and every
-`kind=tool_exec` carries the same `turn_id`. See docs/TOOL_ARRAY_COST_2026-10-10.md §8.
+`kind=tool_exec` carries the same `turn_id`.
 
 Nothing is ever written to the log: it is opened for reading, and the only outputs are stdout and
 the exit code. Exit 2 means the log could not be read, which is a precondition failure, not a

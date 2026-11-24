@@ -11,8 +11,9 @@ steps; this script never publishes an entry.
     python3 scripts/catalog_discover.py --out out/catalog/<run>/candidates.json
     python3 scripts/catalog_discover.py --sources ephe --out /tmp/candidates.json
 
-The candidate shape and the licence gates are documented in
-docs/CATALOG_ACQUISITION_PLAN_2026-10-22.md.
+The candidate shape is the dict `_candidate()` returns and the licence gate is
+`ALLOWED_LICENSES` applied by `permissive()`; the area's design sits in
+`docs/DISCOVER_MARKETPLACE_DESIGN.md`.
 """
 from __future__ import annotations
 

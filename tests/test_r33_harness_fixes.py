@@ -1,9 +1,8 @@
 """
 Ephe — R33 / stress triage P3-2: harness honesty fixes.
 
-The 1000-message campaign report (docs/STRESS_1000_2026-09-06.md, P3-2)
-recorded four harness limitations, fixed here as pure, unit-testable helpers
-inside scripts/stress_1000_messages.py:
+Four limitations the 1000-message stress runs exposed, fixed as pure, unit-testable
+helpers inside scripts/stress_1000_messages.py:
 
   1. retry transparency  — the first-attempt failure was silently overwritten
      whenever a retry succeeded (9 rows said attempts:2 with no reason);

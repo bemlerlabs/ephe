@@ -13,8 +13,6 @@ that config to enumerate the models the user already installed — each answers 
 offline when the build raises. A tag check at readiness would hide those models during
 onboarding. The refusal that matters belongs to the request path, where a tag is
 consumed: ``chosen_model`` raises ``EngineNotConfigured``.
-
-Written half: the R24 section of ``docs/FAIL_CLOSED_PROVIDER_AUDIT.md``.
 """
 from __future__ import annotations
 

@@ -1,7 +1,8 @@
 """Ephe — the R38 chain: named-tool coverage, the file primitives in a whitelisted array, session-aware discovery.
 
-Measured 2026-10-10 (docs/ENDSTATE_DELTA_2026-10-10.md): 33 of 37 endstate reps whose session array
-lacked read_file failed, 2 of 42 reps whose array kept it failed. W3 and W4 below are the
+The chain exists because a session array without `read_file` failed the file tasks it was given;
+the cohort counts that first showed it were recorded outside this tree and are not carried here.
+W3 and W4 below are the
 benchmark's own prompt texts.
 
 RULE: tests BEFORE implementation. Given / When / Then — strictly.

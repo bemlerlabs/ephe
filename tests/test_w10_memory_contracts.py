@@ -1,8 +1,6 @@
 """Wave 10 (H4) — the memory store's three measured defects, pinned.
 
-The walkthrough of 2026-10-12 drove the running product and found three defects
-in the memory surface (``docs/media/user-walkthrough-2026-10-12/FINDINGS.md``,
-§ high, plus the memory page's own notes):
+Three defects in the memory surface, each pinned by the case that names it:
 
 1. **The trash could never fill and its restore was dead UI.** `DELETE
    /api/memory/{id}` answered 200 and the entry was gone for good: `GET

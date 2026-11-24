@@ -5,8 +5,8 @@ behind that guard: which container the docker backend may reuse, which surface t
 route reaches, and what the audit says when a configured sandbox has no wrapper on the
 host. The backend runs against a stubbed `_docker_run`, so nothing here needs a daemon.
 
-docs/HOST_EXEC_BOUNDARY_REVIEW_2026-10-11.md names the findings; G1 and G2 carry
-receipt tests below so a later change to either boundary has to face them.
+G1 and G2 are the two boundary findings this file carries receipt tests for, so a later
+change to either boundary has to face them.
 """
 from __future__ import annotations
 

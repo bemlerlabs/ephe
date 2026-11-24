@@ -1,7 +1,6 @@
 """Server prose that reaches a reader has to carry a code the surface can translate by.
 
-The measured reason this file exists (`docs/SERVER_SURFACE_LANGUAGE_DECISION_2026-10-09.md` §2, and the
-evening re-read in §8): two sentences in `server/routes/chat.py` are German, they arrive in the chat's
+The measured reason this file exists: two sentences in `server/routes/chat.py` are German, they arrive in the chat's
 error display, and nothing beside them names what they are — so the only way to make an English reader
 see English was to rewrite the sentence and take the German reader's text with it. That is the defect
 this repo already hit with 23 receipt lines that lost their language on the way to English.
