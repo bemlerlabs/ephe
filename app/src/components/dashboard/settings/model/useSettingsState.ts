@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { invokerFromFocus } from '@/hooks/useFocusReturn'
 import { useChatStore } from '@/store/chatStore'
 import { AppSettings, healthCheck } from '@/lib/api'
 import type {
@@ -175,8 +176,15 @@ export function useSettingsState(props: SettingsPanelProps) {
   // The close used to sit in a second effect with its own window listener, so a
   // single Escape ran onClose twice.
   const panelRef = useRef<HTMLDivElement>(null)
+  // The element focus returns to when the sheet closes. This sheet is mounted BY its own
+  // open (`pages/SettingsPage.tsx:14` passes `isOpen` as a literal), so the focusin pass in
+  // `index.tsx` cannot record the press that opened it — the listener did not exist yet.
+  // Taken here, in the last moment before focus moves inside, through the same helper
+  // `useFocusReturn` uses for its own second chance.
+  const invokerRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
     if (!isOpen) return
+    if (!invokerRef.current) invokerRef.current = invokerFromFocus(panelRef.current)
     const first = panelRef.current?.querySelector<HTMLElement>(FOCUSABLE)
     first?.focus()
     const onKey = (e: KeyboardEvent) => {
@@ -184,7 +192,7 @@ export function useSettingsState(props: SettingsPanelProps) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, invokerRef])
 
   const trapPanelFocus = (e: React.KeyboardEvent) => {
     if (e.key !== 'Tab' || !panelRef.current) return
@@ -395,6 +403,7 @@ export function useSettingsState(props: SettingsPanelProps) {
     mobileConnected,
     setMobileConnected,
     panelRef,
+    invokerRef,
     trapPanelFocus,
   }
 }

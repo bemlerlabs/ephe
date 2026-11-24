@@ -155,9 +155,36 @@ held in `docs/ACCESSIBILITY.md:39-48`, which already names `theme-parity.spec.ts
 contrast live.
 
 The capture pass, `EPHE_THEME_SWEEP=1`, writes PNGs to `out/forest-sweep-2026-10-19/`
-(`theme-parity.spec.ts:32-33,42`). `.gitignore:166-168` ignores `out/**/*.png`, `*.jpg` and `*.webp`, so that
-pass leaves no committed evidence and never did: no sweep capture is in the tree, and the baseline is the
-only committed statement of the sweep's result. `theme-parity.spec.ts` cites `docs/DESIGN.md` at three points — §3 at `:11`, §12 at `:30`, §8 at `:579` —
+(`theme-parity.spec.ts:32-33,42`). Neither pass on this tree set it: `ls -d out` answers
+`No such file or directory`, and `.gitignore:166-168` ignores `out/**/*.png`, `*.jpg` and `*.webp`, so the
+baseline above is the committed record of what the instrument sees.
+
+The leg that carries the axe matrix, the 24 px floor and the settings focus handback,
+`tests/playwright/a11y-desktop.spec.ts`, belongs to no workflow: `rg -n -e 'a11y' .github/workflows/`
+returns one hit, the timing file `r33-a11y.spec.ts` at `frontend-build.yml:166`. It ran here on 2026-11-24
+with one worker, against the `pnpm run build` bundle of build `e137bc2`, and this page is where its numbers
+are written down. Same run of the theme leg as CI invokes it, same minute, same bundle:
+
+```
+cd app && pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list \
+  --workers=1 tests/playwright/a11y-desktop.spec.ts
+Running 13 tests using 1 worker … 13 passed (28.4s)   started 03:40:06, exit 0, log /tmp/final_a11y.log
+
+cd app && pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list \
+  --workers=1 tests/playwright/theme-parity.spec.ts
+1 passed (1.3m)                                       started 03:40:36, exit 0, log /tmp/final_theme.log
+theme-parity setup/forest/1280       text=0 boundary=1 render=0
+theme-parity intro-scene/forest/1280 text=0 boundary=1 render=0
+theme-parity setup/forest/390        text=0 boundary=1 render=0
+theme-parity intro-scene/forest/390  text=0 boundary=1 render=0
+```
+
+Both runs are on `@playwright/test` 1.64.0 with chromium build 1248 (`Google Chrome for Testing
+156.0.8078.4`), headless, on the one Apple Silicon machine named at :20. The four rows above are every
+non-zero row of the theme run, each one the `intro-skip` edge at ratio 1.57; the two `tour-usage` text rows
+of the baseline read 0 in this run, and the gate passes a surface at or below its entry.
+
+`theme-parity.spec.ts` cites `docs/DESIGN.md` at three points — §3 at `:11`, §12 at `:30`, §8 at `:579` —
 and those sections carry the rules the spec leans on: §3 the one ground, §8 the control edge
 against the decorative hairline, §12 the baseline moving in its own commit with the count
 before and after.
@@ -188,6 +215,8 @@ pnpm exec playwright test -c tests/playwright/playwright.config.ts --list <the 1
 pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list <the same 19 files>
 pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list --workers=1 \
   tests/playwright/theme-parity.spec.ts
+pnpm exec playwright test -c tests/playwright/playwright.config.ts --reporter=list --workers=1 \
+  tests/playwright/a11y-desktop.spec.ts
 ```
 
 The dist has to be the one under test: the leg serves `app/dist` and nothing else.

@@ -49,5 +49,29 @@ future small control is held to the same rule instead of a hand-written gap.
   was retired by owner decision 2026-10-19, and `tests/test_forest_only.py` refuses a second
   ground in the source rather than trusting this page.
 
+The settings handback carries its measurement because it is the line here the code did not
+keep until 2026-11-24. The rail's settings button
+(`app/src/components/dashboard/Sidebar.tsx:1358`) is the invoker, and the sheet is mounted by
+its own open (`app/src/pages/SettingsPage.tsx:14`), so the invoker is taken where focus is
+set (`app/src/components/dashboard/settings/model/useSettingsState.ts:179-187`). The
+`focusin` recorder that covers a surface mounted while closed stays beside it
+(`app/src/components/dashboard/settings/index.tsx:154-161`), and the close-time handback is
+the shared one: `handFocusBack` (`app/src/hooks/useFocusReturn.ts:58-74`), which reaches
+`STABLE_FOCUS_TARGETS` (`app/src/hooks/useFocusReturn.ts:95-100`) when the invoker is gone.
+Measured 2026-11-24:
+
+```bash
+cd app && pnpm run build && pnpm exec playwright test \
+  -c tests/playwright/playwright.config.ts --workers=1 tests/playwright/a11y-desktop.spec.ts
+```
+
+13 passed on `@playwright/test` 1.64.0, chromium build 1248 (`Google Chrome for Testing
+156.0.8078.4`), headless at `deviceScaleFactor: 1`, macOS on Apple Silicon. With no invoker
+on screen — `/settings` opened directly — focus goes to one of the stable targets named
+above. Both directions of that close, and the two conditions the handback checks on an
+invoker, are pinned on the panel itself
+(`app/src/components/dashboard/SettingsPanel.focusReturn.test.tsx`); the case on the shared
+hook covers a surface built on it (`app/src/hooks/useFocusReturn.test.tsx:164-176`).
+
 The audit that produced these numbers is the W2 read-only run; the 44 px note above is
 its open item, recorded here as a decision rather than a styling debt.

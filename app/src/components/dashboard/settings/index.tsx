@@ -22,7 +22,7 @@ import { matchFields, matchRows, matchTabs } from './model/settingsSearch'
 import type { SettingsPanelProps, TabKey } from './types'
 import { READONLY_TABS } from './types'
 import { isDesktopShell } from '@/lib/tauriBridge'
-import { stableFocusTarget } from '@/hooks/useFocusReturn'
+import { handFocusBack } from '@/hooks/useFocusReturn'
 
 /** Make everything outside the dialog unreachable (P4 finding 5): the siblings
  *  along the ancestor chain get `inert` (keyboard/mouse/AT) and `aria-hidden`
@@ -72,6 +72,7 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
     saveSettings,
     selectLanguage,
     panelRef,
+    invokerRef,
     trapPanelFocus,
     section,
   } = model
@@ -150,7 +151,6 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
   // otherwise it would stay on a hidden sidebar button.
   const isOpenRef = useRef(isOpen)
   isOpenRef.current = isOpen
-  const invokerRef = useRef<HTMLElement | null>(null)
   useEffect(() => {
     const onFocusIn = (e: FocusEvent) => {
       if (isOpenRef.current) return
@@ -159,7 +159,8 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
     }
     window.addEventListener('focusin', onFocusIn, true)
     return () => window.removeEventListener('focusin', onFocusIn, true)
-  }, [])
+    // invokerRef is a stable ref; the listener must not be rebuilt per open.
+  }, [invokerRef])
 
   // P4 finding 5 — background inert, initial focus inside the dialog, handback on
   // close. The dialog is the FULL PAGE (header + nav + detail); previously only the
@@ -175,21 +176,12 @@ export default function SettingsPanel({ isOpen, onClose, initialTab }: SettingsP
     if (!dialog.contains(document.activeElement)) dialog.focus()
     return () => {
       release()
-      const invoker = invokerRef.current
-      if (invoker && invoker.isConnected) invoker.focus()
-      // The /settings route has no invoker on screen (it was reached directly);
-      // wait for the shell it returns to and hand focus there, never to <body>.
-      else {
-        let tries = 0
-        const handBack = () => {
-          const target = stableFocusTarget()
-          if (target) target.focus()
-          else if (tries++ < 60) requestAnimationFrame(handBack)
-        }
-        requestAnimationFrame(handBack)
-      }
+      // The /settings route can be reached directly, with no invoker on screen; the
+      // shared handback then waits for the shell it returns to and hands focus there,
+      // never to <body>.
+      handFocusBack(invokerRef.current)
     }
-  }, [isOpen, panelRef])
+  }, [isOpen, panelRef, invokerRef])
 
   // The footer save surface swaps its button for a confirmation while `saved`
   // holds. Unmounting the focused button dropped the focus onto <body>, outside

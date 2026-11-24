@@ -38,6 +38,53 @@ import { useCallback, useEffect, useRef } from 'react'
 /** Every Tab stop, exactly the set the walkthrough spec counts (`tabIndex >= 0`). */
 export const FOCUSABLE_SELECTOR = 'a[href],button,input,select,textarea,[tabindex]'
 
+/** The invoker is only worth returning to while it is on screen, reachable, and outside
+ *  anything marked inert: a surface that never released its background would otherwise
+ *  swallow the handback, and a detached node or the body answers with a focus that never
+ *  lands. */
+function usableInvoker(invoker: HTMLElement | null): HTMLElement | null {
+  if (
+    !invoker ||
+    !invoker.isConnected ||
+    invoker === document.body ||
+    invoker.closest('[inert]')
+  ) {
+    return null
+  }
+  return invoker
+}
+
+/** Close-time handback: to the invoker while it is usable, otherwise to a stable target.
+ *  The stable target can belong to a shell that mounts a beat after the surface closes (a
+ *  route sheet returning to it), so that search waits a few frames instead of leaving
+ *  focus on <body>. */
+export function handFocusBack(invoker: HTMLElement | null): void {
+  const usable = usableInvoker(invoker)
+  if (usable) {
+    usable.focus()
+    return
+  }
+  let tries = 0
+  const step = () => {
+    const target = stableFocusTarget()
+    if (target) target.focus()
+    else if (tries++ < 60) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+
+/** The invoker a surface should hand focus back to when nothing was recorded while it
+ *  was closed: whoever holds focus at the moment the surface opens, provided that is a
+ *  real element outside the surface. A surface mounted by its own open never sees the
+ *  press that opened it — the listener did not exist yet — so it calls this from the
+ *  effect that moves focus in, before it moves it. */
+export function invokerFromFocus(surface: HTMLElement | null): HTMLElement | null {
+  const active = document.activeElement as HTMLElement | null
+  if (!active || active === document.body) return null
+  if (surface?.contains(active)) return null
+  return active
+}
+
 /**
  * Stable handback targets, best first. `#ephe-chat-input` is the app's primary
  * action (the skip link in `App.tsx` targets it), `#main-content` the chat
@@ -166,10 +213,7 @@ export function useFocusReturn({
   }, [containerRef])
 
   const restoreTarget = useCallback((): HTMLElement | null => {
-    const invoker = invokerRef.current
-    const usable =
-      invoker && invoker.isConnected && invoker !== document.body && !invoker.closest('[inert]')
-    return usable ? invoker : stableFocusTarget()
+    return usableInvoker(invokerRef.current) ?? stableFocusTarget()
   }, [])
 
   const handBack = useCallback(() => {
@@ -215,15 +259,7 @@ export function useFocusReturn({
     // The invoker, second chance: if nothing was recorded (the app had no focus
     // at all when the surface opened — the walkthrough's palette case), take
     // whatever holds focus before this hook moves it in.
-    const outside = document.activeElement as HTMLElement | null
-    if (
-      !invokerRef.current &&
-      outside &&
-      outside !== document.body &&
-      !container.contains(outside)
-    ) {
-      invokerRef.current = outside
-    }
+    if (!invokerRef.current) invokerRef.current = invokerFromFocus(container)
 
     // (a) focus in — first Tab stop, else the container itself.
     if (autoFocus) {
