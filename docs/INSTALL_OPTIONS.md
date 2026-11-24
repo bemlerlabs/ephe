@@ -40,10 +40,12 @@ supported one.
 ## Windows PowerShell (One-Liner)
 
 This path has not been verified end to end on Windows for this revision.
+The `main` in the URL is a rolling ref: no tag exists on the repository, and the
+refless command installs that branch tip.
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.1.0
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 Or run it straight from a local checkout:

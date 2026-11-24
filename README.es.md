@@ -98,7 +98,7 @@ Un teléfono en tu red local puede abrir la PWA después de ejecutar `ephe start
 #### macOS y Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.sh | bash -s -- --tag v0.1.0
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
 ```
 
 Para leer el script antes de ejecutarlo, usa el repositorio:
@@ -114,15 +114,15 @@ El instalador prepara Python y el entorno local, compila la aplicación web y la
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.1.0
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 Desde un repositorio local, ejecuta el mismo `powershell -ExecutionPolicy Bypass -File
 .\install.ps1` después de abrir PowerShell en esa carpeta. La instalación en Windows
 aún no está verificada de extremo a extremo para esta revisión.
 
-El comando nombra la versión que incluye este árbol, `v0.1.0`; la etiqueta está publicada y la URL resuelve. `--tag v0.1.0` hace que el instalador compruebe esa etiqueta en lugar de la punta de la rama, de modo que una instalación de lanzamiento empieza en el commit publicado. Un repositorio existente en la carpeta de instalación se mueve a esa etiqueta; sin la opción, mantiene su rama y avanza. El instalador de Bash usa `--desktop` por defecto; pasa `--cli` o define `EPHE_MODE=cli` para instalar solo la terminal.
+Ephe se publica de forma continua desde la rama por defecto, y no existe ninguna etiqueta en el repositorio. El `main` de las URLs es un rolling ref: cuando el comando no lleva un argumento de ref, los dos instaladores comprueban esa punta de la rama. `--tag vX.Y.Z` (Bash) y `-Ref vX.Y.Z` (PowerShell) son las opciones de instalación de lanzamiento: cada una comprueba esa etiqueta en modo detached, y una instalación nueva rechaza el comando si la etiqueta no existe, en lugar de compilar otra revisión en silencio. Un repositorio existente en la carpeta de instalación mantiene su rama y avanza en el camino continuo; en una instalación de lanzamiento se mueve a esa etiqueta. El instalador de Bash usa `--desktop` por defecto; pasa `--cli` o define `EPHE_MODE=cli` para instalar solo la terminal.
 
 Antes de usar `ephe` en una terminal nueva, activa el entorno instalado.
 Para la instalación predeterminada en macOS o Linux:

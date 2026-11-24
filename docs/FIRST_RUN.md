@@ -25,11 +25,13 @@ There are five steps:
 ### The one-command install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.sh | bash -s -- --tag v0.1.0
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
 ```
 
 That is the command Ephe is designed around, and it is the one the README shows. The
-repository is public, so the fetch answers HTTP 200 and the installer runs. The
+`main` in the URL is a rolling ref: no tag exists on the repository, and the refless
+command installs that branch tip. The repository is public, so the fetch answers HTTP
+200 and the installer runs. The
 one-liner, the checkout below, and Docker are the install paths; there is no other.
 
 ### The path that works today
@@ -45,8 +47,8 @@ cd ephe
 On Windows, download and run `install.ps1`. This path is not yet verified end to end on Windows for this revision:
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.1.0
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 ## 2. Install

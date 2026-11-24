@@ -106,7 +106,7 @@ public access is a separate opt-in path.
 #### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.sh | bash -s -- --tag v0.1.0
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
 ```
 
 To read the script before it runs, use the checkout:
@@ -124,20 +124,23 @@ Settings → Privacy & Security → Open Anyway.
 #### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.1.0
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 From a local checkout, run the same `powershell -ExecutionPolicy Bypass -File
 .\install.ps1` after opening PowerShell in that folder. Windows installation is not
 yet verified end to end for this revision.
 
-The command names the release this tree ships, `v0.1.0`; the tag is published, so
-the URL resolves. `--tag v0.1.0` makes the installer check that tag out instead of
-the branch tip, so a release install starts on the released commit. An existing
-checkout in the install folder is moved to that tag; without the flag it keeps its
-branch and fast-forwards. The Bash installer defaults to `--desktop`; pass `--cli`
-or set `EPHE_MODE=cli` for the terminal-only install.
+Ephe ships rolling from the default branch, and no tag exists on the repository.
+The `main` in the URLs is a rolling ref: both installers check out that branch tip
+when the command carries no ref flag. `--tag vX.Y.Z` (Bash) and `-Ref vX.Y.Z`
+(PowerShell) are the release-install flags: each checks the named tag out detached,
+and a fresh install refuses the command when that tag does not exist, instead of
+quietly building another revision. An existing checkout keeps its branch and
+fast-forwards on the rolling path; on a release install it moves to the tag. The
+Bash installer defaults to `--desktop`; pass `--cli` or set `EPHE_MODE=cli` for the
+terminal-only install.
 
 Before using `ephe` in a new terminal, activate the installed environment.
 For the default installation on macOS or Linux:

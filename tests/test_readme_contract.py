@@ -226,3 +226,161 @@ def test_a_translation_must_keep_the_same_executable_commands():
     result = readme.Result()
     readme.check_examples("```bash\nephe start\n```", "README.es.md", "```bash\nephe configure\n```", result)
     assert result.problems
+
+
+def _bare_origin(tmp_path: Path) -> Path:
+    origin = tmp_path / "origin.git"
+    subprocess.run(["git", "init", "--bare", "-q", str(origin)], check=True)
+    return origin
+
+
+def _push(origin: Path, branch: str = "main", tag: str | None = None) -> None:
+    src = origin.parent / f"push-{branch}{'-' + tag if tag else ''}"
+    src.mkdir()
+    git = ["git", "-C", str(src)]
+    subprocess.run([*git, "init", "-q", "-b", branch], check=True)
+    (src / "README.md").write_text("ephe\n", encoding="utf-8")
+    subprocess.run([*git, "add", "README.md"], check=True)
+    subprocess.run(
+        [*git, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm", "a"],
+        check=True,
+    )
+    subprocess.run([*git, "push", "-q", str(origin), branch], check=True)
+    if tag:
+        subprocess.run([*git, "tag", tag], check=True)
+        subprocess.run([*git, "push", "-q", str(origin), f"refs/tags/{tag}"], check=True)
+
+
+def _rolling_tree(tmp_path: Path) -> Path:
+    root = _minimal_tree(tmp_path)
+    for name in ("README.md", "README.zh-CN.md", "README.es.md", *readme.START_DOCS):
+        path = root / name
+        path.write_text(
+            path.read_text(encoding="utf-8").replace("/v0.1.3/", f"/{readme.ROLLING_REF}/"),
+            encoding="utf-8",
+        )
+    return root
+
+
+def test_a_rolling_install_url_must_be_named_as_rolling():
+    """A rolling URL reads like a pin, so prose has to say it moves."""
+    result = readme.Result()
+    readme.check_install(
+        "https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh",
+        "README.md", "v0.1.3", set(), result,
+    )
+    assert any("rolling ref" in problem for problem in result.problems), result.problems
+
+
+def test_a_rolling_install_url_named_in_prose_needs_no_tag_evidence():
+    result = readme.Result()
+    readme.check_install(
+        "https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh\n\n"
+        "The `main` in the URL is a rolling ref, not a released commit.\n",
+        "README.md", "v0.1.3", set(), result,
+    )
+    assert result.problems == [], "\n".join(result.problems)
+
+
+def test_a_tag_url_without_a_flag_is_the_old_bug():
+    """v0.6.8: the URL fetched the release, the installer cloned the branch tip."""
+    result = readme.Result()
+    readme.check_ref_pairing(
+        "```bash\ncurl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v9.9.9/install.sh | bash\n```",
+        "README.md", result,
+    )
+    assert any("not passed to the installer" in problem for problem in result.problems), result.problems
+
+
+def test_a_tag_url_with_its_matching_flag_is_consistent():
+    result = readme.Result()
+    readme.check_ref_pairing(
+        "```bash\ncurl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v9.9.9/install.sh"
+        " | bash -s -- --tag v9.9.9\n```",
+        "README.md", result,
+    )
+    assert result.problems == [], "\n".join(result.problems)
+
+
+def test_a_rolling_url_with_a_tag_flag_is_refused():
+    result = readme.Result()
+    readme.check_ref_pairing(
+        "```bash\ncurl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh"
+        " | bash -s -- --tag v9.9.9\n```",
+        "README.md", result,
+    )
+    assert any("does not name" in problem for problem in result.problems), result.problems
+
+
+def test_a_rolling_url_pinned_by_its_own_name_is_refused():
+    """--tag main detaches and strands the checkout off the rolling fast-forward."""
+    result = readme.Result()
+    readme.check_ref_pairing(
+        "```bash\ncurl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh"
+        " | bash -s -- --tag main\n```",
+        "README.md", result,
+    )
+    assert any("rolling install is flagless" in problem for problem in result.problems), result.problems
+
+
+def test_a_tag_install_url_is_refused_when_the_remote_has_no_tags(tmp_path):
+    """Today's public state measured 2026-11-24: a v0.1.0 URL, no tags on the repo."""
+    origin = _bare_origin(tmp_path)
+    with pytest.raises(ValueError, match="install tag v0.1.0 does not exist"):
+        readme.public_tags("v0.1.0", remote=str(origin))
+
+
+def test_a_tag_install_url_passes_once_the_remote_carries_the_tag(tmp_path):
+    origin = _bare_origin(tmp_path)
+    _push(origin, branch="release", tag="v0.1.0")
+    assert readme.public_tags("v0.1.0", remote=str(origin)) == {"v0.1.0"}
+
+
+def test_a_rolling_install_url_is_refused_when_the_remote_has_no_branch(tmp_path):
+    origin = _bare_origin(tmp_path)
+    with pytest.raises(ValueError, match="rolling ref main does not exist"):
+        readme.public_branch("main", remote=str(origin))
+    _push(origin)
+    assert readme.public_branch("main", remote=str(origin)) == "main"
+
+
+def test_a_published_tag_claim_is_refused_when_the_remote_has_no_release_tag(tmp_path):
+    origin = _bare_origin(tmp_path)
+    _push(origin)
+    root = _rolling_tree(tmp_path)
+    readme_md = root / "README.md"
+    readme_md.write_text(
+        readme_md.read_text(encoding="utf-8")
+        + "\nThe command names the release this tree ships; the tag is published, so the URL resolves.\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="no release tag"):
+        readme.verify_public(root, remote=str(origin))
+
+
+def test_a_no_tag_claim_is_refused_once_the_remote_has_release_tags(tmp_path):
+    origin = _bare_origin(tmp_path)
+    _push(origin, tag="v0.1.0")
+    root = _rolling_tree(tmp_path)
+    readme_md = root / "README.md"
+    readme_md.write_text(
+        readme_md.read_text(encoding="utf-8")
+        + "\nEphe ships rolling from the default branch, and no tag exists on the repository.\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="claims no tag exists"):
+        readme.verify_public(root, remote=str(origin))
+
+
+def test_the_checked_texts_install_from_the_rolling_ref():
+    """No checked text may ship a tag-shaped install URL while the remote has no tags.
+
+    The rule that failed on 2026-11-24: seven files sold /v0.1.0/install.sh against
+    a repository whose `git ls-remote --tags` was empty.
+    """
+    refs = {
+        ref
+        for _label, text in readme._checked_texts(ROOT)
+        for ref, _script in readme.INSTALL.findall(text)
+    }
+    assert refs == {readme.ROLLING_REF}, refs

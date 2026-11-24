@@ -31,8 +31,23 @@ EN_SECTIONS = (
     "Docs, contributing, and license",
 )
 CANONICAL_MARKER = "canonical: README.md is authoritative"
+ROLLING_REF = "main"
 INSTALL = re.compile(
-    r"raw\.githubusercontent\.com/bemlerlabs/ephe/(v[0-9]+\.[0-9]+\.[0-9]+)/install\.(sh|ps1)"
+    r"raw\.githubusercontent\.com/bemlerlabs/ephe/"
+    r"(v[0-9]+\.[0-9]+\.[0-9]+|main)/install\.(sh|ps1)"
+)
+FENCE = re.compile(r"```.*?```", re.DOTALL)
+# A document that ships a rolling URL must say so in prose a reader sees, and a
+# document may not claim a tag is published or absent unless the remote agrees.
+# Measured 2026-11-24: the public repository carried a v0.1.0 install URL in seven
+# files while `git ls-remote --tags origin` was empty; the offline gate could not
+# see it because the existence of a tag is only knowable on the network.
+NO_TAG_CLAIM = re.compile(r"\bno (?:release )?tag exists\b", re.IGNORECASE)
+# The second alternative is Chinese for "the tag is published", spelled in
+# escapes because the script-hygiene gate keeps sources latin-only.
+PUBLISHED_CLAIM = re.compile(
+    r"the tag is published|\u6807\u7b7e\u5df2\u53d1\u5e03|(?:tag|etiqueta) está publicada",
+    re.IGNORECASE,
 )
 VERSION_TAG = re.compile(r"\bv([0-9]+\.[0-9]+\.[0-9]+)\b")
 MD_LINK = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
@@ -72,18 +87,68 @@ def check_sections(text: str, label: str, result: Result) -> None:
         )
 
 
+def _names_rolling_ref(text: str) -> bool:
+    """A reader must be told the rolling ref is rolling, in prose."""
+    body = FENCE.sub("", text)
+    return any(
+        f"`{ROLLING_REF}`" in sentence and "rolling ref" in sentence.lower()
+        for sentence in re.split(r"(?<=[.!?])\s+", body)
+    )
+
+
+FLAG = re.compile(r"(?:--tag|--ref|(?<!\w)-Ref)[ \t=]+([A-Za-z0-9][A-Za-z0-9._/-]*)")
+
+
+def check_ref_pairing(text: str, label: str, result: Result) -> None:
+    """Each documented command must ask the installer for the ref its URL fetches.
+
+    The v0.6.8 defect: the URL fetched install.sh from the tag while the installer
+    cloned the branch tip, so a release user ran untagged code believing it was the
+    release. The installer's refless default is the branch tip
+    (install.sh `REF="${EPHE_REF:-}"`), which makes the flagless rolling command the
+    one consistent form; a rolling URL with a ref flag and a tag URL without one are
+    both the old bug in a new coat. Whether a named tag exists is --public's question.
+    """
+    for block in re.findall(r"```(?:bash|powershell)\n(.*?)```", text, re.DOTALL):
+        urls = {ref for ref, _script in INSTALL.findall(block)}
+        if not urls:
+            continue
+        flags = {value for value in FLAG.findall(block)}
+        if ROLLING_REF in flags:
+            result.problems.append(
+                f"{label}: a documented command pins {ROLLING_REF} by flag; "
+                "the rolling install is flagless"
+            )
+        wanted = urls - {ROLLING_REF}
+        for ref in sorted(wanted - flags):
+            result.problems.append(
+                f"{label}: {ref} is fetched by URL but not passed to the installer"
+            )
+        for ref in sorted(flags - urls - {ROLLING_REF}):
+            result.problems.append(
+                f"{label}: the installer is told {ref}, which the install URL does not name"
+            )
+
+
 def check_install(text: str, label: str, expected: str, tags: set[str], result: Result) -> None:
     found = INSTALL.findall(text)
     if not found:
         result.problems.append(f"{label}: no install URL")
         return
-    for tag, script in found:
-        if tag != expected:
+    for ref, script in found:
+        if ref == ROLLING_REF:
+            if not _names_rolling_ref(text):
+                result.problems.append(
+                    f"{label}: install URL uses the rolling ref {ROLLING_REF} "
+                    "without a sentence naming it as a rolling ref"
+                )
+            continue
+        if ref != expected:
             result.problems.append(
-                f"{label}: install URL uses {tag}, expected {expected} ({script})"
+                f"{label}: install URL uses {ref}, expected {expected} ({script})"
             )
-        if tag not in tags:
-            result.problems.append(f"{label}: install tag {tag} does not exist")
+        if ref not in tags:
+            result.problems.append(f"{label}: install tag {ref} does not exist")
 
 
 def check_version_tags(text: str, label: str, expected: str, result: Result) -> None:
@@ -218,17 +283,88 @@ def readability(text: str, label: str, result: Result) -> None:
         result.warnings.append(f"{label}: longest sentence {longest} words")
 
 
-def public_tags(tag: str, repository: str = PUBLIC_REPOSITORY) -> set[str]:
+def public_tags(tag: str, repository: str = PUBLIC_REPOSITORY, remote: str | None = None) -> set[str]:
     """The install tag exists on the public repository."""
+    url = remote or f"https://github.com/{repository}.git"
     ref = f"refs/tags/{tag}"
-    response = subprocess.run(
-        ["git", "ls-remote", "--exit-code", f"https://github.com/{repository}.git", ref, ref + "^{}"],
-        capture_output=True, text=True, check=True, timeout=30,
-    )
+    try:
+        response = subprocess.run(
+            ["git", "ls-remote", "--exit-code", url, ref, ref + "^{}"],
+            capture_output=True, text=True, check=True, timeout=30,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise ValueError(f"install tag {tag} does not exist on {repository}") from exc
     refs = {name for _sha, name in (line.split() for line in response.stdout.splitlines())}
     if ref not in refs:
         raise ValueError(f"install tag {tag} does not exist on {repository}")
     return {tag}
+
+
+def public_branch(ref: str, repository: str = PUBLIC_REPOSITORY, remote: str | None = None) -> str:
+    """The rolling ref exists as a branch on the public repository."""
+    url = remote or f"https://github.com/{repository}.git"
+    head = f"refs/heads/{ref}"
+    try:
+        response = subprocess.run(
+            ["git", "ls-remote", "--exit-code", url, head],
+            capture_output=True, text=True, check=True, timeout=30,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise ValueError(f"rolling ref {ref} does not exist on {repository}") from exc
+    if not any(line.split("\t", 1)[-1] == head for line in response.stdout.splitlines()):
+        raise ValueError(f"rolling ref {ref} does not exist on {repository}")
+    return ref
+
+
+def public_release_tags(repository: str = PUBLIC_REPOSITORY, remote: str | None = None) -> set[str]:
+    """Every release tag on the public repository, for the prose that talks about tags."""
+    url = remote or f"https://github.com/{repository}.git"
+    response = subprocess.run(
+        ["git", "ls-remote", url, "refs/tags/*"],
+        capture_output=True, text=True, check=True, timeout=30,
+    )
+    return {
+        match.group(0)
+        for line in response.stdout.splitlines()
+        for match in [VERSION_TAG.search(line.split("\t", 1)[-1])]
+        if match
+    }
+
+
+def _checked_texts(root: Path) -> list[tuple[str, str]]:
+    found: list[tuple[str, str]] = []
+    for rel in (*READMES, *START_DOCS):
+        path = root / rel
+        if path.is_file():
+            found.append((rel, path.read_text(encoding="utf-8")))
+    return found
+
+
+def verify_public(root: Path, repository: str = PUBLIC_REPOSITORY, remote: str | None = None) -> None:
+    """--public: the refs and tag claims the texts make must be true on the remote.
+
+    Offline the gate can only compare a tag against this tree's version; on the
+    network it can ask what actually exists. Measured 2026-11-24: seven files sold
+    a v0.1.0 install URL while the public repository had no tags at all.
+    """
+    texts = _checked_texts(root)
+    refs = {ref for _rel, text in texts for ref, _script in INSTALL.findall(text)}
+    for ref in sorted(refs):
+        if ref == ROLLING_REF:
+            public_branch(ref, repository, remote)
+        else:
+            public_tags(ref, repository, remote)
+    if any(NO_TAG_CLAIM.search(text) for _rel, text in texts):
+        existing = public_release_tags(repository, remote)
+        if existing:
+            raise ValueError(
+                f"a checked text claims no tag exists, but {repository} carries {sorted(existing)}"
+            )
+    if any(PUBLISHED_CLAIM.search(text) for _rel, text in texts):
+        if not public_release_tags(repository, remote):
+            raise ValueError(
+                f"a checked text claims a tag is published, but {repository} has no release tag"
+            )
 
 
 def shipped_tag(root: Path) -> str:
@@ -257,6 +393,7 @@ def check(root: Path, *, tag: str | None = None, tags: set[str] | None = None) -
             continue
         text = path.read_text(encoding="utf-8")
         check_install(text, label, tag, tags, result)
+        check_ref_pairing(text, label, result)
         check_version_tags(text, label, tag, result)
         check_powershell(text, label, result)
         check_macos(text, label, result)
@@ -278,6 +415,7 @@ def check(root: Path, *, tag: str | None = None, tags: set[str] | None = None) -
             continue
         text = path.read_text(encoding="utf-8")
         check_install(text, label, tag, tags, result)
+        check_ref_pairing(text, label, result)
         check_version_tags(text, label, tag, result)
         check_powershell(text, label, result)
         check_macos(text, label, result)
@@ -298,7 +436,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.public:
-            tags = public_tags(args.tag or shipped_tag(args.root))
+            expected = args.tag or shipped_tag(args.root)
+            verify_public(args.root)
+            if args.tag:
+                public_tags(args.tag)
+            tags = {expected}
         elif args.tags is not None:
             tags = set(args.tags)
         else:

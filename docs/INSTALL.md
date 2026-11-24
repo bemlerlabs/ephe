@@ -33,7 +33,7 @@ Desktop and therefore needs Node.js. On a box without Node.js the install stops 
 ### macOS and Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.sh | bash -s -- --tag v0.1.0
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
 ```
 
 From a checkout you already have:
@@ -42,11 +42,14 @@ From a checkout you already have:
 ./install.sh
 ```
 
-The one-liner fetches `install.sh` from the public `v0.1.0` tag and passes `--tag v0.1.0`, so the
-installer checks that tag out instead of the branch tip. The fetch answers HTTP 200 once that tag
-is published; the checkout path above is the alternative for reading the script before it runs.
-An existing checkout in the install folder is moved to the named tag; without `--tag` the
-installer keeps the branch and fast-forwards, which is the rolling path.
+The one-liner fetches `install.sh` from the `main` branch - the `main` in the URL is
+a rolling ref, and no tag exists on the repository - and installs that branch tip,
+which is the installer's refless default (`REF="${EPHE_REF:-}"` in install.sh). The
+checkout path above is the alternative for reading the script before it runs. An
+existing checkout in the install folder keeps its branch and fast-forwards on this
+path; `--tag vX.Y.Z` (Bash) or `-Ref vX.Y.Z` (PowerShell) is the release install,
+which checks the named tag out detached and stops a fresh install when that tag does
+not exist.
 
 For the end-to-end first-run walkthrough — install, the engine choice (hosted API key or local
 Ollama runtime), and the first answer — see [FIRST_RUN.md](FIRST_RUN.md).
@@ -55,14 +58,14 @@ A piped run has no TTY, so it cannot ask for a mode and takes Desktop — which 
 [Requirements](#requirements)). For a CLI-only install from the one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.sh | bash -s -- --tag v0.1.0 --cli
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash -s -- --cli
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.1.0
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 From a checkout:

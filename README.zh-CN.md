@@ -96,7 +96,7 @@ Ephe 是一个在你电脑上运行 AI 智能体的工作区。你给它一个�
 #### macOS 和 Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.sh | bash -s -- --tag v0.1.0
+curl -fsSL https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.sh | bash
 ```
 
 要在运行前阅读脚本，请使用仓库：
@@ -112,14 +112,14 @@ cd ephe
 #### Windows（PowerShell）
 
 ```powershell
-irm https://raw.githubusercontent.com/bemlerlabs/ephe/v0.1.0/install.ps1 -OutFile install.ps1
-powershell -ExecutionPolicy Bypass -File .\install.ps1 -Ref v0.1.0
+irm https://raw.githubusercontent.com/bemlerlabs/ephe/main/install.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 在本地仓库中，打开 PowerShell 进入该文件夹后运行同样的 `powershell -ExecutionPolicy
 Bypass -File .\install.ps1`。本版本的 Windows 安装尚未经过端到端验证。
 
-命令指向本代码树自带的发行版 `v0.1.0`；标签已发布，URL 可以解析。`--tag v0.1.0` 让安装程序检出该标签而不是分支尖端，发行版安装因此从已发布的提交开始。安装文件夹里已有的仓库会被移到该标签；不带此参数时保留其分支并快进。Bash 安装程序默认使用 `--desktop`；只安装终端时传入 `--cli` 或设置 `EPHE_MODE=cli`。
+Ephe 从默认分支滚动发布，仓库上不存在任何 tag。URL 里的 `main` 是一个 rolling ref：命令不带 ref 参数时，两个安装程序都检出该分支尖端。`--tag vX.Y.Z`（Bash）与 `-Ref vX.Y.Z`（PowerShell）是发行版安装参数：它们以 detached 方式检出指定 tag；tag 不存在时全新安装会拒绝该命令，而不是悄悄构建另一个版本。滚动路径上已有仓库保留其分支并快进；发行版安装则将其移到该 tag。Bash 安装程序默认使用 `--desktop`；只安装终端时传入 `--cli` 或设置 `EPHE_MODE=cli`。
 
 在新的终端里使用 `ephe` 之前，先激活已安装的环境。
 macOS 或 Linux 的默认安装：

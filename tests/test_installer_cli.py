@@ -14,6 +14,11 @@ from unittest.mock import patch
 
 import pytest
 
+# The install docs ship the rolling form; a tag-shaped ref must exist on the
+# public repository, which scripts/readme_check.py --public is the only place
+# allowed to ask (synthetic tag pairing lives in tests/test_release_installer_pinning.py).
+_INSTALL_REF = "main"
+
 
 @pytest.fixture(autouse=True)
 def _no_ambient_start_preflight(monkeypatch):
@@ -635,7 +640,7 @@ def test_given_readme_quickstart_when_checked_then_first_path_is_one_command():
     first_command = bash_blocks[0].strip()
     assert re.fullmatch(
         r"curl -fsSL https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
-        r"v\d+\.\d+\.\d+/install\.sh \| bash -s -- --tag v\d+\.\d+\.\d+",
+        rf"{_INSTALL_REF}/install\.sh \| bash",
         first_command,
     )
     assert "\n" not in first_command
@@ -654,7 +659,7 @@ def test_given_readme_hero_when_checked_then_first_terminal_command_is_installer
     assert bash_blocks
     assert re.fullmatch(
         r"curl -fsSL https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
-        r"v\d+\.\d+\.\d+/install\.sh \| bash -s -- --tag v\d+\.\d+\.\d+",
+        rf"{_INSTALL_REF}/install\.sh \| bash",
         bash_blocks[0].strip(),
     )
     assert "local-first workspace for an AI agent" in readme[:1500]
@@ -732,7 +737,7 @@ def test_given_readme_when_checked_then_windows_one_liner_and_cli_flags_are_docu
 
     assert re.search(
         r"irm https://raw\.githubusercontent\.com/bemlerlabs/ephe/"
-        r"v\d+\.\d+\.\d+/install\.ps1",
+        rf"{_INSTALL_REF}/install\.ps1",
         readme,
     )
     assert "powershell -ExecutionPolicy Bypass -File .\\install.ps1" in readme
