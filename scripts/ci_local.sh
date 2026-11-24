@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The static layer, run locally, before the commit exists.
 #
-# Wave I of docs/CI_HYBRID_CAPACITY_2026-10-11.md. Called from `.husky/pre-commit` and safe to run
+# `docs/CI_HYBRID_CAPACITY.md` lists this script among the instruments `lint.yml` runs. Called from
+# `.husky/pre-commit` and safe to run
 # by hand. The reason it exists is that `.pre-commit-config.yaml` listed four hooks while
 # `core.hooksPath` pointed at `.husky`, so nothing ever executed them and the two lint tools had
 # therefore never run anywhere on this repository. The rules below are the ones that can be decided
@@ -217,7 +218,7 @@ fi
 # The tree-wide `--strict` run stays in ci-gates.yml, where a clean checkout of one commit is what
 # gets judged. Measured on this tree 2026-10-11: 5.4 s for the whole-tree pass, and its verdict
 # belongs to files the committing strand does not hold -- while this hook was being written an
-# unrelated strand took `tests/test_repo_verify_contract.py` from 0 to 1 tell, which would have
+# unrelated strand moved a tell count on a file this commit never named, which would have
 # blocked every commit in the tree. `scripts/prose_scope_check.py` runs the same instrument and the
 # same baseline over the staged blobs in milliseconds and can only name a path in scope. It reads
 # single files, so the repeated-header class stays in CI, and it prints that limit on its own line.
@@ -237,11 +238,18 @@ fi
 # Advisory by name in both places: `lint.yml:169` carries `continue-on-error: true`. It still has to
 # say when it did not run. mypy sits in no extra (`lint.yml:31`), so a host without it on PATH
 # reported a clean gate that never looked at types the CI leg judges anyway -- a skip with no line.
-if [ "${#py_files[@]}" -gt 0 ] && command -v mypy >/dev/null 2>&1; then
-    mypy --ignore-missing-imports --follow-imports=skip --no-error-summary "${py_files[@]}" \
-        | head -20 | sed 's/^/ci-local: (advisory) /'
-elif [ "${#py_files[@]}" -gt 0 ]; then
-    skip+=("mypy: not on PATH, so the type leg was not run over the ${#py_files[@]} file(s) in scope")
+# The repository's own venv comes first, as with ruff: a host mypy is a different release than
+# scripts/lint_policy.sh pins, and a version that is not the CI one is a verdict CI will not repeat.
+if [ "${#py_files[@]}" -gt 0 ]; then
+    mypy_bin="$root/.venv/bin/mypy"
+    [ -x "$mypy_bin" ] || mypy_bin="$(command -v mypy || true)"
+    if [ -n "$mypy_bin" ]; then
+        echo "ci-local: mypy $("$mypy_bin" --version 2>/dev/null | awk '{print $2}'), CI pins $EPHE_MYPY_VERSION"
+        "$mypy_bin" --ignore-missing-imports --follow-imports=skip --no-error-summary "${py_files[@]}" \
+            | head -20 | sed 's/^/ci-local: (advisory) /'
+    else
+        skip+=("mypy: neither $root/.venv/bin/mypy nor a PATH mypy, so the type leg was not run over the ${#py_files[@]} file(s) in scope")
+    fi
 fi
 
 # --- the new-file gate, over the paths in scope ---

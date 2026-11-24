@@ -156,10 +156,12 @@ def test_a_real_finding_refuses_with_the_verdict_code(sandbox: dict[str, Any]) -
 def test_a_missing_mypy_reports_the_leg_it_did_not_run(sandbox: dict[str, Any]) -> None:
     """An advisory leg that never ran is still a leg that never ran, and has to be said.
 
-    mypy sits in no extra (`lint.yml:31`), so a fresh checkout has none on `PATH`. The CI step is
-    `continue-on-error: true`, so its verdict never refuses anything either -- the difference is
-    that CI says which leg it is. Until the `elif` existed, a host without mypy printed the same
-    clean gate as a host whose types had been read, and the reader had no way to tell them apart.
+    mypy sits in no extra (`lint.yml:31`), so a fresh checkout has none in its venv and none on
+    `PATH`. The CI step is `continue-on-error: true`, so its verdict never refuses anything either
+    -- the difference is that CI says which leg it is. Until the skip line existed, a host without
+    mypy printed the same clean gate as a host whose types had been read, and the reader had no way
+    to tell them apart. The line names both places the script looked, because a reader who has one
+    of them installed needs to know which one the gate missed.
     """
     with_mypy = run_gate(sandbox, "ok")
     assert "SKIP mypy" not in with_mypy.stdout, with_mypy.stdout
@@ -169,8 +171,35 @@ def test_a_missing_mypy_reports_the_leg_it_did_not_run(sandbox: dict[str, Any]) 
     without = run_gate(sandbox, "ok")
 
     assert without.returncode == 0, without.stdout + without.stderr
-    assert "SKIP mypy: not on PATH" in without.stdout, without.stdout
+    assert "SKIP mypy:" in without.stdout, without.stdout
+    assert ".venv/bin/mypy" in without.stdout, without.stdout
+    assert "PATH" in without.stdout, without.stdout
     assert "ci-local: pass" in without.stdout
+
+
+def test_the_venv_mypy_is_the_one_the_type_leg_runs(sandbox: dict[str, Any]) -> None:
+    """The pinned instrument wins over a host binary, so the local verdict is the CI verdict.
+
+    `scripts/lint_policy.sh` counts its rule numbers and pins its releases against one ruff, and the
+    ruff leg reads `.venv/bin/ruff` first for that reason. The type leg read only `PATH`, so a host
+    mypy of another release produced a local type verdict CI would not repeat -- and on a host with
+    the repository's own venv populated and no mypy on `PATH`, it reported a leg that never ran.
+    """
+    bin_dir = Path(sandbox["env"]["PATH"].split(os.pathsep)[0])
+    (bin_dir / "mypy").write_text('#!/bin/sh\necho "mypy 9.9.9-path"\nexit 0\n', encoding="utf-8")
+    (bin_dir / "mypy").chmod(0o755)
+    venv_bin = sandbox["work"] / ".venv" / "bin"
+    venv_bin.mkdir(parents=True)
+    (venv_bin / "mypy").write_text('#!/bin/sh\necho "mypy 8.8.8-venv"\nexit 0\n', encoding="utf-8")
+    (venv_bin / "mypy").chmod(0o755)
+
+    result = run_gate(sandbox, "ok")
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ci-local: mypy 8.8.8-venv" in result.stdout, result.stdout
+    assert "9.9.9-path" not in result.stdout, result.stdout
+    assert "CI pins" in result.stdout, result.stdout
+    assert "SKIP mypy" not in result.stdout, result.stdout
 
 
 def test_a_killed_instrument_refuses_with_the_no_verdict_code(sandbox: dict[str, Any]) -> None:
