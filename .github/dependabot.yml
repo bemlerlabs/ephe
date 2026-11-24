@@ -56,8 +56,11 @@ updates:
     open-pull-requests-limit: 5
     ignore:
       - dependency-name: "glib"
-        # GHSA-wrw7-89jp-8q8g: the 0.20.0 fix is refused by the resolver — gtk 0.18.2 pins
-        # glib ^0.18 and tauri 2.12.3 is the newest stable. pending-fix in .github/advisories-ignore.txt.
+        # GHSA-wrw7-89jp-8q8g: glib 0.20.0 is the fix and the resolver refuses it — gtk 0.18.2
+        # pins glib ^0.18. This entry holds back version updates only; the measured state of the
+        # alert, the shipped patch and both owner rulings are in .github/advisories-ignore.txt.
+        versions:
+          - "<0.20.0"
     groups:
       cargo-security:
         applies-to: security-updates

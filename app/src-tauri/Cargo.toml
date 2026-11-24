@@ -48,3 +48,22 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSPasteboard"] }
 objc2 = { version = "0.6", default-features = false, features = ["std"] }
 objc2-vision = { version = "0.3", default-features = false, features = ["std", "VNRecognizeTextRequest", "VNRequestHandler", "VNRequest", "VNObservation"] }
+
+# GHSA-wrw7-89jp-8q8g = RUSTSEC-2024-0429 (glib): the crates.io 0.18.5 artifact hands
+# g_variant_get_child a shared reference (`&p`) as its out argument in
+# VariantStrIter::impl_get, so the write is UB; the soundness fix landed in glib 0.20.0
+# and no 0.18 backport exists — measured 2026-11-24: the glib 0.18 line ends at 0.18.5
+# (published 2023-12-30), and gtk-rs/gtk-rs-core branch 0.18 carries no fix. Tauri's
+# whole tree pins gtk 0.18, which pins glib "0.18", so no version bump reaches 0.20
+# (requirement strings and measurement times: the row in
+# .github/advisories-ignore.txt). This vendor copy is the crates.io glib 0.18.5
+# artifact — SHA256
+# 233daaf6e83ae6a12a52055f568f9d7cf4671dabb78ff9560ab6da230ce00ee5, the Cargo.lock
+# checksum of the crate being replaced — with exactly one changed hunk:
+# glib/src/variant_iter.rs impl_get takes `&mut p`, byte-identical to upstream 0.20.0
+# (upstream repository gtk-rs/gtk-rs-core, file glib/src/variant_iter.rs). Red/green
+# proof (unpatched aborts at opt-level=3 against libglib, patched passes) and the
+# written decision: the register row. Do not edit this copy without re-running that
+# proof; a second changed spot here would no longer be this decision.
+[patch.crates-io]
+glib = { path = "vendor/glib-0.18.5" }

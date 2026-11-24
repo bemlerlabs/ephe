@@ -113,6 +113,12 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ${{ vars.SUPPLY_CHAIN_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 20
+    permissions:
+      contents: read
+      # The one read this scope pays for: `GET /repos/{owner}/{repo}/dependabot/alerts?state=open`
+      # by the "Open Dependabot alerts carry a register row" step below, the only step
+      # in this job that calls the alerts API. Without it that step exits 2 and says so.
+      security-events: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -343,6 +349,18 @@ jobs:
         # `.github/engine-advisories.txt`: a GHSA string that exists only as the alias of
         # a RustSec record reads as a 404 to the naive lookup.
         run: python3 scripts/advisory_id_check.py
+
+      - name: Open Dependabot alerts carry a register row (blocking)
+        # Owner rule 2026-11-24: an open security alert without a registered, checkable
+        # decision is a defect on the product. Every open alert on the security tab needs
+        # its row in .github/advisories-ignore.txt, and a row claiming `state=fixed` has
+        # to match the lockfile its ecosystem names — the register cannot retire an
+        # advisory in prose that the lock still carries. The step reads the alert list
+        # from `GET /repos/{owner}/{repo}/dependabot/alerts?state=open`; if the token
+        # cannot read it, the step exits 2 and says so in the log rather than passing.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/dependabot_register_check.py --fetch --repo "$GITHUB_REPOSITORY"
 
       - name: Set up Node
         # The interpreter the guard below and the audit itself run on. `node-version: 22.23.5` is the

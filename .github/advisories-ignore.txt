@@ -211,21 +211,79 @@ GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=f
 GHSA-8g5g-mxqh-grgj  # package=vite ecosystem=npm scope=development state=fixed affected=>=6.4.4,<6.4.5 fixed_in=6.4.5 recheck=2026-12-07
 
 # GHSA-wrw7-89jp-8q8g = RUSTSEC-2024-0429 — glib.
-# Why it is not fixed yet: glib 0.20.0 is the fix and app/src-tauri/Cargo.lock pins 0.18.5,
-# and the move waits on upstream, measured: `cargo update -p glib --precise 0.20.0` is refused —
-# gtk 0.18.2 requires `glib = "^0.18"` and tauri 2.12.3 is crates.io's newest stable. The version
-# chain is in wt/w7-glib's report. The coverage gap this row first recorded is closed:
-# supply-chain.yml's "Cargo advisory verdict" audits app/src-tauri/Cargo.lock against the
-# crates.io database (hygiene.yml still reads the lock only for Tauri plugin major/minor
-# parity), and .github/dependabot.yml now declares package-ecosystem "cargo" for
-# /app/src-tauri, so this alert CAN arrive as a pull request — which is why the `glib` ignore
-# entry was added there. Until that landed, the row was invisible to every gate in this repo
-# and Dependabot was its only reader.
+# GitHub's actual state as measured: alert #1 is OPEN — `gh api
+# "repos/bemlerlabs/ephe/dependabot/alerts?state=open&per_page=100"` answered one row
+# (#1, GHSA-wrw7-89jp-8q8g, `state=open`, severity medium,
+# `first_patched_version=0.20.0`) at 2026-11-24 12:16:59 +0100 on macOS 26.6 (Darwin
+# arm64), first observed the same day at 09:47:59 +0100. That reading is of the
+# committed lock, which still names a registry glib 0.18.5; the patch in our tree
+# (vendored copy plus `[patch.crates-io]`, below) does not close the alert by itself —
+# only a merged fix pull request or the owner ends it, and if the vendored pin is ever
+# merged GitHub may close the alert as fixed for no reason but the lockfile losing its
+# registry glib line: the closure would record a source swap as a fix, which the owner's
+# ruling below does not accept. This file is not a deletion and GitHub does not read
+# it — the row is our written decision for this repository's own gates. The list holds
+# versions back and nothing else; security alerts and their fixes do not depend on it —
+# an alert closes when a related fix pull request is merged or the owner ends it. That is
+# the platform's own account, read 2026-11-24 from the Note box above its Dependabot
+# security updates concept page and kept here as the single citation for this row: the
+# saved browser-user-agent response, sha256
+# 5e5a32b203f38b0239051970193d59d5e381b5c87a42b12e800308e66f734acb (a plain fetch of the
+# same URL can return navigation only, so the page is cited and not quoted). Two owner
+# rulings stand on this row, both 2026-11-24: earlier in the day that glib moves only on a
+# real fix, with no suppression in place of one; at 21:26 +0100 that alert #1 is ended by
+# owner dismissal with a written reason, because the fix ships in our own source, while the
+# lockfile still waits for glib >= 0.20.0 the day upstream can carry it. The dismissal is
+# recorded on this row once made, with its own measurement; until then the state above is
+# the state.
+# The requirement strings behind the refusal, read 2026-11-24 from the registry manifests and
+# the crates.io API: gtk 0.18.2 and atk 0.18.2 require glib "0.18"; libappindicator 0.9.0
+# requires glib, gtk and gtk-sys "0.18"; tauri 2.12.7 (crates.io's newest stable, published
+# 2026-11-18), tao 0.37.3 and muda 0.21.2 (each its newest) require gtk "0.18" on linux
+# targets; tray-icon 0.26.1 (its newest) requires libappindicator "0.9", which makes
+# libappindicator 0.10.0 — the one release there asking gtk "0.19" — unreachable. gtk 0.19.0
+# (2026-09-08) requires glib "^0.22", so a tauri asking gtk 0.19 resolves this alert through
+# its lockfile alone; tauri 3.0.0-alpha.6 still asks gtk "0.18", so upstream has not landed it.
+# Reach as measured: `cargo tree -i glib@0.18.5 -e normal,build --target
+# x86_64-unknown-linux-gnu` and the same for aarch64-unknown-linux-gnu both resolve (exit 0,
+# 2026-11-24), so the crate is in the shipped deb and appimage even though a macOS build
+# never compiles it. `str_iter(` and `VariantStrIter` appear in no built crate other than
+# glib itself: a grep over all 30 crates the tree names hits glib's variant_iter.rs,
+# variant.rs and lib.rs — definitions — and nothing in the other 29, nothing in
+# app/src-tauri/src. That bounds the defect's reach; it is not a reason to close the alert.
+# Measured 2026-11-24, the unsoundness shows in the probe's own abort: iterating that
+# iterator at `opt-level=3` against the host libglib (Homebrew glib 2.90.1, /opt/homebrew)
+# aborts the unpatched artifact with SIGABRT (`slice::from_raw_parts requires the pointer to
+# be aligned and non-null`, the write through the shared reference lost) and the patched one
+# passes. The fix removes the undefined behaviour at its source; the abort above is how the
+# std debug assertion surfaces that same UB in the unpatched crate.
+# The fix shipped in our own tree, 2026-11-24: the crates.io 0.18.5 artifact (SHA256
+# 233daaf6e83ae6a12a52055f568f9d7cf4671dabb78ff9560ab6da230ce00ee5, the lock's own glib
+# checksum) with exactly one changed hunk — `VariantStrIter::impl_get` taking `&mut p` for
+# the out argument, byte-identical to the same function in upstream 0.20.0 — vendored at
+# app/src-tauri/vendor/glib-0.18.5 (121 files, 1.9 MB) and pinned by the [patch.crates-io]
+# section of app/src-tauri/Cargo.toml. `cargo tree -i glib@0.18.5 --target
+# aarch64-unknown-linux-gnu` resolves the vendored path; the lock's only change is glib
+# losing its registry `source` and `checksum` lines. Upstream repository gtk-rs/gtk-rs-core,
+# file glib/src/variant_iter.rs; no backport was released and the 0.18 branch carries no
+# fix, so this copy is the fix we ship while upstream decides.
+# The cargo ecosystem entry in .github/dependabot.yml lets a future upstream move arrive as
+# a pull request; its `glib` ignore entry holds back version updates only, as its own
+# comment records.
 # Exposure as measured: dependencies arrive through the Tauri desktop shell, which is the
 # product's own window process, so this is runtime and not build tooling. Unsound Iterator
 # and DoubleEndedIterator implementations for glib::VariantStrIter (CVSS:4.0 AV:N/AC:L
 # PR:N/UI:N/VI:L) — a soundness defect, medium severity, no code-execution path claimed.
-GHSA-wrw7-89jp-8q8g  # package=glib ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.15.0,<0.20.0 fixed_in=0.20.0 blocked_by=tauri-pins-gtk-0.18 recheck=2026-12-07
+# Why it is not fixed yet, remeasured 2026-11-24 rather than from this note's earlier date:
+# `cargo update -p glib --precise 0.20.0 --dry-run` is refused — the resolver names
+# `glib = "^0.18"` required by `gtk v0.18.2`, locked through `tauri v2.12.3` — and a full
+# `cargo update --dry-run` leaves glib at 0.18.5 while moving tauri to 2.12.7 and tao 0.37.3.
+# crates.io's glib 0.18 line ends at 0.18.5 (published 2023-12-30), no backport exists, and
+# 0.20.0 is the first patched version the advisory reports. The vendored patch fixes the
+# artifact we ship; the lockfile still names glib 0.18.5, so the row stays `pending-fix` on
+# `blocked_by=owner-commit-decision` while GitHub's alert stays open: the owner's ruling
+# closes it on an upstream version, on the owner's word, or on a merged fix pull request.
+GHSA-wrw7-89jp-8q8g  # package=glib ecosystem=crates.io scope=runtime state=pending-fix affected=>=0.15.0,<0.20.0 fixed_in=0.20.0 blocked_by=owner-commit-decision recheck=2026-12-24
 # Exposure as measured: `cargo tree -i block-buffer@0.10.4` reaches it only through
 # tauri-codegen -> sha2 0.10 -> digest 0.10, the proc macro that hashes while the app is
 # compiled. No shipped binary carries the crate, so the panic path is a build-host path.

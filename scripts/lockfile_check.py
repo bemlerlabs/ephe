@@ -266,6 +266,154 @@ def check_cargo_lock(require: bool) -> tuple[list[str], str]:
                       f"lockfile version {lock_version.group(1) if lock_version else '?'}")
 
 
+#: Cargo source audit, added 2026-11-24 after the glib vendored-patch decision. The manifest-to-lock
+#: comparison above reads `name` and `version` and never `source`, so swapping a crates.io artifact
+#: for a same-version git repository sailed through it; `cargo tree` and `cargo build` would carry
+#: the swap happily. A git-sourced crate needs a written decision naming the repository owner, the
+#: rev and a re-fetch plan, which the register carries no field for yet, so ANY git source in the
+#: lock is a finding. A path-sourced entry must be the workspace's own package or a patch named
+#: below: the vendored glib is the only registry crate allowed to lose its registry source, as the
+#: patched copy decided under GHSA-wrw7-89jp-8q8g (`.github/advisories-ignore.txt` row), and naming
+#: that exception here turns it from a hole into a rule — a second patch must move this constant and
+#: carry its own register row, and a `[patch.crates-io]` entry absent from it is a finding.
+CARGO_PATCH_ALLOWLIST: dict[str, str] = {
+    "glib": "vendored 0.18.5 copy carrying the GHSA-wrw7-89jp-8q8g fix as one hunk, byte-identical "
+            "to the same function in upstream 0.20.0; decision in the .github/advisories-ignore.txt row",
+}
+
+
+def cargo_lock_sources(text: str) -> list[tuple[str, str, str | None]]:
+    """[(name, version, source)] for every `[[package]]`; a path package carries no source line."""
+    entries: list[tuple[str, str, str | None]] = []
+    name: str | None = None
+    version: str | None = None
+    source: str | None = None
+    inside = False
+
+    def flush() -> None:
+        if inside and name and version:
+            entries.append((name, version, source))
+
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line == "[[package]]":
+            flush()
+            name = version = source = None
+            inside = True
+            continue
+        if not inside:
+            continue
+        match = re.fullmatch(r'(name|version|source) = "([^"]+)"', line)
+        if not match:
+            continue
+        if match.group(1) == "name":
+            name = match.group(2)
+        elif match.group(1) == "version":
+            version = match.group(2)
+        else:
+            source = match.group(2)
+    flush()
+    return entries
+
+
+def cargo_patch_entries(text: str) -> dict[str, dict[str, str]]:
+    """{crate: {"path": p} | {"git": g}} for the entries of the `[patch.crates-io]` table."""
+    out: dict[str, dict[str, str]] = {}
+    table = None
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        header = re.fullmatch(r"\[([^\]]+)\]", line)
+        if header:
+            table = header.group(1)
+            continue
+        if table != "patch.crates-io":
+            continue
+        match = re.fullmatch(r"([A-Za-z0-9_-]+)\s*=\s*(.+)", line)
+        if not match:
+            continue
+        name, value = match.group(1), match.group(2).strip()
+        path = re.search(r'path\s*=\s*"([^"]+)"', value)
+        git = re.search(r'git\s*=\s*"([^"]+)"', value)
+        out[name] = {"path": path.group(1)} if path else ({"git": git.group(1)} if git else {})
+    return out
+
+
+def cargo_root_package_names(text: str) -> set[str]:
+    """Names of the workspace's own packages — the legitimate source-less lock entries."""
+    names: set[str] = set()
+    table = None
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        header = re.fullmatch(r"\[([^\]]+)\]", line)
+        if header:
+            table = header.group(1)
+            continue
+        if table != "package":
+            continue
+        match = re.fullmatch(r'name = "([^"]+)"', line)
+        if match:
+            names.add(match.group(1))
+    return names
+
+
+def check_cargo_sources(require: bool) -> tuple[list[str], str]:
+    """Every locked package's source is the registry, or a patch named in CARGO_PATCH_ALLOWLIST.
+
+    A path-sourced package outside the allowlist ships outside the registry audit trail, and a
+    git-sourced one ships from a repository no register row owns; both are findings. The declared
+    `[patch.crates-io]` entries and the allowlist must say the same thing, and a declared patch must
+    exist on disk and appear in the lock — a stale pair would audit yesterday's decision.
+    """
+    if not (CARGO_MANIFEST.is_file() and CARGO_LOCK.is_file()):
+        line = "Cargo.toml and Cargo.lock are not both present under app/src-tauri"
+        return ([f"{line}; the source audit needs the pair"] if require else []), line
+    entries = cargo_lock_sources(CARGO_LOCK.read_text(encoding="utf-8"))
+    if not entries:
+        raise CheckError("no [[package]] parsed from app/src-tauri/Cargo.lock — "
+                         "a source audit with no input is not a clean audit")
+    manifest_text = CARGO_MANIFEST.read_text(encoding="utf-8")
+    patches = cargo_patch_entries(manifest_text)
+    roots = cargo_root_package_names(manifest_text)
+    problems: list[str] = []
+    git_sources = 0
+    path_names: set[str] = set()
+    for name, version, source in entries:
+        if source is None:
+            path_names.add(name)
+            if name not in CARGO_PATCH_ALLOWLIST and name not in roots:
+                problems.append(f"{name} v{version} is path-sourced in Cargo.lock and not a named "
+                                f"patch (allowlist: {sorted(CARGO_PATCH_ALLOWLIST)}); a vendored "
+                                "crate ships outside the registry audit trail")
+            continue
+        if source.startswith("git+"):
+            git_sources += 1
+            problems.append(f"{name} v{version} resolves from git source {source}; a registry crate "
+                            "swapped for a repository needs a written decision naming the repository "
+                            "owner, the rev and a re-fetch plan, which the register cannot carry yet")
+    for name, spec in sorted(patches.items()):
+        if "git" in spec:
+            problems.append(f"[patch.crates-io] {name} points at git {spec['git']}; the pin must "
+                            "name an exact upstream commit and the register has no field to decide it")
+        if name not in CARGO_PATCH_ALLOWLIST:
+            problems.append(f"[patch.crates-io] {name} is not a named patch (allowlist: "
+                            f"{sorted(CARGO_PATCH_ALLOWLIST)}); a second patch moves this constant "
+                            "and carries its own register row, it does not arrive alone")
+            continue
+        if "path" in spec:
+            vendored = (CARGO_MANIFEST.parent / spec["path"]) / "Cargo.toml"
+            if not vendored.is_file():
+                problems.append(f"[patch.crates-io] {name} pins {spec['path']}, which holds no "
+                                "Cargo.toml; the patch would resolve to nothing")
+        if name not in path_names:
+            problems.append(f"[patch.crates-io] {name} is declared but the lock carries no "
+                            f"path-sourced {name}; the audit would compare against a stale pair")
+    return problems, (f"{len(entries)} package(s) audited, {git_sources} git source(s), "
+                      f"{len(path_names - roots)} path-sourced patch(es) against "
+                      f"{len(CARGO_PATCH_ALLOWLIST)} named")
+
+
 def check_uv_lock(require: bool) -> tuple[list[str], str]:
     """`uv lock --check`, only under the resolver that wrote the lock.
 
@@ -350,6 +498,10 @@ def main(argv: list[str] | None = None) -> int:
     cargo_problems, cargo_summary = check_cargo_lock(args.require_cargo)
     failures += cargo_problems
     print(f"lockfile: Cargo manifest to lock -- {cargo_summary}")
+
+    source_problems, source_summary = check_cargo_sources(args.require_cargo)
+    failures += source_problems
+    print(f"lockfile: Cargo sources -- {source_summary}")
 
     for failure in failures:
         print(f"lockfile: FAIL {failure}")

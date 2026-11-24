@@ -142,6 +142,16 @@ Third-party dependencies and their licenses:
   Only the direct dependencies named in app/src-tauri/Cargo.toml are enumerated
   here; the transitive set is resolved in app/src-tauri/Cargo.lock.
 
+  One exception, recorded 2026-11-24: the glib crate is redistributed as source,
+  because no upstream release of its 0.18 line carries the fix for advisory
+  GHSA-wrw7-89jp-8q8g. The copy at app/src-tauri/vendor/glib-0.18.5 carries one
+  patch hunk (the upstream 0.20.0 fix), is pinned by the [patch.crates-io] entry
+  in app/src-tauri/Cargo.toml, and ships the upstream LICENSE and COPYRIGHT
+  unchanged inside that directory; the register row in
+  .github/advisories-ignore.txt carries the decision and the re-check date.
+
+  - glib 0.18.5 (MIT) – https://github.com/gtk-rs/gtk-rs-core
+
 Third-party brand marks:
 
   The marketplace icons stored under marketplace/icons/providers/ are the

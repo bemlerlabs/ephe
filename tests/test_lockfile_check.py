@@ -381,3 +381,124 @@ class TestCargoAgreement:
         declared = re.search(r"(\d+) declared crate", summary)
         assert declared and int(declared.group(1)) >= 8, summary
 
+
+
+class TestCargoSourceAudit:
+    """The `source` line of every locked Cargo package, planted case by case. Added
+    2026-11-24 after the vendored glib decision: the manifest-to-lock comparison reads
+    name and version only, so a registry crate swapped for a git repository of the same
+    version passed it, and the path pin of the vendored copy is a source change the audit
+    must see and name. Both directions prove: the real pair passes, planted swaps refuse.
+    """
+
+    MANIFEST = ('[package]\nname = "app"\nversion = "0.1.0"\nedition = "2021"\n\n'
+                '[dependencies]\nserde = "1.0"\n')
+
+    def _point(self, monkeypatch, tmp_path, manifest: str, lock: str,
+               vendor: str | None = None) -> None:
+        manifest_path = tmp_path / "Cargo.toml"
+        lock_path = tmp_path / "Cargo.lock"
+        manifest_path.write_text(manifest, encoding="utf-8")
+        lock_path.write_text(lock, encoding="utf-8")
+        if vendor:
+            (tmp_path / vendor).mkdir(parents=True, exist_ok=True)
+            (tmp_path / vendor / "Cargo.toml").write_text(
+                '[package]\nname = "glib"\nversion = "0.18.5"\n', encoding="utf-8")
+        monkeypatch.setattr(lockfile_check, "CARGO_MANIFEST", manifest_path)
+        monkeypatch.setattr(lockfile_check, "CARGO_LOCK", lock_path)
+
+    def _lock(self, serde_source: str = 'source = "registry+https://github.com/rust-lang/crates.io-index"\n',
+              glib_block: str = "") -> str:
+        return ("version = 3\n\n[[package]]\nname = \"app\"\nversion = \"0.1.0\"\n\n"
+                "[[package]]\nname = \"serde\"\nversion = \"1.0.200\"\n" + serde_source +
+                "\n" + glib_block)
+
+    def test_the_real_pair_passes_with_glib_named(self):
+        problems, summary = lockfile_check.check_cargo_sources(require=True)
+        assert problems == [], problems
+        assert "0 git source(s)" in summary, summary
+        assert "1 path-sourced patch(es) against 1 named" in summary, summary
+
+    def test_a_git_sourced_registry_crate_is_a_finding(self, monkeypatch, tmp_path):
+        """The force case: same name, same version, different source. The comparison above
+        never reads `source`, so this is the swap that used to sail through — planted and
+        refused here."""
+        lock = self._lock(serde_source='source = "git+https://attacker.example/serde.git'
+                                       '?rev=beefcafe#beefcafe"\n')
+        self._point(monkeypatch, tmp_path, self.MANIFEST, lock)
+        problems, _ = lockfile_check.check_cargo_sources(require=True)
+        assert any(problem.startswith("serde v1.0.200 resolves from git source")
+                   for problem in problems), problems
+
+    def test_an_unnamed_path_source_is_a_finding(self, monkeypatch, tmp_path):
+        """A vendored crate outside the named allowlist ships without the registry audit
+        trail; naming it here is what separates the vendored glib decision from silence."""
+        lock = self._lock() + ('[[package]]\nname = "hidden"\nversion = "1.2.3"\n\n'
+                               '[[package]]\nname = "glib"\nversion = "0.18.5"\n')
+        self._point(monkeypatch, tmp_path, self.MANIFEST +
+                    '[patch.crates-io]\nglib = { path = "vendor/glib-0.18.5" }\n',
+                    lock, vendor="vendor/glib-0.18.5")
+        problems, _ = lockfile_check.check_cargo_sources(require=True)
+        assert any(problem.startswith("hidden v1.2.3 is path-sourced")
+                   for problem in problems), problems
+        assert not any(problem.startswith("glib ") for problem in problems), problems
+
+    def test_the_named_glib_patch_alone_passes(self, monkeypatch, tmp_path):
+        lock = self._lock(glib_block='[[package]]\nname = "glib"\nversion = "0.18.5"\n\n')
+        self._point(monkeypatch, tmp_path,
+                    self.MANIFEST + '[patch.crates-io]\nglib = { path = "vendor/glib-0.18.5" }\n',
+                    lock, vendor="vendor/glib-0.18.5")
+        problems, summary = lockfile_check.check_cargo_sources(require=True)
+        assert problems == [], problems
+        assert "1 path-sourced patch(es) against 1 named" in summary, summary
+
+    def test_a_second_patch_without_a_register_constant_is_a_finding(self, monkeypatch, tmp_path):
+        """A patch cannot arrive alone: it has to move the allowlist, which is where the
+        written decision lives."""
+        lock = self._lock(glib_block='[[package]]\nname = "glib"\nversion = "0.18.5"\n\n'
+                                     '[[package]]\nname = "serde"\nversion = "1.0.200"\n')
+        self._point(monkeypatch, tmp_path,
+                    self.MANIFEST + '[patch.crates-io]\nglib = { path = "vendor/glib-0.18.5" }\n'
+                    'serde = { path = "vendor/serde" }\n', lock, vendor="vendor/glib-0.18.5")
+        problems, _ = lockfile_check.check_cargo_sources(require=True)
+        assert any("[patch.crates-io] serde is not a named patch" in problem
+                   for problem in problems), problems
+
+    def test_a_declared_patch_absent_from_the_lock_is_a_finding(self, monkeypatch, tmp_path):
+        """A stale pair must not audit yesterday's decision: the declared patch must be the
+        lock's own path entry, and a glib still named by the registry says the patch is off."""
+        lock = self._lock(glib_block='[[package]]\nname = "glib"\nversion = "0.18.5"\n'
+                                     'source = "registry+https://github.com/rust-lang/crates.io-index"\n'
+                                     'checksum = "233daaf6e83ae6a12a52055f568f9d7cf4671dabb78ff9560ab6da230ce00ee5"\n')
+        self._point(monkeypatch, tmp_path,
+                    self.MANIFEST + '[patch.crates-io]\nglib = { path = "vendor/glib-0.18.5" }\n',
+                    lock, vendor="vendor/glib-0.18.5")
+        problems, _ = lockfile_check.check_cargo_sources(require=True)
+        assert any("[patch.crates-io] glib is declared but the lock carries no path-sourced glib"
+                   in problem for problem in problems), problems
+
+    def test_a_patch_pinning_an_absent_vendor_tree_is_a_finding(self, monkeypatch, tmp_path):
+        lock = self._lock(glib_block='[[package]]\nname = "glib"\nversion = "0.18.5"\n\n')
+        self._point(monkeypatch, tmp_path,
+                    self.MANIFEST + '[patch.crates-io]\nglib = { path = "vendor/glib-0.18.5" }\n',
+                    lock, vendor=None)
+        problems, _ = lockfile_check.check_cargo_sources(require=True)
+        assert any("holds no Cargo.toml" in problem for problem in problems), problems
+
+    def test_a_git_patch_is_refused_even_for_a_named_crate(self, monkeypatch, tmp_path):
+        lock = self._lock(glib_block='[[package]]\nname = "glib"\nversion = "0.18.5"\n'
+                                     'source = "git+https://someone.example/glib.git'
+                                     '?rev=deadbeef#deadbeef"\n')
+        self._point(monkeypatch, tmp_path,
+                    self.MANIFEST + '[patch.crates-io]\nglib = '
+                    '{ git = "https://someone.example/glib.git", rev = "deadbeef" }\n',
+                    lock)
+        problems, _ = lockfile_check.check_cargo_sources(require=True)
+        assert any("[patch.crates-io] glib points at git" in problem
+                   for problem in problems), problems
+        assert any("resolves from git source" in problem for problem in problems), problems
+
+    def test_a_lock_with_no_packages_refuses_the_audit(self, monkeypatch, tmp_path):
+        with pytest.raises(lockfile_check.CheckError):
+            self._point(monkeypatch, tmp_path, self.MANIFEST, "version = 3\n")
+            lockfile_check.check_cargo_sources(require=True)
