@@ -3311,7 +3311,7 @@
     "install": {
       "eyebrow": "Installation",
       "title": "In 60 Sekunden ausprobieren",
-      "lede": "Das Installationsskript richtet Python ein, baut die Web-App und startet sie auf http://127.0.0.1:8765. Der Befehl nennt Release {{version}}.",
+      "lede": "Das Installationsskript richtet Python ein, baut die Web-App und startet sie auf http://127.0.0.1:8765. Der Befehl installiert den laufenden Zweig; --tag nennt eine Marke zum Auschecken, und eine fehlende Marke weist der Installer zurück.",
       "macosLinux": "macOS und Linux",
       "copy": "Befehl kopieren",
       "copied": "Befehl kopiert.",

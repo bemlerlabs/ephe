@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LandingSection } from './LandingSection'
-import { INSTALL_COMMAND, INSTALL_VERSION, REPO_BLOB, WINDOWS_COMMAND } from './landingFacts'
+import { INSTALL_COMMAND, REPO_BLOB, WINDOWS_COMMAND } from './landingFacts'
 
 type CopyState = 'idle' | 'copied' | 'failed'
 
 /**
- * The install step. The command is the README's, built from the version this tree
- * carries, and the copy button is the only stateful thing on the page: a refused
+ * The install step. The command is the README's, on the rolling ref the installer
+ * defaults to, and the copy button is the only stateful thing on the page: a refused
  * clipboard is reported instead of leaving the click silent.
  */
 export function LandingTryIt() {
@@ -29,7 +29,7 @@ export function LandingTryIt() {
       id="landing-install"
       eyebrow={t('landing.install.eyebrow')}
       title={t('landing.install.title')}
-      lede={t('landing.install.lede', { version: INSTALL_VERSION })}
+      lede={t('landing.install.lede')}
     >
       <div className="max-w-3xl">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -13,7 +13,10 @@ import {
   IMPORT_ROWS,
   INSTALL_COMMAND,
   INSTALL_VERSION,
+  REPO_BLOB,
+  REPO_URL,
   STUDIES,
+  WINDOWS_COMMAND,
 } from './landingFacts'
 import en from '@/locales/en.json'
 import de from '@/locales/de.json'
@@ -71,13 +74,19 @@ describe('the landing page states only what the checkout holds', () => {
     }
   })
 
-  it('prints the installer command the README carries', () => {
+  it('installs and links from the ref that exists, not from the version', () => {
     const readme = read('README.md')
     const first = readme.match(/```bash\n(curl -fsSL [^\n]*install\.sh \| bash[^\n]*)\n```/)
     expect(first, 'README has no one-line installer command').not.toBeNull()
     expect(first![1]).toBe(INSTALL_COMMAND)
-    expect(INSTALL_COMMAND).toContain(`--tag v${INSTALL_VERSION}`)
-    expect(INSTALL_COMMAND).toContain(`/v${INSTALL_VERSION}/install.sh`)
+    // A version is not a ref. Until 2026-11-24 every install URL and every proof link on
+    // this page named a tag that was never cut, and GitHub answered each with a 404.
+    expect(INSTALL_COMMAND).toContain('/main/install.sh')
+    expect(INSTALL_COMMAND).not.toMatch(/--tag|--ref/)
+    expect(INSTALL_COMMAND).not.toContain(INSTALL_VERSION)
+    expect(WINDOWS_COMMAND).toContain('/main/install.ps1')
+    expect(WINDOWS_COMMAND).not.toMatch(/-Ref/)
+    expect(REPO_BLOB).toBe(`${REPO_URL}/blob/main/`)
     expect(existsSync(resolve(ROOT, 'install.sh'))).toBe(true)
     expect(existsSync(resolve(ROOT, 'install.ps1'))).toBe(true)
   })

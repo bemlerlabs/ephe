@@ -3311,7 +3311,7 @@
     "install": {
       "eyebrow": "Install",
       "title": "Try it in 60 seconds",
-      "lede": "The installer prepares Python, builds the web app and starts it at http://127.0.0.1:8765. The command names release {{version}}.",
+      "lede": "The installer prepares Python, builds the web app and starts it at http://127.0.0.1:8765. The command installs the rolling branch; --tag names a tag to check out, and the installer refuses a tag that does not exist.",
       "macosLinux": "macOS and Linux",
       "copy": "Copy command",
       "copied": "Command copied.",

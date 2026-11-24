@@ -8,13 +8,19 @@
 export const REPO_URL = 'https://github.com/bemlerlabs/ephe'
 const RAW = 'https://raw.githubusercontent.com/bemlerlabs/ephe'
 
-/** The installer URL names the release this tree carries — the same version the UI prints. */
+/** The ref the public texts and this page install and link from: the rolling default branch.
+ *  A version is not a ref — a URL naming a tag that was never cut answers 404, which is what
+ *  every link here did until 2026-11-24. `scripts/readme_check.py --public` asks the remote
+ *  whether the named refs exist; the URL ref and the ref the installer is told to use must match. */
+const ROLLING_REF = 'main'
+
+/** The version the UI prints. Stated as a version, never used to build a ref. */
 export const INSTALL_VERSION = __APP_VERSION__
 
-export const REPO_BLOB = `${REPO_URL}/blob/v${INSTALL_VERSION}/`
+export const REPO_BLOB = `${REPO_URL}/blob/${ROLLING_REF}/`
 
-export const INSTALL_COMMAND = `curl -fsSL ${RAW}/v${INSTALL_VERSION}/install.sh | bash -s -- --tag v${INSTALL_VERSION}`
-export const WINDOWS_COMMAND = `irm ${RAW}/v${INSTALL_VERSION}/install.ps1 -OutFile install.ps1`
+export const INSTALL_COMMAND = `curl -fsSL ${RAW}/${ROLLING_REF}/install.sh | bash`
+export const WINDOWS_COMMAND = `irm ${RAW}/${ROLLING_REF}/install.ps1 -OutFile install.ps1`
 
 export const SWITCHING_DOC = `${REPO_BLOB}docs/SWITCHING.md`
 
