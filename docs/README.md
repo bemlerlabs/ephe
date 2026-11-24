@@ -31,6 +31,7 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 | `CONTEXT_CONTRACT.md` | The workspace context layers, their precedence, caps, status words and `paths:` rules |
 | `SECURITY_AND_PRIVACY.md` | The security and privacy mechanisms in one table |
 | `BRAND.md` | The name, the marks, the palette and the claim boundary, each named with the file that enforces it |
+| `DESIGN.md` | The stylesheet's token roles on the one ground, each named with the guardian that refuses its absence, and the measured control edge |
 | `SECURITY_THREAT_MODEL.md` | STRIDE threat model, including the engine-token paths |
 | `TCC.md` | Why a rebuild can lose a macOS privacy grant, and what a stable signature changes |
 | `SANDBOX_EXECUTION.md` | The Ephemora cell sandbox (opt-in) |

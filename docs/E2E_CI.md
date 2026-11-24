@@ -158,8 +158,9 @@ The capture pass, `EPHE_THEME_SWEEP=1`, writes PNGs to `out/forest-sweep-2026-10
 (`theme-parity.spec.ts:32-33,42`). `.gitignore:166-168` ignores `out/**/*.png`, `*.jpg` and `*.webp`, so that
 pass leaves no committed evidence and never did: no sweep capture is in the tree, and the baseline is the
 only committed statement of the sweep's result. `theme-parity.spec.ts` cites `docs/DESIGN.md` at three points — §3 at `:11`, §12 at `:30`, §8 at `:579` —
-and that document is not in the tree. It is recorded here so the claim has one home while the
-spec header waits for its owner to give it one.
+and those sections carry the rules the spec leans on: §3 the one ground, §8 the control edge
+against the decorative hairline, §12 the baseline moving in its own commit with the count
+before and after.
 
 ## Not measured
 

@@ -40,6 +40,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   names the commit, and the major bump upstream has since published waits for a release
   dry-run. Zizmor at `--persona=auditor` reports no finding at warning or above for the
   whole workflow tree, online rules included (was four high and one warning).
+- docs: `DESIGN.md`, the page five comments in the app and its tests cite by section (`§3` the
+  one ground, `§8` a control's edge against a decorative hairline, `§12` a baseline moving in
+  its own commit). It follows the brand page's rule -- state only what a file in this checkout
+  already does -- so each of the twelve sections names the guardian that refuses its absence:
+  the thirteen `app/src/styles/*.test.ts` files and `tests/test_forest_only.py`. The decision
+  ledger also gained the line that was missing: one visual language, one theme, the forest,
+  decided 2026-10-19 and recorded here on 2026-11-24, with the nine files that hold it and no
+  reason invented for a choice whose file carried none.
 - docs: `LATENCY_BUDGETS.md`, `COVERAGE_GAPS.md` and `CI_HYBRID_CAPACITY.md`, the three pages the
   scheduled legs cited by a dated name the tree never held. Each number names its machine,
   interpreter and load; two counts the workflows carried could not be reproduced and were
