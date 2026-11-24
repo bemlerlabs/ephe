@@ -17,6 +17,7 @@ decision has to be renewed in writing or it becomes noise on its own.
 from __future__ import annotations
 
 import datetime as dt
+import importlib.metadata
 import importlib.util
 import json
 import re
@@ -519,17 +520,8 @@ def test_pip_advisories_are_fixed_by_the_installer_pin():
     assert "pip" not in {name for name, _ in _lock_packages()}, "pip is bootstrap tooling, not a dependency"
 
 
-def test_a_fixed_row_is_held_by_the_lock_so_its_advisory_cannot_return():
-    """GIVEN a register row in state=fixed THEN the committed uv.lock resolves that package at
-    or above the `fixed_in` the row names, or the row fails.
-
-    This is what makes the state worth writing. A fixed advisory has no `--ignore-vuln` flag
-    (only PyPI `accepted` rows get one), so nothing silences it: if a later `uv lock --upgrade`
-    walks the package back below its fix, the advisory returns to pip-audit's report and the
-    only thing standing between that and a shipped regression is this fence. A reviewer's
-    memory and the tuple that used to live in this file were the earlier candidates, and
-    neither could say anything.
-    """
+def _assert_lock_holds_every_fixed_row() -> None:
+    """The comparison behind the fence below, callable so a planted lock can prove it fires."""
     assert FLOORS, "no state=fixed row in the register — this fence would pass on nothing"
     resolved: dict[str, list[str]] = {}
     for name, version in _lock_packages():
@@ -548,6 +540,138 @@ def test_a_fixed_row_is_held_by_the_lock_so_its_advisory_cannot_return():
             f"{m['id']} is state=fixed for {m['package']} but uv.lock resolves no such "
             "package — the row names a fix for something the lock does not carry"
         )
+        # The comparison the docstring has promised since it was written and the code never made:
+        # a fixed row is held by the *version*, and a fence that only asks whether the name
+        # appears passes on the vulnerable copy.
+        below = [v for v in versions if not _at_least(v, m["fixed_in"])]
+        assert not below, (
+            f"{m['id']} is state=fixed for {m['package']} at fixed_in={m['fixed_in']} but uv.lock "
+            f"resolves {below} — a later resolve walked the package back under its fix, and no "
+            "--ignore-vuln flag covers a fixed row, so the advisory is live again"
+        )
+
+
+def test_a_fixed_row_is_held_by_the_lock_so_its_advisory_cannot_return():
+    """GIVEN a register row in state=fixed THEN the committed uv.lock resolves that package at
+    or above the `fixed_in` the row names, or the row fails.
+
+    This is what makes the state worth writing. A fixed advisory has no `--ignore-vuln` flag
+    (only PyPI `accepted` rows get one), so nothing silences it: if a later `uv lock --upgrade`
+    walks the package back below its fix, the advisory returns to pip-audit's report and the
+    only thing standing between that and a shipped regression is this fence. A reviewer's
+    memory and the tuple that used to live in this file were the earlier candidates, and
+    neither could say anything.
+    """
+    _assert_lock_holds_every_fixed_row()
+
+
+def test_a_planted_lock_resolving_below_a_floor_is_refused_by_that_fence(tmp_path, monkeypatch):
+    """The same mutation one level up: a resolve that walked a floored package under its fix.
+
+    A real lock body is written and the fence's own path is pointed at it, so the comparison is
+    the thing observed firing on the version the block carries, where the fence used to ask only
+    whether the name appears at all.
+    """
+    assert FLOORS, "no state=fixed row to plant against"
+    package, _ = FLOORS[0]
+    versions = {name: floor for name, floor in FLOORS}
+    planted = _just_below(versions[package])
+    versions[package] = planted
+    body = "".join(
+        f'[[package]]\nname = "{name}"\nversion = "{version}"\n'
+        'source = { registry = "https://pypi.org/simple" }\n\n'
+        for name, version in versions.items()
+    )
+    lock = tmp_path / "uv.lock"
+    lock.write_text(body, encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "LOCK", lock)
+    with pytest.raises(AssertionError, match=rf"{re.escape(package)}[\s\S]*{re.escape(planted)}"):
+        _assert_lock_holds_every_fixed_row()
+
+
+def _pypi_fixed_rows() -> list[re.Match[str]]:
+    """Every `state=fixed` row of the PyPI ecosystem that a lock and an environment can hold.
+
+    The same exclusions as `_register_floors`: uv and pip are held by their own pins in the
+    workflow and the installer, and an npm row belongs to `pnpm-lock.yaml`.
+    """
+    return [
+        m
+        for m in _entries()
+        if (m["state"] or "accepted") == "fixed"
+        and (m["ecosystem"] or "PyPI") == "PyPI"
+        and (m["package"], m["scope"]) not in {("uv", "development"), ("pip", "development")}
+    ]
+
+
+def _live_version(name: str) -> str | None:
+    """The version the interpreter running this suite has for `name`, or None when it has none.
+
+    Read out of the environment rather than out of a file, because a `state=fixed` row claims the
+    vulnerable copy is gone from what executes. A lock can promise that; only the installed
+    distribution can answer it.
+    """
+    try:
+        return importlib.metadata.version(name)
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def _just_below(version: str) -> str:
+    """One patch release under `version`, for planting a copy that must be refused."""
+    parts = version.split(".")
+    digits = re.match(r"\d+", parts[-1])
+    assert digits, f"cannot step below {version!r}: its last part carries no number"
+    parts[-1] = str(max(0, int(digits.group()) - 1))
+    return ".".join(parts)
+
+
+def test_the_installed_copy_sits_at_or_above_every_fixed_in_row():
+    """GIVEN a register row in state=fixed THEN the distribution this interpreter has is at or
+    above the row's `fixed_in`.
+
+    The two lock fences say what a resolve would install. This one asks the environment that runs
+    the code, so a venv drifted from the lock — a hand-installed wheel, a `pip install` beside
+    `uv sync`, a stale `.venv` — cannot keep a fixed row green while importing the vulnerable
+    copy. It fails on the interpreter it names.
+    """
+    rows = _pypi_fixed_rows()
+    assert rows, "no state=fixed PyPI row in the register — this fence would pass on nothing"
+    checked: list[str] = []
+    not_installed: list[str] = []
+    for m in rows:
+        have = _live_version(m["package"])
+        if have is None:
+            not_installed.append(f"{m['package']} ({m['id']})")
+            continue
+        checked.append(f"{m['package']} {have}")
+        assert _at_least(have, m["fixed_in"]), (
+            f"{m['id']} is state=fixed at fixed_in={m['fixed_in']} but the interpreter running "
+            f"this suite — {sys.executable} — has {m['package']} {have}: the vulnerable copy is "
+            "installed here, and the lock agreeing with itself is not evidence about this "
+            "environment"
+        )
+    if not checked:
+        pytest.skip(f"no fixed row is installed in this environment to ask: {not_installed}")
+
+
+def test_a_planted_installed_copy_below_the_floor_is_refused(tmp_path, monkeypatch):
+    """The mutation the live fence has to survive: the installed copy walked under its fix.
+
+    Nothing is mocked. A second `.dist-info` for one of the floored packages is written beside the
+    real one and its directory put in front of `sys.path`, so the metadata reader answers from the
+    planted copy exactly as it answers from any install, and the fence's own predicate refuses it.
+    """
+    package, floor = FLOORS[0]
+    planted = _just_below(floor)
+    assert not _at_least(planted, floor), f"{planted} is not below {floor}, so the plant proves nothing"
+    info = tmp_path / f"{package.replace('-', '_')}-{planted}.dist-info"
+    info.mkdir()
+    (info / "METADATA").write_text(
+        f"Metadata-Version: 2.1\nName: {package}\nVersion: {planted}\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(sys, "path", [str(tmp_path), *sys.path])
+    assert _live_version(package) == planted, "the reader did not see the planted copy"
 
 
 def test_a_fixed_npm_row_is_held_by_the_npm_lock() -> None:

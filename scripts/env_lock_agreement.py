@@ -32,7 +32,10 @@ one edge per resolution environment (`python_full_version < '3.12'` and `>= '3.1
 reader sees `numpy` behind two markers and calls a hard dependency conditional. Markers are
 therefore evaluated against the interpreter running this file, with `packaging.markers`, which
 the lock itself carries. Without `packaging` every conditional edge is held to the lock instead
-of excused — a stricter verdict, never a cleaner one — and the run says so on its face.
+of excused — a stricter verdict, never a cleaner one — and the run says so on its face. A marker
+the library cannot parse is answered the same conservative way, and is counted separately: the
+report prints how many markers were asked, how many the library decided and how many raised, so
+a run in which nothing was decided prints `NOT evaluated` rather than a bare `evaluated`.
 
 The boundary this instrument cannot cross: it reads one environment — the interpreter that runs
 it — and the one lock file it is pointed at, so a second venv, a `uv tool` environment, the
@@ -95,38 +98,91 @@ def resolution_environment(python_full_version: str) -> dict[str, str]:
     }
 
 
+@dataclass
+class MarkerEvaluation:
+    """What the marker library was asked during one run, and what it actually answered.
+
+    `evaluated` is the only claim a run may print about its own markers, and it is true only when
+    the library decided every marker it was asked about. The field used to be a constant `True`
+    handed out as soon as `packaging` imported, so a run in which every marker raised — a lock
+    written by a `uv` that spells a marker the installed `packaging` cannot parse — still reported
+    that markers had been evaluated while every conditional edge had in fact been answered by the
+    conservative fallback. An instrument printing "decided" for a decision it never made is the
+    failure this class exists to make impossible; `asked`, `decided` and `errored` stay beside it
+    so the bool cannot stand alone.
+    """
+
+    available: bool
+    asked: int = 0
+    decided: int = 0
+    errored: int = 0
+
+    @property
+    def evaluated(self) -> bool:
+        """True only when at least one marker was asked and none of them raised."""
+        return self.available and self.asked > 0 and self.errored == 0
+
+    def note(self) -> str:
+        """The one line the report prints about this run's markers."""
+        if not self.available:
+            return "NOT evaluated — no packaging library; every conditional edge held to the lock"
+        if not self.asked:
+            return "no conditional edge in this lock; nothing was asked"
+        if self.errored == self.asked:
+            return (
+                f"NOT evaluated — all {self.asked} marker(s) raised; every conditional edge held "
+                "to the lock"
+            )
+        if self.errored:
+            return (
+                f"partially evaluated — {self.decided} of {self.asked} decided here, {self.errored} "
+                "raised and stayed held to the lock"
+            )
+        return f"evaluated here — {self.decided} of {self.asked} marker(s) decided by packaging"
+
+
 def marker_admits(
     environment: Mapping[str, str] | None = None,
-) -> tuple[Callable[[str], bool], bool]:
-    """A checker for lock markers, and whether real evaluation was possible.
+) -> tuple[Callable[[str], bool], MarkerEvaluation]:
+    """A checker for lock markers, and an account of what that checker really decided.
 
     Without `packaging` every marker answers yes: the run then holds conditional edges to the
     lock rather than excusing them, so the failure mode of a missing library is a stricter
-    verdict, never a cleaner one.
+    verdict, never a cleaner one. A marker the library cannot parse is answered the same way and
+    counted in `errored`, which is what keeps `evaluated` honest.
 
     `environment` is the PEP 508 context markers are evaluated against. Left alone it is the
     interpreter running this process, which is the right answer for the shipped gate — the one
     environment it judges is the one whose distributions it compared. A test passes one of
     `resolution_environment` instead, so a claim about a lock does not depend on the interpreter
     that happens to execute it.
+
+    The account is filled as markers are asked, so a caller reads it after the comparison, not
+    at the moment this function returns.
     """
+    outcome = MarkerEvaluation(available=False)
     try:
         from packaging.markers import Marker
     except ImportError:
-        return (lambda _text: True), False
+        return (lambda _text: True), outcome
+    outcome.available = True
     cache: dict[str, bool] = {}
 
     def admits(text: str) -> bool:
         verdict = cache.get(text)
         if verdict is None:
+            outcome.asked += 1
             try:
                 verdict = Marker(text).evaluate(None if environment is None else dict(environment))
             except Exception:
                 verdict = True  # an unreadable marker keeps the edge held to the lock
+                outcome.errored += 1
+            else:
+                outcome.decided += 1
             cache[text] = verdict
         return verdict
 
-    return admits, True
+    return admits, outcome
 
 
 def canonical(name: str) -> str:
@@ -354,14 +410,14 @@ def report(
     python: str,
     installed_count: int,
     limit: int = PRINTED_DEFAULT,
-    markers_evaluated: bool = True,
+    markers: MarkerEvaluation | None = None,
 ) -> tuple[int, list[str]]:
     """The printed verdict and its exit code. Refusal comes from `REFUSING` alone."""
     hard = [f for f in findings if f.kind in REFUSING]
     columns: dict[str, list[Finding]] = {}
     for finding in findings:
         columns.setdefault(finding.kind, []).append(finding)
-    marker_note = "evaluated here" if markers_evaluated else "NOT evaluated — every conditional edge held to the lock"
+    marker_note = markers.note() if markers is not None else "not asked in this call"
     lines = [
         f"env/lock agreement: {'FAIL' if hard else 'PASS'} — "
         f"{len(hard)} product-graph deviation(s) against {lock.path}",
@@ -384,7 +440,8 @@ def report(
 
 
 def as_json(
-    lock: Lock, findings: list[Finding], *, python: str, installed_count: int, markers_evaluated: bool = True
+    lock: Lock, findings: list[Finding], *, python: str, installed_count: int,
+    markers: MarkerEvaluation | None = None,
 ) -> str:
     return json.dumps(
         {
@@ -393,7 +450,11 @@ def as_json(
             "environment": environment_label(python),
             "installed": installed_count,
             "locked_packages": len(lock.versions),
-            "markers_evaluated": markers_evaluated,
+            "markers_evaluated": markers.evaluated if markers is not None else None,
+            "markers_available": markers.available if markers is not None else None,
+            "markers_asked": markers.asked if markers is not None else None,
+            "markers_decided": markers.decided if markers is not None else None,
+            "markers_errored": markers.errored if markers is not None else None,
             "refusing": sorted(REFUSING),
             "findings": [
                 {"name": f.name, "kind": f.kind, "installed": f.installed, "pinned": f.pinned} for f in findings
@@ -419,7 +480,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"env/lock agreement: cannot read the lock — {error}", file=sys.stderr)
         return EXIT_DIFFERS
     installed, shadows = installed_distributions()
-    admits, markers_evaluated = marker_admits()
+    admits, markers = marker_admits()
     findings = compare(lock, installed, shadows, admits)
     if args.json:
         print(
@@ -428,7 +489,7 @@ def main(argv: list[str] | None = None) -> int:
                 findings,
                 python=sys.executable,
                 installed_count=len(installed),
-                markers_evaluated=markers_evaluated,
+                markers=markers,
             )
         )
         return EXIT_DIFFERS if any(f.kind in REFUSING for f in findings) else EXIT_OK
@@ -438,7 +499,7 @@ def main(argv: list[str] | None = None) -> int:
         python=sys.executable,
         installed_count=len(installed),
         limit=args.limit,
-        markers_evaluated=markers_evaluated,
+        markers=markers,
     )
     print("\n".join(lines))
     return code

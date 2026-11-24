@@ -274,10 +274,108 @@ class TestTransitiveAndMarkers:
 
     def test_given_no_injected_environment_then_markers_answer_for_this_interpreter(self):
         # The shipped gate judges one environment: the interpreter whose distributions it compared.
-        admits, evaluated = instrument.marker_admits()
-        assert evaluated is True
+        admits, markers = instrument.marker_admits()
         assert admits("python_version >= '3.0'") is True
         assert admits("python_version < '3.0'") is False
+        # The account is read after the asking, which is the only order that can state a fact.
+        assert markers.evaluated is True
+        assert (markers.asked, markers.decided, markers.errored) == (2, 2, 0)
+
+
+class TestTheMarkerAccountTellsTheTruth:
+    """`evaluated` was a constant until 2026-11-24; these cases make the lie unproducible.
+
+    The account is the one place where this instrument claims it decided something about a
+    conditional edge, so a run in which every marker raised may not print that markers were
+    evaluated. Each case plants the marker text itself — an unreadable marker is what a lock
+    written by another `uv` delivers — and reads the account after the comparison, the order the
+    command uses.
+    """
+
+    #: Two texts `packaging.markers.Marker` refuses to parse, distinct so both are asked.
+    UNREADABLE = ("this is not a marker", "python_version ===")
+
+    @staticmethod
+    def _root_with(marker_texts: tuple[str, ...]) -> str:
+        edges = ", ".join('{ name = "numpy", marker = "%s" }' % text for text in marker_texts)
+        return (
+            '[[package]]\nname = "ephe"\nversion = "0.1.0"\nsource = { editable = "." }\n'
+            f"dependencies = [{edges}]\n\n"
+            '[[package]]\nname = "numpy"\nversion = "2.5.2"\n'
+            'source = { registry = "https://pypi.org/simple" }\n'
+        )
+
+    def test_given_every_marker_raises_then_the_run_refuses_to_claim_evaluation(self):
+        # GIVEN a lock whose only conditional edges carry markers the library cannot parse
+        lock = instrument.read_lock_text(self._root_with(self.UNREADABLE), "<test lock>")
+        admits, account = instrument.marker_admits(instrument.resolution_environment("3.13.1"))
+        findings = instrument.compare(lock, {"numpy": "2.5.2"}, admits=admits)
+        # THEN nothing was decided, the fallback answered both, and the report says so by name
+        assert account.available is True, "packaging is present; it is the markers that failed"
+        assert (account.asked, account.decided, account.errored) == (2, 0, 2), account
+        assert account.evaluated is False
+        code, lines = instrument.report(lock, findings, python="py", installed_count=1, markers=account)
+        assert code == instrument.EXIT_OK
+        assert "NOT evaluated — all 2 marker(s) raised" in lines[1], lines[1]
+
+    def test_given_one_readable_marker_beside_a_broken_one_then_the_account_says_partially(self):
+        lock = instrument.read_lock_text(
+            self._root_with(("python_version >= '3.0'", self.UNREADABLE[0])), "<test lock>"
+        )
+        admits, account = instrument.marker_admits(instrument.resolution_environment("3.13.1"))
+        findings = instrument.compare(lock, {"numpy": "2.5.2"}, admits=admits)
+        assert (account.asked, account.decided, account.errored) == (2, 1, 1), account
+        assert account.evaluated is False
+        _, lines = instrument.report(lock, findings, python="py", installed_count=1, markers=account)
+        assert "partially evaluated — 1 of 2 decided here" in lines[1], lines[1]
+
+    def test_given_an_unreadable_marker_then_the_edge_is_still_held_to_the_lock(self):
+        """The conservative direction the fix must not move: unanswered is judged, never excused."""
+        lock = instrument.read_lock_text(self._root_with((self.UNREADABLE[0],)), "<test lock>")
+        admits, account = instrument.marker_admits(instrument.resolution_environment("3.13.1"))
+        findings = instrument.compare(lock, {}, admits=admits)
+        assert kinds(findings) == {"numpy": "missing"}
+        assert account.evaluated is False
+        code, _ = instrument.report(lock, findings, python="py", installed_count=0, markers=account)
+        assert code == instrument.EXIT_DIFFERS
+
+    def test_given_a_clean_marker_run_then_the_account_states_what_it_decided(self):
+        lock = instrument.read_lock_text(
+            self._root_with(("python_version >= '3.0'", "python_version < '3.0'")), "<test lock>"
+        )
+        admits, account = instrument.marker_admits(instrument.resolution_environment("3.13.1"))
+        instrument.compare(lock, {"numpy": "2.5.2"}, admits=admits)
+        assert (account.asked, account.decided, account.errored) == (2, 2, 0), account
+        assert account.evaluated is True
+        assert account.note().startswith("evaluated here — 2 of 2")
+
+    def test_given_a_lock_with_no_marker_at_all_then_nothing_was_asked(self):
+        lock = lock_from(always_on={"fastapi": "1.0.0"})
+        admits, account = instrument.marker_admits(instrument.resolution_environment("3.13.1"))
+        instrument.compare(lock, {"fastapi": "1.0.0"}, admits=admits)
+        assert account.asked == 0
+        assert account.evaluated is False, "an empty account may not read as a decided one"
+        assert account.note() == "no conditional edge in this lock; nothing was asked"
+
+    def test_given_no_packaging_then_the_account_names_the_missing_library(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "packaging.markers", None)
+        admits, account = instrument.marker_admits()
+        assert admits("python_version < '3.0'") is True, "the absent library excuses nothing"
+        assert account.available is False
+        assert (account.asked, account.decided, account.errored) == (0, 0, 0), account
+        assert account.note().startswith("NOT evaluated — no packaging library")
+
+    def test_the_machine_readable_run_carries_the_counts_beside_the_bool(self):
+        """A json consumer may not get `decided` without being told how many were asked."""
+        lock = lock_from(always_on={"fastapi": "1.0.0"})
+        account = instrument.MarkerEvaluation(available=True, asked=3, decided=3, errored=0)
+        payload = json.loads(
+            instrument.as_json(lock, [], python="py", installed_count=1, markers=account)
+        )
+        assert payload["markers_evaluated"] is True
+        assert (payload["markers_asked"], payload["markers_decided"], payload["markers_errored"]) == (3, 3, 0)
+        unmeasured = json.loads(instrument.as_json(lock, [], python="py", installed_count=1))
+        assert unmeasured["markers_evaluated"] is None, "an unmeasured run may not report a verdict"
 
 
 class TestProviderAndPlumbing:
@@ -359,12 +457,13 @@ class TestProviderAndPlumbing:
         assert "no editable or virtual root package" in capsys.readouterr().err
 
     def test_given_the_real_interpreter_then_markers_are_evaluated_not_assumed(self):
-        # GIVEN this environment, where packaging is present through the lock itself
-        admits, evaluated = instrument.marker_admits()
-        # WHEN a true and a false marker are asked
-        assert evaluated is True
+        """`evaluated` is earned by a decided marker, never handed out for an empty run."""
+        admits, markers = instrument.marker_admits()
+        assert markers.evaluated is False, "an account that was never asked may not claim evaluation"
         assert admits("python_version >= '3.0'") is True
         assert admits("python_version < '3.0'") is False
+        assert markers.evaluated is True
+        assert markers.note().startswith("evaluated here")
 
     def test_given_the_two_dev_extras_then_the_split_is_the_suite_s_own_tools(self):
         assert instrument.DEV_EXTRAS == frozenset({"dev", "bench"})

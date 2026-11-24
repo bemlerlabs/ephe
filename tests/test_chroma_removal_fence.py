@@ -29,7 +29,10 @@ unsound type that record is about.
 """
 from __future__ import annotations
 
+import importlib.metadata
+import importlib.util
 import re
+import sys
 from pathlib import Path
 
 import pytest
@@ -135,6 +138,67 @@ def test_the_lock_resolves_no_package_whose_name_carries_the_retired_one():
     manifest = re.search(r"^\[manifest\]\s*$(.*?)(?=^\[\[package\]\])", lock, re.S | re.M)
     assert manifest, "uv.lock has no [manifest] block before its first [[package]]"
     assert RETIRED not in manifest.group(1), "uv.lock's [manifest] still names the package"
+
+
+def _importable_origin(name: str) -> str | None:
+    """Where this interpreter would load `name` from, or None when it cannot find it.
+
+    `find_spec` answers without executing the package, which is the property that makes it
+    usable here: the library this file keeps out is the one whose import starts a server. A
+    lookup that raises is reported inside the answer, so a broken path fails with its reason.
+    """
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError) as exc:
+        return f"<unresolvable:{name}: {exc}>"
+    return None if spec is None else str(spec.origin)
+
+
+def _installed_distribution_names() -> list[str]:
+    """Every distribution name the running environment can resolve, canonically lowercased."""
+    names = []
+    for dist in importlib.metadata.distributions():
+        name = dist.metadata["Name"]
+        if name:
+            names.append(name.lower().replace("_", "-"))
+    return names
+
+
+def test_the_running_environment_carries_no_copy_of_the_retired_package():
+    """The two file fences say what the lock would install; this one asks what is installed.
+
+    `scripts/import_legacy_store.py`'s exemption rests on the vulnerable library living in an
+    environment of its own. That is a claim about an interpreter, and an interpreter is the only
+    thing that can answer it: a lockfile with the row deleted would keep both file fences green
+    while a hand-installed `chromadb` sat in the venv the server starts from.
+    """
+    assert RETIRED not in sys.modules, f"{RETIRED} was imported in this worker"
+    origin = _importable_origin(RETIRED)
+    assert origin is None, (
+        f"{RETIRED} is importable from this interpreter at {origin} — the interpreter at "
+        f"{sys.executable} has the library the product stopped shipping, whatever the lock says"
+    )
+    named = sorted({n for n in _installed_distribution_names() if n == RETIRED})
+    assert not named, f"{RETIRED} is installed as a distribution here: {named}"
+
+
+def test_a_planted_copy_on_the_path_is_refused_by_the_environment_probe(tmp_path, monkeypatch):
+    """The mutation the fence above has to survive: the library back on the import path.
+
+    A directory is written with a `chromadb/__init__.py` in it and put in front of `sys.path`, so
+    the probe is handed a real importable package the way any install would be, with nothing
+    mocked. Nothing in the tree changes, which is the point: the file fences stay green while this
+    one has to refuse.
+    """
+    package_dir = tmp_path / "chromadb"
+    package_dir.mkdir()
+    (package_dir / "__init__.py").write_text('"""Planted by the fence test."""\n', encoding="utf-8")
+    monkeypatch.setattr(sys, "path", [str(tmp_path), *sys.path])
+    origin = _importable_origin(RETIRED)
+    assert origin is not None, "the probe did not see a package sitting on the import path"
+    assert Path(origin).is_relative_to(tmp_path), origin
+    with pytest.raises(AssertionError, match=re.escape(str(tmp_path))):
+        test_the_running_environment_carries_no_copy_of_the_retired_package()
 
 
 def test_no_shipped_module_imports_the_retired_package():

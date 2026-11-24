@@ -96,6 +96,23 @@ def _unmeasured(release: tuple[int, int, int]) -> str | None:
     return None
 
 
+def _refusal(release: tuple[int, int, int]) -> str | None:
+    """Why that release may not run the product, or None when this file has no claim about it.
+
+    Kept separate from any assertion so the comparison can be handed a release the machine does
+    not have installed; the interpreter cannot be downgraded to prove the fence answers.
+    """
+    floor = _floor(release)
+    if floor is None:
+        return None
+    if release < floor:
+        return (
+            f"{'.'.join(map(str, release))} is below the floor "
+            f"{'.'.join(map(str, floor))} that carries CVE-2026-114583 and CVE-2026-115557"
+        )
+    return None
+
+
 def test_the_pin_names_a_release_that_carries_both_fixes():
     pin = _semver(_pin())
     floor = _floor(pin)
@@ -106,6 +123,47 @@ def test_the_pin_names_a_release_that_carries_both_fixes():
     assert pin >= floor, (
         f".python-version pins {'.'.join(map(str, pin))}, below the floor "
         f"{'.'.join(map(str, floor))} that carries CVE-2026-114583 and CVE-2026-115557"
+    )
+
+
+def test_the_interpreter_running_this_suite_is_at_or_above_its_floor():
+    """The pin is a claim about which release the project wants; this asks which one executes it.
+
+    `.python-version` is text, and every other test here either reads that text or asks the
+    stdlib to behave. A `.venv` recreated with an older interpreter — a system `python3`, a stale
+    uv cache, a runner image that carried an earlier patch — passes the pin test while running
+    the vulnerable `tarfile` and the trusting `ssl`. The comparison is made against
+    `sys.version_info` so the answer comes from the interpreter, with the pin printed beside it.
+    """
+    running = tuple(sys.version_info[:3])
+    skip = _unmeasured(running)
+    if skip:
+        pytest.skip(skip)
+    refusal = _refusal(running)
+    assert refusal is None, (
+        f"the interpreter executing this suite is {sys.version.split()[0]} at {sys.executable} "
+        f"and {refusal}; .python-version pins {_pin()}, which the venv does not match — recreate "
+        "it with `uv sync` rather than editing the floor"
+    )
+
+
+def test_a_release_below_the_floor_is_refused_by_that_comparison():
+    """The mutation the comparison has to survive: being handed the release that predates both fixes.
+
+    3.13.17 is the release this file measured as carrying neither guard, and it is the release the
+    fence exists to refuse. The interpreter cannot be downgraded to prove the fence answers for it,
+    so the release is handed to the comparison directly, together with the two edges that must
+    still be answered the other way.
+    """
+    floor = FIXED_FLOOR[(3, 13)]
+    below = (floor[0], floor[1], floor[2] - 1)
+    assert _refusal(below) is not None, f"{below} predates the fixes and was not refused"
+    assert _refusal(floor) is None, f"{floor} is the floor itself and must be admitted"
+    assert _refusal((floor[0], floor[1], floor[2] + 1)) is None
+    unmeasured = _refusal((3, 14, 0))
+    assert unmeasured is None, (
+        "3.14 has no measured floor, so this file makes no claim about it; if an install was "
+        "read, add the minor to FIXED_FLOOR and make this case name the floor"
     )
 
 
