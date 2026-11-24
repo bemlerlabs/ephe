@@ -73,6 +73,25 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   suite's own tools (`dev`, `bench`) are reported in a column that prints without refusing; every other
   extra counts as product, so an unclassified one is held to the lock. 22 tests cover it, one of them a
   planted deviation that has to be caught (`658cd90`).
+- ci: `scripts/citation_check.py`, a gate over what a comment claims. Six comments in the suite
+  cited pages this repository never contained — `git log --diff-filter=A` finds no commit that ever
+  wrote any of them — and a reader trusts a pointer and stops reading the code. The instrument reads
+  comments and docstrings under `scripts/`, `tests/` and `.github/` through `tokenize` and `ast`, so a
+  fixture path a test invents in a string stays the test's own business, and refuses a path with no
+  file behind it, a `path:line` or `path:first-last` pointer landing past the end of a real file, and
+  the dated, `PLAN` or `DRAFT` naming style a working note takes before it is deleted. One grep-able
+  exemption, `# citation:absent <path> - reason`, for a removal fence that has to name the path it
+  forbids; it exempts that one path inside its own comment block and buys nothing against a stamped
+  name. It ships at zero findings over 1020 files, and 48 files carry the corrections that got it
+  there (`5a5e24a`).
+- dev: `make hooks` points a checkout's git at the hook this repository already ships.
+  `.husky/pre-commit` was tracked, executable and complete, and nothing set `core.hooksPath`, so git
+  never ran it and every fresh clone committed unchecked while `AGENTS.md` said in the present tense
+  that hooks stay on. The target refuses without the executable bit, copies nothing into `.git/hooks`,
+  and `make doctor` now prints the configured path or `OFF — no hook runs on commit; run make hooks`.
+  Measured in a second worktree of the same repository after one run: a staged file carrying a German
+  identifier was refused with `language gate: FAIL` naming the file and its `0 -> 1 (+1)` delta, and a
+  ratchet-clean file was accepted by the hook itself (`3c3d937`).
 
 ### Fixed
 
@@ -152,6 +171,35 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   restate their numbers against this tree's own venv — `uv sync --frozen` holds certifi 2026.10.19 and
   writes it without pip (importlib.metadata, 2026-11-23) — which leaves the pip row standing on the
   hash-pinned 26.2.2 wheel its fence test already asserts (`a8323ea`).
+- frontend: closing the settings sheet dropped the keyboard on the floor. Focus went to a
+  `stableFocusTarget()` chosen by panel rather than back to the element that opened the sheet, and a
+  hidden or detached invoker was accepted without a check. `useFocusReturn.ts` now carries
+  `usableInvoker()` — rejecting a disconnected node, `document.body` and anything inside `[inert]` —
+  `handFocusBack()` with a bounded rAF retry, and `invokerFromFocus()` recorded before the first
+  focus; the recorder survives a panel switch because it is keyed on the invoker, not the panel.
+  Five cases in `SettingsPanel.focusReturn.test.tsx` hold it: dropping `usableInvoker` fails three of
+  them, ignoring the invoker fails one (`b93d5b8`).
+- landing: the page installed and linked from a tag that has never existed. Every outward URL and
+  both install commands were built from `__APP_VERSION__`, so a visitor got
+  `raw.githubusercontent.com/…/v0.1.0/install.sh` — measured 404, as were
+  `blob/v0.1.0/docs/SWITCHING.md`, `blob/v0.1.0/core/engine_config.py` and `v0.1.0/install.ps1`,
+  while every `main` twin answered 200. The page now derives from the rolling ref the README and
+  `install.sh` default to, states its version as a version rather than as a ref, and says what
+  `--tag` does (`d957311`).
+- scripts: `scripts/rss_profile_1000.py` could not run at all. It posts to an authority-spending
+  route, and `LocalRequestGuardMiddleware` refuses a client naming neither a loopback Host nor a
+  matching Origin — the `testserver` admission holds only while `PYTEST_CURRENT_TEST` is set, which a
+  standalone run never has. The script sends the pair the guard already trusts; the guard is
+  untouched. Two passes produced +0.0155 MB/turn each, a third on another day +0.0156 with a
+  least-squares +0.0158 (136.4 MB → 152.0 MB over 1000 turns, 2000 messages, 5.8 ms/turn), no engine
+  — the script stubs `server.routes.chat.react_loop` — on Darwin arm64 with Python 3.13.18, and
+  `RSS_PROFILE_1000_MB_PER_TURN` now carries a number that run produced (`d313509`).
+- hooks: the local type leg asked for `mypy` on `PATH` only, while the ruff leg reads the
+  repository's own `.venv` first because `scripts/lint_policy.sh` counts its rules against one pinned
+  release. On a machine with the venv populated and no PATH binary, every local verdict printed
+  `SKIP mypy: not on PATH` for a check that had been available all along; the leg now resolves
+  `.venv/bin/mypy` first, prints the version against the pin, and names both places it looked when it
+  finds neither. Advisory stays advisory, as `lint.yml` has it (`fae0b95`).
 
 ### Changed
 
