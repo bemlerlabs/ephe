@@ -238,8 +238,11 @@ jobs:
           # `runner` is the routing label; `os` stays the job title. macOS goes to the runner
           # behind `vars.CI_MAC_RUNNER`, Linux to the one behind `vars.CI_LINUX_RUNNER` - each copy
           # of this repository points those at a runner it can use. No Windows leg exists, so
-          # that leg is dropped and the Windows bundle stays a hand build; §5.1 of
-          # docs/RELEASE_SIGNING_DRY_RUN_2026-10-11.md carries the labels and the price.
+          # that leg is dropped and the Windows bundle stays a hand build. No signing dry run has
+          # been recorded to read: these legs' labels and their price would be written down by the
+          # first signed `build-bundles` run, which needs a tag on `main` and the release
+          # environment's `TAURI_SIGNING_PRIVATE_KEY` pair - an environment no host has yet
+          # (measured 2026-11-23: no environments, no self-hosted runners, no secrets).
           - os: macos
             runner: ${{ vars.CI_MAC_RUNNER || 'macos-latest' }}
             args: --target aarch64-apple-darwin
