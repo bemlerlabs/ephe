@@ -200,9 +200,50 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   `SKIP mypy: not on PATH` for a check that had been available all along; the leg now resolves
   `.venv/bin/mypy` first, prints the version against the pin, and names both places it looked when it
   finds neither. Advisory stays advisory, as `lint.yml` has it (`fae0b95`).
+- tools: `scripts/env_lock_agreement.py` reported `evaluated=True` from the moment `packaging`
+  imported, so a lock whose markers the installed library cannot parse printed "markers evaluated"
+  while every one of them had raised and the conservative fallback had answered in its place. The
+  field is now a property over `asked`, `decided` and `errored` — an account that was never asked may
+  not claim evaluation — and the report line distinguishes five states, with the counts in `--json`.
+  Measured on this lock with CPython 3.13.18 (uv-managed, arm64) on macOS 26.6: 12 of 12 markers
+  decided, the number the bool was hiding. Seven cases plant unreadable marker text rather than
+  mocking the library (`0c27499`).
+- tests: the advisory register's `state=fixed` rows were held by a fence that asked `uv.lock` whether
+  the package *name* appears, while its own docstring promised "at or above the `fixed_in` the row
+  names" — a resolve walking aiohttp back to the vulnerable 3.14.4 kept it green, and the npm sibling
+  had the comparison all along. The comparison is now made, and a second fence asks
+  `importlib.metadata.version()` for every fixed row: aiohttp 3.14.5, certifi 2026.10.19,
+  multidict 6.9.1, each at or above its floor, nothing relaxed. A planted
+  `aiohttp-3.14.4.dist-info` in front of `sys.path` is seen and refused, a planted lock at 3.14.4
+  raises, and with the comparison disabled inside the guard the file reports 1 failed / 37 passed
+  where the old fence stayed green (`0c27499`).
+- tests: the retired vector store was kept out by reading files, which is a claim about text rather
+  than about the environment that ships. Absence is now asked of the interpreter — `find_spec`, which
+  answers without importing, which matters because that library starts a server on import — beside
+  the distribution scan. Measured here: `find_spec("chromadb")` is `None`, 0 of 119 distributions
+  carry the name; a planted real `chromadb/__init__.py` on `sys.path` is refused by path while every
+  file fence in the same file stays green (`0c27499`).
+- tests: the CPython floor was a string a test read out of a file, so the file stayed green on an
+  interpreter that fails it. The running interpreter is now compared against `FIXED_FLOOR`. Measured
+  twice on this machine, byte-identical file: Homebrew CPython 3.12.13, below the 3.12.16 floor,
+  gives 8 failed / 2 passed with the new case refusing by name alongside the six tarfile cases and
+  the SPKI case, while `test_the_pin_names_a_release...` passes on an interpreter that cannot pass
+  its own tarfile cases and still trusts the eMudhra keys; CPython 3.13.18 gives 10 passed. A minor
+  with no measured floor makes no claim, pinned as a decision instead of left silent (`0c27499`).
 
 ### Changed
 
+- ci: the workflow auditor moved from 1.30.1 to 1.33.1 on a measured parity. The job's own invocation
+  (`--offline --persona=auditor --min-severity=medium .github/workflows/`) exits 0 on both versions
+  with no `warning[` or `error[` line, and run without the severity floor both print
+  `19 findings: 4 informational, 15 low, 0 medium, 0 high` with the version banner as the only
+  differing line in the two logs (measured 2026-11-24 with `uvx --from zizmor==<v>` on Darwin arm64).
+  What the releases in between add costs this tree nothing: 1.32's two template-injection classes
+  find no new hit and its root-aware input collection is inert because the step names
+  `.github/workflows/` explicitly; 1.33's `dangerous-checkout` flags an opt-out no workflow here
+  writes, with all 33 checkout steps SHA-pinned. The reason to take a two-day-old release is 1.33.1's
+  crash fixes — a scanner that crashes is a red gate here — and the note that the hosted leg cannot
+  confirm it yet, because the account is billing-locked (`fc4f912`).
 - brand: the page title, the social card fields, the install manifest and the terminal's start
   banner open with the two lines the READMEs carry under the mark, instead of a descriptor built
   from the project name.
