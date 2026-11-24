@@ -88,8 +88,8 @@ async def test_create_video_without_case_runs_the_recorder_over_every_case(monke
         calls.append(list(argv))
         return SimpleNamespace(
             returncode=0,
-            stdout="chat.webp\n  ephe-demo-chat.webp: 2.10 MB (1280px @30fps)\n"
-            "Done. README assets refreshed.",
+            stdout="chat: video=/tmp/ephe_demo/raw/page@0a1b2c.webm\n"
+            "WEBP chat: /tmp/ephe_demo/chat.webp (2150 KB, 150 Frames)\n",
             stderr="",
         )
 
@@ -98,7 +98,7 @@ async def test_create_video_without_case_runs_the_recorder_over_every_case(monke
     assert calls, "subprocess.run was never called"
     assert calls[0][1].endswith("record_demo.py")
     assert calls[0][2:] == [], "the all-cases call must not pass a case"
-    assert "ephe-demo-chat.webp" in result
+    assert "VIDEO_FILE:/tmp/ephe_demo/chat.webp" in result
     assert "PNG_FILE:" in result
 
 

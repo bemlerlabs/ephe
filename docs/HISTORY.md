@@ -56,10 +56,11 @@ short film — title cards, a music bed, a spoken line, all synthesised locally 
 joined with ffmpeg, every tool call shown and approved in the chat — is that
 proof, because every step leaves an artifact a sceptic can open. The tools that
 make it (`film_card`, `film_music`, `film_sound`, `film_clip`) grew out of that
-exercise and stayed in the product; the 40-second film at the top of the README
-is their record, with every frame's origin listed in
-[DEMO_VIDEO.md](DEMO_VIDEO.md). There is no text-to-video model in Ephe, and the
-film never suggests one.
+exercise and stayed in the product; [DEMO_VIDEO.md](DEMO_VIDEO.md) records the 40-second film
+they were built to cut, frame by frame. The tree publishes no copy of that film — the only
+moving picture that ships with the product is the first-run sequence under
+`app/public/onboarding/`, which the product plays itself. There is no text-to-video model in
+Ephe, and that film never suggested one.
 
 ## Plugins, skills and the store
 

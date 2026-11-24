@@ -77,9 +77,12 @@ run Ephe — that is [QUICKSTART.md](QUICKSTART.md) and [INSTALL.md](INSTALL.md)
 
 ## Where the pictures live
 
-`docs/media/` holds the demo clips and the mark the README renders; `docs/screenshots/` holds
-the three README captures, with `screenshots/PROVENANCE.md` naming the surface each one
-documents and when it has to be re-shot.
+`docs/media/` holds three files: the moth master `scripts/extract_moth_master.py` extracts,
+the mark every README renders, cut from it by `scripts/generate_brand_assets.py`, and the
+social preview `scripts/generate_social_preview.py` draws. It publishes no clips and no
+screenshots; `docs/screenshots/` holds the three README captures, with
+`screenshots/PROVENANCE.md` naming the surface each one documents and when it has to be
+re-shot.
 
 ## Decisions
 

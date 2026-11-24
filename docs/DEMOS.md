@@ -1,32 +1,30 @@
 # Demos
 
-Short recordings of the React PWA against the FastAPI backend, and of the terminal
-against the same engine. The artifact clips drive the real local tools and need no
-network; the chat clips stream from the configured engine.
+The tree publishes no recorded clips. The ten WebP clips that this page tabulated and the
+Film Studio film beside them were retired on 2026-11-24 by owner decision, and nothing was
+recorded or generated to stand in for them. What a reader can look at is listed here, and
+what it takes to add to that list is the same rule the tree already holds for every image.
 
-| Onboarding | Chat & thinking | Artifacts (SVG + Excel) |
-|---|---|---|
-| ![Onboarding demo](media/ephe-demo-onboarding.webp) | ![Chat demo](media/ephe-demo-chat.webp) | ![Artifacts demo](media/ephe-demo-artifacts.webp) |
-| The first open: the awakening film, then the four questions that set up the desk | Streaming answers with a separate thinking channel | Artifact tools create real files with inline preview |
+## What is here
 
-| Agent Panel | Command palette & navigation | Plugin Store | Mobile PWA |
-|---|---|---|---|
-| ![Agent Panel demo](media/ephe-demo-agent-panel.webp) | ![Palette demo](media/ephe-demo-palette.webp) | ![Plugins demo](media/ephe-demo-plugins.webp) | ![Mobile demo](media/ephe-demo-mobile.webp) |
-| Git diffs, tasks, and a shell with approval gates | ⌘K palette, session rename, shortcut cheatsheet | Extensions 1.0: master switch, detail sheet, signed bundles | Same app on a phone viewport |
+| material | where | what it shows |
+| --- | --- | --- |
+| three product captures | [`screenshots/`](screenshots/): `readme-chat-1280.png`, `readme-chat-390.png`, `readme-settings-1280.png` | the built PWA at a desktop and a phone viewport; [`screenshots/PROVENANCE.md`](screenshots/PROVENANCE.md) names the build, the server and the date behind each frame |
+| the first-run film | `app/public/onboarding/`, played by the product itself on a machine that has not run it before | the awakening sequence, before the desk appears |
 
-| Terminal | Read a workspace | Write a deliverable |
-|---|---|---|
-| ![Terminal demo](media/ephe-demo-tui.webp) | ![Budget demo](media/ephe-demo-budget.webp) | ![Launch checklist demo](media/ephe-demo-launch.webp) |
-| `ephe tui` in a real pty: approvals, tool rows, the answer | A CSV in the workspace, answered in euros from the rows | plan.md turned into launch_checklist.md, opened as a file |
+## What earns a place
 
-The terminal clip forks a pty, types the keyboard the product documents, and renders the
-byte stream with `agg`, so the frames are the terminal. The other clips record the PWA at a
-desktop viewport, which is the same web content the Tauri app embeds.
+Root `AGENTS.md`, "Generated media", is the rule and this page does not restate it beyond
+the one consequence that matters here: a capture is published when a committed document
+names, for that file, the surface it targets and the decision it is evidence for, and when
+its pixels come from the product. A clip of a surface that has since moved is a clip of an
+older product, which is what the retired clips had become.
 
-## Provenance
+## Recording one
 
-All clips were captured on 2026-10-23 from the built PWA (`app/dist`) served by a local
-backend with an isolated temporary `HOME` and a local stub engine. No paid model was called
-and no key was used. They predate the move of the response mode from the composer to
-the header, so the top bar in the clips still shows the old control. Re-record them with the
-header mode control before the next release.
+`scripts/record_demo.py` is tracked in this checkout. It drives a cached Chromium against
+the product server on `127.0.0.1:8765`, takes the cases named on its command line
+(`chat`, `shell`, `help`, `edit`), and writes its output under `/tmp/ephe_demo/` — nothing
+into the tree. Its `preflight()` refuses before a browser opens and names the command that
+would fix the machine, so a capture is a decision made afterwards, not a side effect of
+running the script.

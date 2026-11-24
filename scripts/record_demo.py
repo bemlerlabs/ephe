@@ -19,6 +19,11 @@ from playwright.async_api import async_playwright
 APP = os.environ.get("EPHE_DEMO_APP_URL", "http://127.0.0.1:8765/#/chat")
 OUT = Path("/tmp/ephe_demo")
 
+#: The cases the recorder knows. A name outside this tuple is a mistake, not a case, and
+#: used to reach the browser as one.
+CASES = ("chat", "shell", "help", "edit")
+USAGE = "usage: scripts/record_demo.py [chat|shell|help|edit ...]"
+
 #: Playwright names its cached browsers by revision, and the revision moves on every
 #: Playwright upgrade. A pinned number kills this script at import with an IndexError
 #: (measured: chromium-1228 gone, 1234 and 1248 present), so the newest match wins.
@@ -131,8 +136,18 @@ def to_webp(video: str, case: str, ffmpeg: str):
 
 
 async def main():
+    # Before the preflight, so the usage answers on a machine with neither ffmpeg nor a
+    # cached Chromium.
+    if {"-h", "--help"} & set(sys.argv[1:]):
+        print(USAGE)
+        raise SystemExit(0)
     chrome, ffmpeg = preflight()
-    cases = sys.argv[1:] or ["chat", "shell", "help", "edit"]
+    cases = sys.argv[1:] or list(CASES)
+    unknown = [case for case in cases if case not in CASES]
+    if unknown:
+        print(f"record_demo: unknown case(s): {', '.join(unknown)}", file=sys.stderr)
+        print(USAGE, file=sys.stderr)
+        raise SystemExit(2)
     OUT.mkdir(exist_ok=True)
     async with async_playwright() as p:
         for case in cases:
