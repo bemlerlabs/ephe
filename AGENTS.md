@@ -116,8 +116,11 @@ never with a recursive `grep`.
   is a claim anyone can acquire later. Set it once per machine with
   `git config --global user.email <account-id>+<login>@users.noreply.github.com`; never copy an
   employer or retired-brand address into `user.email`.
-- **Hooks stay on.** No `--no-verify` and no `core.hooksPath` shortcut: the hook runs the same checks
-  CI runs, and a skipped hook is how a rule reaches main broken.
+- **Hooks stay on.** `.husky/pre-commit` is the checked-in hook, and it runs the same checks CI runs:
+  `scripts/language_gate.py --staged`, `scripts/ci_local.sh`, then `scripts/attribution_check.py
+  --identity`. Git only runs a hook `core.hooksPath` names, so one command turns it on per clone —
+  `make hooks` — and `make doctor` prints whether this checkout has it. No `--no-verify`, and
+  `core.hooksPath` points at `.husky` or nowhere: a skipped hook is how a rule reaches main broken.
 - **Both surfaces.** A change under `app/src` or `app/src-tauri` ends with both builds recorded in the
   report. A report that names one build and assumes the other is not a report.
 - **One home per fact.** Documentation is linked, never copied. If a rule already has a document, the
