@@ -9,7 +9,6 @@ for the app, and only when the request brought no Origin of its own.
 from __future__ import annotations
 
 import asyncio
-import os
 
 import httpx
 import pytest
@@ -60,17 +59,37 @@ def _code(response) -> str:
     return response.json()["error"]["detail"]["code"]
 
 
+#: The witness these cases read. Until 2026-11-25 the language POST wrote
+#: `os.environ["EPHE_LANGUAGE"]`, so the process environment was the only thing a case
+#: could see change; the choice now lives in the deep register (`appearance.language`),
+#: which is also where the terminal reads it.
+LANGUAGE_KEY = "appearance.language"
+
+
+def _seed_language(language: str) -> None:
+    from core.settings_schema import load_deep_settings, save_deep_settings
+
+    stored = load_deep_settings()
+    save_deep_settings({**stored, "appearance": {LANGUAGE_KEY: language}})
+
+
+def _saved_language() -> str:
+    from core.settings_schema import load_deep_settings
+
+    return (load_deep_settings().get("appearance") or {}).get(LANGUAGE_KEY, "")
+
+
 def test_a_local_process_without_an_origin_cannot_mutate(desktop, monkeypatch):
     """curl on 127.0.0.1 sends no Origin. A settings write is refused."""
-    monkeypatch.setenv("EPHE_LANGUAGE", "de")
+    _seed_language("de")
     refused = _loopback(desktop.app, "POST", "/api/settings", body={"language": "en"})
     assert refused.status_code == 403, refused.text
     assert _code(refused) == "untrusted_origin"
-    assert os.environ["EPHE_LANGUAGE"] == "de"
+    assert _saved_language() == "de"
 
 
 def test_a_blank_origin_is_the_same_missing_header(desktop, monkeypatch):
-    monkeypatch.setenv("EPHE_LANGUAGE", "de")
+    _seed_language("de")
     refused = _loopback(
         desktop.app,
         "POST",
@@ -80,11 +99,11 @@ def test_a_blank_origin_is_the_same_missing_header(desktop, monkeypatch):
     )
     assert refused.status_code == 403, refused.text
     assert _code(refused) == "untrusted_origin"
-    assert os.environ["EPHE_LANGUAGE"] == "de"
+    assert _saved_language() == "de"
 
 
 def test_a_null_origin_mutation_stays_refused_on_the_loopback_peer(desktop, monkeypatch):
-    monkeypatch.setenv("EPHE_LANGUAGE", "de")
+    _seed_language("de")
     refused = _loopback(
         desktop.app,
         "POST",
@@ -94,7 +113,7 @@ def test_a_null_origin_mutation_stays_refused_on_the_loopback_peer(desktop, monk
     )
     assert refused.status_code == 403, refused.text
     assert _code(refused) == "untrusted_origin"
-    assert os.environ["EPHE_LANGUAGE"] == "de"
+    assert _saved_language() == "de"
 
 
 def test_a_local_process_without_an_origin_cannot_spend_a_get(desktop):
@@ -139,7 +158,7 @@ def test_a_read_only_get_without_an_origin_still_answers(desktop):
 
 def test_the_app_origin_may_mutate(desktop, monkeypatch):
     """The PWA and the shell send an Origin this server serves."""
-    monkeypatch.setenv("EPHE_LANGUAGE", "de")
+    _seed_language("de")
     allowed = _loopback(
         desktop.app,
         "POST",
@@ -148,7 +167,7 @@ def test_the_app_origin_may_mutate(desktop, monkeypatch):
         body={"language": "en"},
     )
     assert allowed.status_code == 200, allowed.text
-    assert os.environ["EPHE_LANGUAGE"] == "en"
+    assert _saved_language() == "en"
 
 
 def test_a_typed_app_origin_is_accepted_on_loopback(desktop, monkeypatch):
@@ -157,7 +176,7 @@ def test_a_typed_app_origin_is_accepted_on_loopback(desktop, monkeypatch):
     `docs/SECURITY_AND_PRIVACY.md` names that limit. The plugin worker cannot
     open the socket, and a browser page cannot type a foreign page's Origin.
     """
-    monkeypatch.setenv("EPHE_LANGUAGE", "de")
+    _seed_language("de")
     typed = _loopback(
         desktop.app,
         "POST",
@@ -166,14 +185,14 @@ def test_a_typed_app_origin_is_accepted_on_loopback(desktop, monkeypatch):
         body={"language": "en"},
     )
     assert typed.status_code == 200, typed.text
-    assert os.environ["EPHE_LANGUAGE"] == "en"
+    assert _saved_language() == "en"
 
 
 def test_the_lan_token_stands_in_for_a_missing_origin(desktop, monkeypatch):
     """With LAN mode on, the token is the credential a script on the machine carries."""
     from server import middleware
 
-    monkeypatch.setenv("EPHE_LANGUAGE", "de")
+    _seed_language("de")
     middleware.LAN_AUTH_TOKEN = "loopback-caller-token"
     try:
         refused = _loopback(
@@ -181,7 +200,7 @@ def test_the_lan_token_stands_in_for_a_missing_origin(desktop, monkeypatch):
         )
         assert refused.status_code == 403, refused.text
         assert _code(refused) == "untrusted_origin"
-        assert os.environ["EPHE_LANGUAGE"] == "de"
+        assert _saved_language() == "de"
         allowed = _loopback(
             desktop.app,
             "POST",
@@ -190,7 +209,7 @@ def test_the_lan_token_stands_in_for_a_missing_origin(desktop, monkeypatch):
             body={"language": "en"},
         )
         assert allowed.status_code == 200, allowed.text
-        assert os.environ["EPHE_LANGUAGE"] == "en"
+        assert _saved_language() == "en"
         wrong = _loopback(
             desktop.app,
             "POST",
@@ -200,17 +219,17 @@ def test_the_lan_token_stands_in_for_a_missing_origin(desktop, monkeypatch):
         )
         assert wrong.status_code == 403, wrong.text
         assert _code(wrong) == "untrusted_origin"
-        assert os.environ["EPHE_LANGUAGE"] == "en"
+        assert _saved_language() == "en"
     finally:
         middleware.LAN_AUTH_TOKEN = None
 
 
 def test_the_suite_host_keeps_an_absent_origin(desktop, monkeypatch):
     """TestClient speaks as `testserver`. Production has no such host."""
-    monkeypatch.setenv("EPHE_LANGUAGE", "de")
+    _seed_language("de")
     allowed = desktop.post("/api/settings", json={"language": "en"})
     assert allowed.status_code == 200, allowed.text
-    assert os.environ["EPHE_LANGUAGE"] == "en"
+    assert _saved_language() == "en"
 
 
 def test_a_websocket_without_an_origin_needs_the_app_or_the_token():

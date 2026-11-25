@@ -38,6 +38,7 @@ from rich.text import Text
 from core.ask_block import split_block
 from ui.context_meter import ContextUsage, meter_text
 from ui.palette import ACCENT, DIM, ERROR, OK, TEXT, WARN
+from ui.surface_words import fill, thinking_words
 
 # Diff lines keep the two signal tokens the palette already measured: additions
 # in the connected green, deletions in the failure red. Both hold their ratio on
@@ -314,6 +315,7 @@ class AgentMessageCard(Widget):
     _blocks: list[_ToolCallBlock]
     _streaming_answer: bool
     _round_break: bool
+    _words: dict[str, str] | None
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -325,6 +327,17 @@ class AgentMessageCard(Widget):
         self._blocks = []
         self._streaming_answer = False
         self._round_break = False
+        # Read once per card, not per frame: the thinking state repaints while a turn
+        # streams, the words do not change under a running card.
+        self._words = None
+
+    def _word(self, leaf: str, **parts: str) -> str:
+        """One thinking title, in the language this card was built for."""
+        if self._words is None:
+            from core.language import active_language
+
+            self._words = thinking_words(active_language())
+        return fill(self._words[leaf], **parts)
 
     DEFAULT_CSS = """
     AgentMessageCard {
@@ -338,10 +351,10 @@ class AgentMessageCard(Widget):
     def compose(self) -> ComposeResult:
         # The thinking block starts HIDDEN — it appears only when the model
         # actually sends thinking tokens (Ephe behaviour). An empty
-        # "Thinking…" box would otherwise be orphaned (e.g. with models
+        # thinking box would otherwise be orphaned (e.g. with models
         # without a reasoning phase such as qwen3.8-flash-next).
         self._thinking_block = Collapsible(
-            Static("", id="thinking-body", markup=True), title="Thinking…", collapsed=False
+            Static("", id="thinking-body", markup=True), title=self._word("thinkingNow"), collapsed=False
         )
         self._thinking_block.add_class("thinking-block")
         self._thinking_block.visible = False
@@ -372,7 +385,7 @@ class AgentMessageCard(Widget):
             self._thinking_started = True
             self._thinking_t0 = time.monotonic()
             self._thinking_block = self.query_one(".thinking-block", Collapsible)
-            self._thinking_block.title = "Thinking"
+            self._thinking_block.title = self._word("thinkingNow")
             self._thinking_block.visible = True
             self._phase_line.visible = False
         self._thinking_acc += event.chunk
@@ -452,15 +465,15 @@ class AgentMessageCard(Widget):
 
     def on_agent_message_card_finalize(self, event: "AgentMessageCard.Finalize") -> None:
         # Thinking: collapse, visible only if it had content.
-        # Ephe labels: live "Thinking", done "Thought for 3s" / "Thought briefly".
+        # The title is the bundle's word for the state, in the reader's language.
         thinking = self.query_one(".thinking-block", Collapsible)
         if self._thinking_started:
             thinking.collapsed = True
             dur = time.monotonic() - self._thinking_t0
             if dur < 1:
-                thinking.title = "Thought briefly"
+                thinking.title = self._word("thoughtBriefly")
             else:
-                thinking.title = f"Thought for {_format_elapsed(dur)}"
+                thinking.title = self._word("thoughtForSeconds", duration=_format_elapsed(dur))
         else:
             thinking.visible = False
         # Status line: done is done — get rid of it

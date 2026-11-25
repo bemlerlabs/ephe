@@ -129,6 +129,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - tests: a quality gate names the leg it ran on. Each case in `q-quality.spec.ts` carries the
   config that carried it, and a skip prints the reason it skipped, so a gate that only ever skipped
   on a given leg says so in the output instead of looking measured (`9d4d07a`).
+- settings: the language Ephe shows its own text in is a register field. `appearance.language`
+  (select, `de` or `en`) holds the saved choice, `POST /api/settings` writes it, and the terminal's
+  thinking box reads its words from the same locale bundles the PWA reads, so one state carries one
+  name on both surfaces. `EPHE_LANGUAGE` stays the override a single process carries, which is what
+  "run it in English" means in a shell session or a support reply, and it now sits above the field
+  where it used to replace it. The server process stopped writing that variable: a choice saved in
+  the register was visible only to the process that stored it, so a terminal in another shell, or
+  the same command after a restart, answered from an environment it had never set. An unusable value
+  now answers 422, where it previously settled into the environment and reported success.
 
 ### Fixed
 

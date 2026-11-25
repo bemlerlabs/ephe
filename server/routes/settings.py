@@ -191,7 +191,7 @@ async def get_settings() -> dict:
     return {
         "provider": _active_provider_dict(),
         "memory_enabled": os.environ.get("EPHE_MEMORY_ENABLED", "1") != "0",
-        "language": os.environ.get("EPHE_LANGUAGE", "de"),
+        "language": _language_value(),
         "workspace_dir": _workspace_dir_dict(),
         "output_dir": _output_dir_dict(),
         # M2: approval profile for the composer badge (strict|session|autonomous).
@@ -217,6 +217,19 @@ def _deep_view_dict() -> list[dict]:
     from core.settings_schema import deep_view
 
     return deep_view()
+
+
+def _language_value() -> str:
+    """The language this installation shows its own text in.
+
+    `core.language.active_language()` decides the order: a process's `EPHE_LANGUAGE`
+    above the saved register field above the register's default. The answer used to be
+    read from the environment alone, which made the server process the only surface that
+    could ever see a choice its own POST had stored.
+    """
+    from core.language import active_language
+
+    return active_language()
 
 
 @router.post("/settings")
@@ -279,7 +292,29 @@ async def update_settings(req: SettingsRequest) -> dict:
     if req.memory_enabled is not None:
         os.environ["EPHE_MEMORY_ENABLED"] = "1" if req.memory_enabled else "0"
     if req.language:
-        os.environ["EPHE_LANGUAGE"] = req.language
+        # The saved choice lands in the register: a terminal started in another shell reads
+        # the same field, and the choice survives a restart. `EPHE_LANGUAGE` stays the
+        # override one process carries above the saved field, ordered in
+        # `core.language.active_language`.
+        from core.settings_schema import (
+            UnknownKey,
+            load_deep_settings,
+            save_deep_settings,
+            validate_sections,
+        )
+
+        stored = load_deep_settings()
+        try:
+            merged = validate_sections(
+                {"appearance": {"appearance.language": req.language}},
+                stored=stored,
+            )
+        except UnknownKey as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if not save_deep_settings({**stored, **merged}):
+            raise Refused("settings_register_unwritable")
     if req.workspace_dir is not None or req.output_dir is not None:
         # F: set or clear the workspace — validated (must be an existing dir).
         # R44 (P4): output_dir as the second folder entry of the same file —
@@ -414,7 +449,7 @@ async def update_settings(req: SettingsRequest) -> dict:
         # model-providers route answers with, so both surfaces read one number.
         "context_window": _engine_window,
         "memory_enabled": os.environ.get("EPHE_MEMORY_ENABLED", "1") != "0",
-        "language": os.environ.get("EPHE_LANGUAGE", "de"),
+        "language": _language_value(),
         "workspace_dir": _workspace_dir_dict(),
         "output_dir": _output_dir_dict(),
         # M2: approval profile for the composer badge (strict|session|autonomous).

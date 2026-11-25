@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -115,6 +116,9 @@ def test_tui_agent_message_card_structure(tmp_path, monkeypatch):
     session_dir.mkdir(parents=True)
     monkeypatch.setattr(session_module, "SESSION_DIR", session_dir)
     monkeypatch.setattr(session_module, "SESSION_FILE", session_dir / "default.json")
+    # The card's words come from the active language's bundle, so this case names the
+    # language it asserts in. tests/test_terminal_language.py holds both languages.
+    monkeypatch.setenv("EPHE_LANGUAGE", "en")
 
     from ui.app import EpheApp
     from ui.widgets import ChatView
@@ -144,10 +148,19 @@ def test_tui_agent_message_card_structure(tmp_path, monkeypatch):
             card = cards[0]
 
             # The thinking collapsible exists and is collapsed after finalize.
-            # AI-client labels: live "Thinking", done "Thought for Ns"/"Thought briefly".
+            # The finished card prints the done-word of the language this case names above;
+            # both languages are measured in tests/test_terminal_language.py.
+            from ui import surface_words
+
+            english = surface_words.thinking_words("en")
+            done_shape = re.escape(english["thoughtForSeconds"]).replace(
+                re.escape("{{duration}}"), r"\d+s|\d+m \d+s|\d+h \d+m"
+            )
             thinking = card.query_one(".thinking-block", _Collapsible)
             assert thinking.collapsed is True, "the thinking block should be collapsed after finalize"
-            assert thinking.title.startswith("Thought"), "the thinking block should show the AI-client style 'Thought…'"
+            assert thinking.title == english["thoughtBriefly"] or re.fullmatch(
+                done_shape, thinking.title
+            ), f"the finished card prints the English done-word, got {thinking.title!r}"
             assert thinking.visible is True, "the thinking block should be visible (tokens flowed)"
 
             # Tool block: verb phrasing (AI client) — read_file → category 'explore'

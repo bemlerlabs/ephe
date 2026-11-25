@@ -225,6 +225,15 @@ SCHEMA: dict[str, dict[str, Any]] = {
     "appearance.update_check": {"type": "bool", "default": True,
                                 "label": "Check for updates (anonymous)", "labelEn": "Check for updates (anonymous)",
                                 "labelKey": "settings.appearanceUpdateCheck"},
+    # The language a surface shows its own text in. Read through
+    # `core.language.active_language()`, which puts the process's own `EPHE_LANGUAGE`
+    # above this field. It lives here because the saved choice used to sit in the server
+    # process's environment, where no other process and no later start could read it back.
+    "appearance.language": {"type": "select", "default": "de",
+                            "options": ["de", "en"],
+                            "label": "Language", "labelEn": "Language",
+                            "labelKey": "settings.appearanceLanguage",
+                            "hintKey": "settings.appearanceLanguageHint"},
     # Advanced
     "advanced.api_timeout": {"type": "number", "default": 120, "min": 10, "max": 1800,
                              "label": "API timeout (s)", "labelEn": "API timeout (s)",
@@ -537,6 +546,10 @@ def deep_number(key: str) -> int | float:
 def deep_select(key: str) -> str:
     _require(key, "select")
     return deep_value(key)
+
+
+# Which language a surface shows its own text in is decided in `core/language.py`: the
+# register holds the field, the module holds the precedence order.
 
 
 # View for the API (GET /api/settings -> 'deep')

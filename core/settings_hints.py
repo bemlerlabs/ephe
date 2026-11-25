@@ -118,6 +118,9 @@ HINTS: Final[dict[str, str]] = {
     "appearance.update_check":
         "Polls the GitHub releases anonymously every 30 minutes and then shows the update "
         "banner. Off: no outbound request, no banner.",
+    "appearance.language":
+        "The language Ephe shows its own text in — the thinking box in the terminal reads "
+        "its words from here. The model's answer follows the prompt.",
     "memory.capture_enabled":
         "After each answer, decide whether the pair is worth keeping and store it. Off: no "
         "new facts are added — search, injection and the memory tool keep working.",
