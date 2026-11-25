@@ -411,9 +411,17 @@ const DESKTOP: Shot[] = [
     phone: false,
     lang: 'en',
     anchor: '[data-testid="discover-page"]',
+    // Two ways in, because the product has two. From 1024 px this row is filtered out of the
+    // sidebar column: `marketplace` is a rail destination (sidebarActionGroups.ts:95, folded
+    // into RAIL_ROW_IDS at :106) and Sidebar.tsx:959 drops those ids under
+    // isDesktop = useMediaQuery('(min-width: 1024px)') (:476). The rail renders the same page
+    // as `nav-rail-${dest.id}`, with `discover` among SHELL_DESTINATIONS (NavRail.tsx:54,
+    // shellNav.ts:40). So at 1280 there is no `sidebar-action-marketplace` in the document —
+    // the click waited for a testid the product stopped making and died at the 60 s deck
+    // (measured 2026-11-25, twice, on a fresh bundle).
     reach: async (p) => {
       await gotoHash(p, '/chat', '[data-testid="chat-sidebar"]')
-      await p.getByTestId('sidebar-action-marketplace').click()
+      await p.getByTestId('nav-rail-discover').click()
       await expect(p.getByTestId('discover-page')).toBeVisible()
     },
     decision:
@@ -556,8 +564,18 @@ const PHONE: Shot[] = [
     phone: true,
     lang: 'de',
     anchor: '[data-testid="discover-page"]',
+    // The phone has no rail, so this row stays in the column (Sidebar.tsx:481) — but it sits in
+    // the collapsible `tools` tier (sidebarActionGroups.ts:69-72), and the first run opens
+    // neither disclosure (readOpenTiers → {tools:false, more:false}, :130-132). A closed tier is
+    // `hidden`: out of the flow and the accessibility tree without unmounting
+    // (Sidebar.tsx:943-945), so a click on the row waits for a visibility that never comes.
+    // Hence drawer first — the same menu button openRegisterPhone uses (:358-359) — then the
+    // tier toggle, then the row.
     reach: async (p) => {
       await gotoHash(p, '/chat', '[data-testid="chat-sidebar"]')
+      await p.locator('button:has(svg.lucide-menu)').first().click()
+      await expect(p.getByTestId('chat-sidebar')).toBeVisible()
+      await p.getByTestId('sidebar-tier-tools-toggle').click()
       await p.getByTestId('sidebar-action-marketplace').click()
       await expect(p.getByTestId('discover-page')).toBeVisible()
     },
@@ -678,11 +696,14 @@ async function shoot(page: Page, shot: Shot) {
    * A baseline belongs to a tree as well as to a machine, and nothing in a failing run
    * said so: on 2026-10-16 all sixteen shots failed with a diff that read like a layout
    * regression, and the cause turned out to be a reference set written four hundred
-   * commits earlier. Dating one string in the diff is what settled it. This constant is
-   * that dating done in advance — bump it in the same commit that regenerates a baseline,
-   * so the report always answers `is this reference current` before anyone reads pixels.
+   * commits earlier. Dating one string in the diff is what settled it. The constant below is
+   * that dating done in advance: a capture names the commit it was written at, and the
+   * report answers `is this reference current` before anyone reads pixels.
    */
-  const BASELINE_COMMIT = 'c0b742ac'
+  // No number here. The hash this constant carried no longer resolves in this checkout
+  // (`git cat-file -t <hash>` → rc=128, measured 2026-11-25), and a provenance line nobody
+  // can look up is a claim, not a reference. A capture puts one back on a commit that exists.
+  const BASELINE_PROVENANCE = 'unknown in this checkout'
   // The package is `type: module`, so `__dirname` is undefined in this file: with it the
   // probe threw into its own catch, `apart` was always empty, and the provenance line
   // printed the constant while never answering `is this reference current against HEAD`.
@@ -697,15 +718,14 @@ async function shoot(page: Page, shot: Shot) {
       return null
     }
   })()
-  // The constant names the commit that last REGENERATED the baselines, so HEAD differing
-  // from it is the normal state after any later change — a drift claim here would cry wolf
-  // on every run. It is printed as provenance, and a failure message carries it too.
+  // HEAD is printed next to the provenance so a reader can at least date the run against
+  // the tree it shot; it is not a claim that the reference set is current.
   const apart = head ? `, HEAD ${head}` : ''
 
   // Printed once per worker at import, not in a hook: this file nests its describes in
   // loops, and a hook registered in that scope is not one Playwright accepts.
   console.log(
-    `baselines last regenerated at ${BASELINE_COMMIT}${apart}. Regenerate them in the same` +
+    `baseline provenance: ${BASELINE_PROVENANCE}${apart}. Regenerate them in the same` +
       ' commit that changes a screen they cover.',
   )
 
