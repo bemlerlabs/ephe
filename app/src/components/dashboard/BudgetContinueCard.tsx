@@ -22,9 +22,7 @@ export function BudgetContinueCard({ onContinue }: { onContinue: () => void }) {
     >
       <div className="min-w-0 flex-1">
         <p className="text-ui-xs font-medium text-foreground/90">{t('chat.continueTitle')}</p>
-        <p className="text-ui-xs text-ink-soft">
-          {t('chat.continueBody', { cap: notice.cap })}
-        </p>
+        <p className="text-ui-xs text-ink-soft">{t('chat.continueBody', { cap: notice.cap })}</p>
       </div>
       <button
         type="button"

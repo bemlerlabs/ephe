@@ -748,7 +748,12 @@ const openSettings = async (page: Page, width: number): Promise<Finding | null> 
   if (!failure) return null
   return {
     metric: 'render-error',
-    path: width < 768 ? 'header-menu-toggle' : width < 1024 ? 'sidebar-settings-btn' : 'nav-rail-settings',
+    path:
+      width < 768
+        ? 'header-menu-toggle'
+        : width < 1024
+          ? 'sidebar-settings-btn'
+          : 'nav-rail-settings',
     detail: `the register could not be reached: ${failure.slice(0, 120)}${lastPageError ? ` | ${lastPageError}` : ''}`,
     ratio: 0,
   }

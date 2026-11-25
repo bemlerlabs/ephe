@@ -14,10 +14,17 @@ function Pet({ onActivate }: { onActivate?: () => void }) {
   const box = useRef<HTMLDivElement>(null)
   const drag = useCompanionDrag(
     box,
-    (target) => target instanceof Element && target.closest('[data-testid="companion-trigger"]') !== null,
+    (target) =>
+      target instanceof Element && target.closest('[data-testid="companion-trigger"]') !== null,
   )
   return (
-    <div ref={box} style={drag.style} {...drag.handlers} data-testid="pet" data-dragging={drag.dragging ? 'true' : undefined}>
+    <div
+      ref={box}
+      style={drag.style}
+      {...drag.handlers}
+      data-testid="pet"
+      data-dragging={drag.dragging ? 'true' : undefined}
+    >
       <button type="button" data-testid="companion-trigger" onClick={onActivate}>
         moth
       </button>

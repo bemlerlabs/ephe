@@ -110,10 +110,7 @@ describe('AttachmentPreview', () => {
     expect(screen.getByText('big.bin')).toBeInTheDocument()
     expect(screen.getByText('Reading big.bin…')).toBeInTheDocument()
     expect(screen.getByText('locked.bin could not be read')).toBeInTheDocument()
-    expect(screen.getByText('locked.bin').closest('li')).toHaveAttribute(
-      'data-state',
-      'error',
-    )
+    expect(screen.getByText('locked.bin').closest('li')).toHaveAttribute('data-state', 'error')
   })
 
   it('has no axe violations', async () => {

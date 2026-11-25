@@ -21,10 +21,7 @@
         "value": "expanded",
         "hint": "Starting state of a finished turn: expanded shows the whole timeline — reasoning, tools and answer; collapsed shows the answer. Clicking the head overrides it for that one turn.",
         "hintEn": "Starting state of a finished turn: expanded shows the whole timeline — reasoning, tools and answer; collapsed shows the answer. Clicking the head overrides it for that one turn.",
-        "options": [
-          "expanded",
-          "collapsed"
-        ],
+        "options": ["expanded", "collapsed"],
         "optionLabels": [
           {
             "value": "expanded",
@@ -100,10 +97,7 @@
         "value": "compact",
         "hint": "How long something took: compact per Ephe norm (4m 12s, at most two units) or as a clock (04:12, 1:04:12 past an hour). Applies to durations in the agent panels, memory and settings.",
         "hintEn": "How long something took: compact per Ephe norm (4m 12s, at most two units) or as a clock (04:12, 1:04:12 past an hour). Applies to durations in the agent panels, memory and settings.",
-        "options": [
-          "compact",
-          "clock"
-        ],
+        "options": ["compact", "clock"],
         "optionLabels": [
           {
             "value": "compact",
@@ -226,11 +220,7 @@
         "value": "paper_moth",
         "hint": "Chooses the form in the workspace: the folded paper moth, the golden spark with ghost eyes from the film, or a calm emblem. The moth carries wings and a gaze; the spark stays a single glow.",
         "hintEn": "Chooses the form in the workspace: the folded paper moth, the golden spark with ghost eyes from the film, or a calm emblem. The moth carries wings and a gaze; the spark stays a single glow.",
-        "options": [
-          "paper_moth",
-          "ember_spark",
-          "minimal"
-        ],
+        "options": ["paper_moth", "ember_spark", "minimal"],
         "optionLabels": [
           {
             "value": "paper_moth",
@@ -258,11 +248,7 @@
         "value": "interactive",
         "hint": "Sets place and motion: flying and clickable at the composer, sitting calmly above the input, or visible only on the welcome screen once the first chat has begun.",
         "hintEn": "Sets place and motion: flying and clickable at the composer, sitting calmly above the input, or visible only on the welcome screen once the first chat has begun.",
-        "options": [
-          "interactive",
-          "perch",
-          "welcome_only"
-        ],
+        "options": ["interactive", "perch", "welcome_only"],
         "optionLabels": [
           {
             "value": "interactive",
@@ -443,10 +429,7 @@
         "value": "embeddinggemma-2",
         "hint": "Chooses the vector-search model: EmbeddingGemma 2 emits 768 values, of which Ephe stores the leading 256, while all-MiniLM-L6-v2 stays at 384. A switch applies from the next stored entry on.",
         "hintEn": "Chooses the vector-search model: EmbeddingGemma 2 emits 768 values, of which Ephe stores the leading 256, while all-MiniLM-L6-v2 stays at 384. A switch applies from the next stored entry on.",
-        "options": [
-          "embeddinggemma-2",
-          "all-MiniLM-L6-v2"
-        ],
+        "options": ["embeddinggemma-2", "all-MiniLM-L6-v2"],
         "optionLabels": [
           {
             "value": "embeddinggemma-2",

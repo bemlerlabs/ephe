@@ -3,7 +3,9 @@ import { render, screen } from '@testing-library/react'
 import TurnProgressLine from './turnProgress'
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => `${k}|${JSON.stringify(o ?? {})}` }),
+  useTranslation: () => ({
+    t: (k: string, o?: Record<string, unknown>) => `${k}|${JSON.stringify(o ?? {})}`,
+  }),
 }))
 
 describe('S17: the live progress line', () => {

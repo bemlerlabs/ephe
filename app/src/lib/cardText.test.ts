@@ -7,7 +7,8 @@ import { parsePlanJson } from './planCardModel'
 // a card stays exactly where it was.
 
 const ASK = '{"question":"Which engine?","options":["Ollama","OpenAI"]}'
-const PLAN = '{"steps":[{"title":"Write the test","status":"done"},{"title":"Ship it","status":"pending"}]}'
+const PLAN =
+  '{"steps":[{"title":"Write the test","status":"done"},{"title":"Ship it","status":"pending"}]}'
 
 describe('stripRenderedCards', () => {
   it('drops a fenced ask block and keeps the prose around it', () => {

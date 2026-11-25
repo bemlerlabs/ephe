@@ -217,7 +217,9 @@ describe('ChatInput draftSeed (welcome cards)', () => {
     expect(onSend).not.toHaveBeenCalled()
     // A new nonce with the same text re-seeds after the user cleared it.
     fireEvent.change(ta(), { target: { value: '' } })
-    await repaint(<ChatInput onSend={onSend} draftSeed={{ text: 'Build a landing page', nonce: 2 }} />)
+    await repaint(
+      <ChatInput onSend={onSend} draftSeed={{ text: 'Build a landing page', nonce: 2 }} />,
+    )
     expect(ta().value).toBe('Build a landing page')
   })
 
@@ -264,9 +266,7 @@ describe('ChatInput queue auto-flush (DD-01)', () => {
   it('queued slash item goes through onSlashCommand on auto-flush', async () => {
     const onSend = vi.fn()
     const onSlash = vi.fn()
-    await mountComposer(
-      <ChatInput onSend={onSend} onSlashCommand={onSlash} streaming={false} />,
-    )
+    await mountComposer(<ChatInput onSend={onSend} onSlashCommand={onSlash} streaming={false} />)
     await repaint(<ChatInput onSend={onSend} onSlashCommand={onSlash} streaming={true} />)
     fireEvent.change(ta(), { target: { value: '/compact' } })
     fireEvent.keyDown(ta(), { key: 'Enter' })

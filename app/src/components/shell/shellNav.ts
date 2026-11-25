@@ -6,15 +6,7 @@
  * route would be a control that goes nowhere.
  */
 import type { ComponentType } from 'react'
-import {
-  Boxes,
-  Brain,
-  GitBranch,
-  MessagesSquare,
-  Settings,
-  Store,
-  Wrench,
-} from 'lucide-react'
+import { Boxes, Brain, GitBranch, MessagesSquare, Settings, Store, Wrench } from 'lucide-react'
 
 export interface ShellDestination {
   readonly id: string

@@ -76,7 +76,11 @@ const INTERPRETER_VERBS = new Set([
 /** A plain verb with no fail-closed marker anywhere in the command line. */
 export function canRememberShape(command: string): boolean {
   const verb = shellVerb(command)
-  return Boolean(verb) && !INTERPRETER_VERBS.has(String(verb).toLowerCase()) && !isShellForbidden(command)
+  return (
+    Boolean(verb) &&
+    !INTERPRETER_VERBS.has(String(verb).toLowerCase()) &&
+    !isShellForbidden(command)
+  )
 }
 
 export function rememberShellShape(command: string): boolean {

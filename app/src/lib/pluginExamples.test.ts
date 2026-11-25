@@ -4,9 +4,7 @@ import { examplePromptFor } from './pluginExamples'
 
 describe('plugin examples', () => {
   it('keeps the former duplicate pair on different examples', () => {
-    expect(examplePromptFor('private-research-notebook')).not.toBe(
-      examplePromptFor('web-research'),
-    )
+    expect(examplePromptFor('private-research-notebook')).not.toBe(examplePromptFor('web-research'))
     expect(examplePromptFor('documents')).not.toBe(examplePromptFor('local-document-factory'))
   })
 

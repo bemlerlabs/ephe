@@ -38,7 +38,11 @@ describe('tool_done without a call_id', () => {
     const s = useChatStore.getState()
     s.startTurn()
     s.appendChunk('x')
-    s.upsertToolCall({ name: 'fetch_url', args: { url: 'https://example.test/x' }, status: 'pending' })
+    s.upsertToolCall({
+      name: 'fetch_url',
+      args: { url: 'https://example.test/x' },
+      status: 'pending',
+    })
     s.upsertToolCall({
       name: 'fetch_url',
       result: '[fetch failed] https://example.test/x answered HTTP 404.',

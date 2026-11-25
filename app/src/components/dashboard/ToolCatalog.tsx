@@ -59,7 +59,8 @@ type Family = 'files' | 'web' | 'system' | 'media' | 'agents' | 'other'
 
 const FAMILY_ORDER: Family[] = ['files', 'web', 'system', 'media', 'agents', 'other']
 
-const MEDIA_TOKENS = /(pptx|docx|pdf|xlsx|svg|deck|chart|diagram|notebook|image|video|audio|qr|slide)/
+const MEDIA_TOKENS =
+  /(pptx|docx|pdf|xlsx|svg|deck|chart|diagram|notebook|image|video|audio|qr|slide)/
 
 function familyOf(name: string): Family {
   const n = name.toLowerCase()
@@ -154,8 +155,7 @@ export function ToolCatalog() {
     if (!needle) return rows
     return rows.filter(
       (row) =>
-        row.name.toLowerCase().includes(needle) ||
-        row.description.toLowerCase().includes(needle),
+        row.name.toLowerCase().includes(needle) || row.description.toLowerCase().includes(needle),
     )
   }, [rows, filter])
 
@@ -191,9 +191,7 @@ export function ToolCatalog() {
       setError(true)
       setRows((current) =>
         current
-          ? current.map((entry) =>
-              entry.name === row.name ? { ...entry, enabled: !next } : entry,
-            )
+          ? current.map((entry) => (entry.name === row.name ? { ...entry, enabled: !next } : entry))
           : current,
       )
     } finally {
@@ -307,7 +305,11 @@ export function ToolCatalog() {
           ))}
         </div>
         {error && (
-          <p role="alert" data-testid="tools-catalog-error" className="mt-2 text-ui-xs text-status-danger">
+          <p
+            role="alert"
+            data-testid="tools-catalog-error"
+            className="mt-2 text-ui-xs text-status-danger"
+          >
             {t('tools.switchFailed')}
           </p>
         )}

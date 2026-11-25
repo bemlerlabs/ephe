@@ -22,7 +22,12 @@ const detectEngines = vi.fn(async () => ({ candidates: [], detected: [], first_r
 vi.mock('@/lib/api', () => ({
   getSetupStatus: () => getSetupStatus(),
   detectEngines: () => detectEngines(),
-  probeProvider: vi.fn(async () => ({ reachable: false, models: [], detail: '', state: 'unreachable' })),
+  probeProvider: vi.fn(async () => ({
+    reachable: false,
+    models: [],
+    detail: '',
+    state: 'unreachable',
+  })),
   updateSettings: (payload: unknown) => updateSettings(payload),
   resetSetup: vi.fn(),
   skipSetup: vi.fn(),

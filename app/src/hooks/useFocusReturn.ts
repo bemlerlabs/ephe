@@ -43,12 +43,7 @@ export const FOCUSABLE_SELECTOR = 'a[href],button,input,select,textarea,[tabinde
  *  swallow the handback, and a detached node or the body answers with a focus that never
  *  lands. */
 function usableInvoker(invoker: HTMLElement | null): HTMLElement | null {
-  if (
-    !invoker ||
-    !invoker.isConnected ||
-    invoker === document.body ||
-    invoker.closest('[inert]')
-  ) {
+  if (!invoker || !invoker.isConnected || invoker === document.body || invoker.closest('[inert]')) {
     return null
   }
   return invoker

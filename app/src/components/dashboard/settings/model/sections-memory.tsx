@@ -45,7 +45,11 @@ export function MemorySection({ model }: { model: SettingsModel }) {
 
       <DeepFields model={model} prefixes={['memory.']} />
 
-      <SettingsGroup icon={Database} title={t('settings.memoryGroupStore')} testid="memory-group-store">
+      <SettingsGroup
+        icon={Database}
+        title={t('settings.memoryGroupStore')}
+        testid="memory-group-store"
+      >
         <SettingsRow
           icon={Database}
           title={t('settings.memoryVectors')}
@@ -129,7 +133,11 @@ export function MemorySection({ model }: { model: SettingsModel }) {
           here with 50 rows and a delete button, there in the panel with editing
           and a trash bin — were two half truths. The inventory now lives on one
           page, and this section shows what can be tuned about it. */}
-      <SettingsGroup icon={ListChecks} title={t('settings.memoryGroupEntries')} testid="memory-group-entries">
+      <SettingsGroup
+        icon={ListChecks}
+        title={t('settings.memoryGroupEntries')}
+        testid="memory-group-entries"
+      >
         <SettingsRow
           icon={ListChecks}
           title={t('settings.memoryOpenPage')}
@@ -151,7 +159,11 @@ export function MemorySection({ model }: { model: SettingsModel }) {
         <SolHeuristicsCard t={t} />
       </React.Suspense>
 
-      <SettingsGroup icon={Ban} title={t('settings.memoryGroupDanger')} testid="memory-group-danger">
+      <SettingsGroup
+        icon={Ban}
+        title={t('settings.memoryGroupDanger')}
+        testid="memory-group-danger"
+      >
         <SettingsRow
           icon={Ban}
           title={t('settings.clearMemory')}

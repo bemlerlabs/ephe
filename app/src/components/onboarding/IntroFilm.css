@@ -61,7 +61,12 @@
   height: 22vh;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 178 62 / 0.55) 0%, rgb(255 140 40 / 0.22) 42%, transparent 72%);
+  background: radial-gradient(
+    circle,
+    rgb(255 178 62 / 0.55) 0%,
+    rgb(255 140 40 / 0.22) 42%,
+    transparent 72%
+  );
   filter: blur(12px);
   mix-blend-mode: screen;
   will-change: left, opacity;
@@ -98,7 +103,12 @@
   height: 5.6rem;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 236 190 / 0.95) 0%, rgb(255 191 71 / 0.55) 34%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgb(255 236 190 / 0.95) 0%,
+    rgb(255 191 71 / 0.55) 34%,
+    transparent 70%
+  );
   filter: blur(2px);
   mix-blend-mode: screen;
 }
@@ -231,7 +241,6 @@
 html.no-motion .intro-live-flame {
   animation: none;
 }
-
 
 .intro-live-lids {
   position: absolute;

@@ -51,7 +51,10 @@ export function useComposerSendPipeline({
     if (streaming) {
       if (!allowInputWhileStreaming) return
       if (message.trim()) {
-        history.enqueue(annotateWithOcr(message.trim(), attachments), attachments.length > 0 ? attachments : undefined)
+        history.enqueue(
+          annotateWithOcr(message.trim(), attachments),
+          attachments.length > 0 ? attachments : undefined,
+        )
         setMessage('')
         setAttachments([])
         refreshUi()
@@ -76,7 +79,10 @@ export function useComposerSendPipeline({
       return
     }
     if (message.trim()) {
-      onSend(annotateWithOcr(message.trim(), attachments), attachments.length > 0 ? attachments : undefined)
+      onSend(
+        annotateWithOcr(message.trim(), attachments),
+        attachments.length > 0 ? attachments : undefined,
+      )
       history.add(message.trim())
       setMessage('')
       setAttachments([])

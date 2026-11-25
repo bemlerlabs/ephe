@@ -1,5 +1,7 @@
 .welcome-card {
-  transition: background-color 160ms var(--ease-out-soft), box-shadow 160ms var(--ease-out-soft);
+  transition:
+    background-color 160ms var(--ease-out-soft),
+    box-shadow 160ms var(--ease-out-soft);
 }
 .welcome-card:hover {
   background: rgb(240 168 48 / 0.1);

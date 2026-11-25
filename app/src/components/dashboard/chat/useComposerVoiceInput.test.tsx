@@ -58,7 +58,10 @@ function mount() {
   return { ...view, setMessage }
 }
 
-const tick = () => act(async () => { await Promise.resolve() })
+const tick = () =>
+  act(async () => {
+    await Promise.resolve()
+  })
 
 beforeEach(() => {
   FakeRecorder.instances = []
@@ -108,7 +111,10 @@ describe('QD-008 M1 — tap to stop a latched recording', () => {
   it('a short tap still latches when the microphone permission resolves late', async () => {
     let grant: ((stream: unknown) => void) | null = null
     getUserMedia.mockImplementationOnce(
-      () => new Promise((resolve) => { grant = resolve as (s: unknown) => void }) as never,
+      () =>
+        new Promise((resolve) => {
+          grant = resolve as (s: unknown) => void
+        }) as never,
     )
     const { result } = mount()
 

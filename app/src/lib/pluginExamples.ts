@@ -18,7 +18,8 @@ const EXAMPLES: Record<string, string> = {
   presentations: 'Draft a three-slide outline for a project update and save it as a deck.',
   'private-research-notebook':
     'Research this topic from my local notes only and write a private brief.',
-  'skill-creator': 'Create a skill that reviews a diff for security issues, triggered by /security-review.',
+  'skill-creator':
+    'Create a skill that reviews a diff for security issues, triggered by /security-review.',
   spreadsheets: 'Build a small spreadsheet with three columns and one formula, then save it.',
   vision: 'Analyse the image I attach and describe what is in it.',
   voice: 'Transcribe this short audio clip and return the text.',

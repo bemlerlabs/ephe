@@ -65,7 +65,7 @@
   "app/src/types/stream-events.test.ts": 1,
   "app/tests/playwright/artifact-export.spec.ts": 1,
   "app/tests/playwright/composer-width.spec.ts": 1,
-  "app/tests/playwright/dogfood.spec.ts": 15,
+  "app/tests/playwright/dogfood.spec.ts": 10,
   "app/tests/playwright/langsession.spec.ts": 3,
   "app/tests/playwright/modals.spec.ts": 1,
   "app/tests/playwright/panel.spec.ts": 6,
@@ -286,6 +286,6 @@
  },
  "instrument": "scripts/language_inventory.py",
  "policy": "language-ratchet",
- "total": 715,
+ "total": 710,
  "version": 1
 }

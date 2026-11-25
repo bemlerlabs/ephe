@@ -36,7 +36,11 @@ export function NetworkSection({ model }: { model: SettingsModel }) {
         <LoadingRow label={t('settings.networkLoading')} data-testid="network-loading" />
       ) : (
         <div className="space-y-4" data-testid="network-status">
-          <SettingsGroup icon={Router} title={t('settings.networkGroupServer')} testid="network-group-server">
+          <SettingsGroup
+            icon={Router}
+            title={t('settings.networkGroupServer')}
+            testid="network-group-server"
+          >
             <SettingsRow
               icon={Network}
               title={t('settings.networkBind')}
@@ -80,7 +84,11 @@ export function NetworkSection({ model }: { model: SettingsModel }) {
             )}
           </SettingsGroup>
 
-          <SettingsGroup icon={Share2} title={t('settings.networkGroupShares')} testid="network-group-shares">
+          <SettingsGroup
+            icon={Share2}
+            title={t('settings.networkGroupShares')}
+            testid="network-group-shares"
+          >
             <SettingsRow
               icon={FileKey2}
               title={t('settings.networkRoots')}

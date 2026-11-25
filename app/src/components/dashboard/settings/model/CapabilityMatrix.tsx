@@ -33,11 +33,12 @@ export function CapabilityMatrix({
   // A backend that answers with nothing useful is not an answer: a stub page or a
   // version skew must not take the whole Behaviour tab down with it.
   const tools = caps?.subagent?.tools
-  const subDescription = Array.isArray(tools) && tools.length
-    ? tools.join(' · ')
-    : failed || caps
-      ? t('settings.capabilityUnknown')
-      : '…'
+  const subDescription =
+    Array.isArray(tools) && tools.length
+      ? tools.join(' · ')
+      : failed || caps
+        ? t('settings.capabilityUnknown')
+        : '…'
 
   return (
     <SettingsGroup

@@ -27,10 +27,7 @@ export default function TurnProgressLine({ progress }: { progress: TurnProgress 
     const id = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [progress.elapsedMs])
-  const elapsed = Math.max(
-    1,
-    Math.round((progress.elapsedMs + (now - since.current)) / 1000),
-  )
+  const elapsed = Math.max(1, Math.round((progress.elapsedMs + (now - since.current)) / 1000))
   const time = clock(elapsed)
   const search = progress.tool === 'web_search'
   const label = search

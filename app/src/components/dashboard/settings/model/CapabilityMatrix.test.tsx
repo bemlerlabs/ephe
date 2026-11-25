@@ -22,12 +22,19 @@ beforeEach(() => {
 describe('the capability matrix', () => {
   it('prints the guard count and its tools', async () => {
     api.getCapabilities.mockResolvedValue({
-      subagent: { tools: ['read_file', 'web_search'], tool_count: 2, max_iterations: 8, read_only: true },
+      subagent: {
+        tools: ['read_file', 'web_search'],
+        tool_count: 2,
+        max_iterations: 8,
+        read_only: true,
+      },
       main_agent: { read_only: false, note: 'all tools' },
     })
     render(<CapabilityMatrix t={t} />)
     await waitFor(() => {
-      expect(screen.getByTestId('capability-sub-count').textContent).toBe('2 settings.capabilityTools')
+      expect(screen.getByTestId('capability-sub-count').textContent).toBe(
+        '2 settings.capabilityTools',
+      )
     })
     expect(screen.getByTestId('capability-sub').textContent).toContain('read_file · web_search')
     expect(screen.getByTestId('capability-main').textContent).toContain('settings.capabilityWrites')
@@ -39,9 +46,7 @@ describe('the capability matrix', () => {
     await waitFor(() => {
       expect(screen.getByTestId('capability-sub-count').textContent).toBe('—')
     })
-    expect(screen.getByTestId('capability-sub').textContent).toContain(
-      'settings.capabilityUnknown',
-    )
+    expect(screen.getByTestId('capability-sub').textContent).toContain('settings.capabilityUnknown')
   })
 })
 

@@ -27,7 +27,9 @@ export function proofText(audience: Audience, facts: ProofFacts): ProofText {
   if (!facts.ok) return { key: 'chat.proof.failed' }
   const ms = facts.ms != null && facts.ms > 0 ? Math.round(facts.ms) : null
   if (audience === 'expert') {
-    return ms == null ? { key: 'chat.proof.expertNoTime' } : { key: 'chat.proof.expert', values: { ms } }
+    return ms == null
+      ? { key: 'chat.proof.expertNoTime' }
+      : { key: 'chat.proof.expert', values: { ms } }
   }
   if (ms == null) return { key: 'chat.proof.everydayNoTime' }
   return { key: 'chat.proof.everyday', values: { seconds: (ms / 1000).toFixed(1) } }

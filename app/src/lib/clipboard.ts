@@ -33,10 +33,7 @@ export async function copyTypedText(plain: string, html?: string): Promise<boole
 
 /** The HTML face of a code fence: the one shape every rich-text target reads. */
 export function codeFenceHtml(source: string, language?: string): string {
-  const escaped = source
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  const escaped = source.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const tag = /^[a-z0-9+#._-]+$/i.test(language ?? '') ? ` class="language-${language}"` : ''
   return `<pre><code${tag}>${escaped}</code></pre>`
 }

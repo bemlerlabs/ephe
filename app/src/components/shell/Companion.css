@@ -37,7 +37,12 @@
   height: 170%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 191 71 / 0.24) 0%, rgb(255 160 50 / 0.1) 42%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgb(255 191 71 / 0.24) 0%,
+    rgb(255 160 50 / 0.1) 42%,
+    transparent 70%
+  );
   filter: blur(10px);
   pointer-events: none;
 }
@@ -124,7 +129,12 @@
   height: 195%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 236 190 / 0.95) 0%, rgb(255 191 71 / 0.5) 32%, transparent 68%);
+  background: radial-gradient(
+    circle,
+    rgb(255 236 190 / 0.95) 0%,
+    rgb(255 191 71 / 0.5) 32%,
+    transparent 68%
+  );
   filter: blur(2px);
   animation: companion-spark-pulse 1.8s ease-in-out infinite alternate;
 }
@@ -343,7 +353,6 @@ body.ephe-tour-open [data-testid='ephe-mark-hero'] {
     width: auto;
   }
 }
-
 
 .companion-motion {
   position: absolute;

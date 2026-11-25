@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const bridge = vi.hoisted(() => ({ available: true, invoke: vi.fn() }))
-vi.mock('@/lib/tauriBridge', () => ({ tauriInvoke: () => (bridge.available ? bridge.invoke : null) }))
+vi.mock('@/lib/tauriBridge', () => ({
+  tauriInvoke: () => (bridge.available ? bridge.invoke : null),
+}))
 vi.mock('@/lib/api/http', () => ({ apiUrl: (path: string) => `http://127.0.0.1:8765${path}` }))
 
 import { importPickedFolder } from './settingsImport'

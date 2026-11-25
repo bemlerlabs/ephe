@@ -59,8 +59,8 @@ describe('settings page parts', () => {
   })
 
   it('labels each block with a word both bundles carry', () => {
-    const unheld = parts.filter(
-      (one) => bundles.some((bundle) => lookup(bundle, one.labelKey) === undefined),
+    const unheld = parts.filter((one) =>
+      bundles.some((bundle) => lookup(bundle, one.labelKey) === undefined),
     )
     expect(unheld.map((one) => `${one.tab}/${one.labelKey}`)).toEqual([])
   })

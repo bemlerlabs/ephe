@@ -64,8 +64,12 @@
   animation: moth-thread-dance 600ms ease-in-out infinite alternate;
 }
 @keyframes moth-thread-dance {
-  from { transform: scale(1, 1) rotate(-1.5deg) skewX(0deg); }
-  to { transform: scale(1.07, 0.94) rotate(2.4deg) skewX(3deg); }
+  from {
+    transform: scale(1, 1) rotate(-1.5deg) skewX(0deg);
+  }
+  to {
+    transform: scale(1.07, 0.94) rotate(2.4deg) skewX(3deg);
+  }
 }
 
 .moth-guide.is-flying .moth-wing-l {
@@ -81,20 +85,36 @@
   animation: moth-hover-wing-right 2.6s ease-in-out infinite alternate;
 }
 @keyframes moth-flap-left {
-  from { transform: rotateZ(0deg) rotateY(0deg); }
-  to { transform: rotateZ(14deg) rotateY(42deg); }
+  from {
+    transform: rotateZ(0deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateZ(14deg) rotateY(42deg);
+  }
 }
 @keyframes moth-flap-right {
-  from { transform: rotateZ(0deg) rotateY(0deg); }
-  to { transform: rotateZ(-14deg) rotateY(-42deg); }
+  from {
+    transform: rotateZ(0deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateZ(-14deg) rotateY(-42deg);
+  }
 }
 @keyframes moth-hover-wing {
-  from { transform: rotateZ(0deg) rotateY(0deg); }
-  to { transform: rotateZ(3deg) rotateY(9deg); }
+  from {
+    transform: rotateZ(0deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateZ(3deg) rotateY(9deg);
+  }
 }
 @keyframes moth-hover-wing-right {
-  from { transform: rotateZ(0deg) rotateY(0deg); }
-  to { transform: rotateZ(-3deg) rotateY(-9deg); }
+  from {
+    transform: rotateZ(0deg) rotateY(0deg);
+  }
+  to {
+    transform: rotateZ(-3deg) rotateY(-9deg);
+  }
 }
 
 .moth-guide-light {

@@ -74,7 +74,9 @@ export function useComposerAttachments({
           void ocrImageText(ready.dataUrl).then((text) => {
             if (!text) return
             setAttachments((prev) =>
-              prev.map((a) => (a.path === ready.path && a.kind === 'image' ? { ...a, ocrText: text } : a)),
+              prev.map((a) =>
+                a.path === ready.path && a.kind === 'image' ? { ...a, ocrText: text } : a,
+              ),
             )
           })
         }

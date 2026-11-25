@@ -8,7 +8,10 @@
  */
 import type { ChatAttachment } from './attachments'
 
-export function annotateWithOcr(message: string, attachments: ChatAttachment[] | undefined): string {
+export function annotateWithOcr(
+  message: string,
+  attachments: ChatAttachment[] | undefined,
+): string {
   const blocks = (attachments ?? [])
     .filter((attachment) => attachment.ocrText)
     .map((attachment) => `[Text from image ${attachment.name}:\n${attachment.ocrText}]`)

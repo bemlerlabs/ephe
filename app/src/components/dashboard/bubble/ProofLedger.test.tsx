@@ -70,7 +70,9 @@ describe('the proof ledger', () => {
   })
 
   it('stays away while nothing has finished', () => {
-    render(<ProofLedger tools={[call({ status: 'pending' }), call({ id: 'c2', status: 'waiting' })]} />)
+    render(
+      <ProofLedger tools={[call({ status: 'pending' }), call({ id: 'c2', status: 'waiting' })]} />,
+    )
     expect(screen.queryByTestId('proof-ledger')).toBeNull()
   })
 

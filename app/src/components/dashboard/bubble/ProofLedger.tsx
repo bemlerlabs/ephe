@@ -67,6 +67,8 @@ function clipResult(result: string): string {
 /** The one value a reader needs to tell two runs of the same tool apart. */
 function argPreview(args: Record<string, unknown> | undefined): string {
   const value = Object.values(args ?? {}).find((item) => typeof item === 'string')
-  const text = String(value ?? '').replace(/\s+/g, ' ').trim()
+  const text = String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
   return text.length > 40 ? `${text.slice(0, 40)}…` : text
 }

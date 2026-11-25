@@ -27,7 +27,10 @@ export interface OneClickChoice {
  *  already keeps in engine.json or on the LAN. */
 const ORDER: OneClickKind[] = ['local_ollama', 'custom_ollama']
 
-function pickModel(models: readonly string[], totalGb: number | null): {
+function pickModel(
+  models: readonly string[],
+  totalGb: number | null,
+): {
   model: string
   fit: HardwareFit | null
 } | null {

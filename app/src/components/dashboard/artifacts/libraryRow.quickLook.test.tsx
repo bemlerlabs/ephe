@@ -42,14 +42,7 @@ const ART: ArtifactEntry = {
 const onSelect = vi.fn()
 
 function row() {
-  return (
-    <ArtifactLibraryRow
-      art={ART}
-      selected={false}
-      onSelect={onSelect}
-      onFavorite={() => {}}
-    />
-  )
+  return <ArtifactLibraryRow art={ART} selected={false} onSelect={onSelect} onFavorite={() => {}} />
 }
 
 beforeEach(() => {

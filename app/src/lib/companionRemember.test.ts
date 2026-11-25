@@ -32,7 +32,9 @@ describe('remember this command shape', () => {
     rememberShellShape('jq . a.json')
     rememberShellShape('jq . b.json')
     expect(rememberedShellVerbs()).toEqual(['jq'])
-    expect(JSON.parse(window.localStorage.getItem('ephe.companion.rememberedShapes') ?? '[]')).toEqual(['jq'])
+    expect(
+      JSON.parse(window.localStorage.getItem('ephe.companion.rememberedShapes') ?? '[]'),
+    ).toEqual(['jq'])
   })
 
   it('forgets everything on request', () => {

@@ -7,7 +7,11 @@ vi.mock('@/lib/tauriBridge', () => ({
   windowIsFullscreen: async () => full.value,
 }))
 
-import { applyPlatformChrome, resolveEffectiveSpec, resolvePlatformChromeSpec } from './platformChrome'
+import {
+  applyPlatformChrome,
+  resolveEffectiveSpec,
+  resolvePlatformChromeSpec,
+} from './platformChrome'
 
 beforeEach(() => {
   desk.value = false

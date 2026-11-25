@@ -287,7 +287,10 @@ export function CompanionQuickPanel({
               </div>
             )}
             {!finding && mode !== 'perch' && (
-              <p className="mt-1.5 px-2.5 text-scale-data text-ink-faint" data-testid="companion-copilot-empty">
+              <p
+                className="mt-1.5 px-2.5 text-scale-data text-ink-faint"
+                data-testid="companion-copilot-empty"
+              >
                 {t('copilot.empty')}
               </p>
             )}
@@ -324,7 +327,10 @@ export function CompanionQuickPanel({
               </div>
             )}
             {receipts && receipts.length > 0 && (
-              <div className="mt-1.5 border-t border-hairline px-1 pt-1.5" data-testid="companion-receipts">
+              <div
+                className="mt-1.5 border-t border-hairline px-1 pt-1.5"
+                data-testid="companion-receipts"
+              >
                 <p className="px-1.5 pb-1 text-scale-data text-ink-faint">
                   {t('copilot.receiptsTitle')}
                 </p>

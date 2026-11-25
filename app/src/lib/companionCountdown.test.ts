@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  countdownMs,
-  findCopilotTarget,
-  type CopilotSnapshot,
-} from './companionCopilot'
+import { countdownMs, findCopilotTarget, type CopilotSnapshot } from './companionCopilot'
 
 function snap(overrides: Partial<CopilotSnapshot> = {}): CopilotSnapshot {
   return {
@@ -50,7 +46,10 @@ describe('the countdown setting (QD-013)', () => {
     })
     expect(findCopilotTarget(idle, 'perch')).toBeNull()
 
-    const busy = snap({ codebaseIdle: true, waitingTool: { name: 'run_shell', args: { command: 'pytest -q' } } })
+    const busy = snap({
+      codebaseIdle: true,
+      waitingTool: { name: 'run_shell', args: { command: 'pytest -q' } },
+    })
     expect(findCopilotTarget(busy, 'copilot')?.target).toBe('tool_approval')
   })
 })

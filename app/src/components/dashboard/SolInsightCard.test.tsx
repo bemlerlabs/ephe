@@ -84,9 +84,6 @@ describe('SolInsightCard', () => {
       window.removeEventListener('ephe:settings-tab', onTab)
       window.removeEventListener('ephe:open-settings', onOpen)
     }
-    expect(seen).toEqual([
-      { name: 'tab', tab: 'memory' },
-      { name: 'open' },
-    ])
+    expect(seen).toEqual([{ name: 'tab', tab: 'memory' }, { name: 'open' }])
   })
 })

@@ -186,8 +186,12 @@ describe('shouldOpenReview — a finished turn that produced something new', () 
 describe('findCopilotTarget — the five targets through the three modes', () => {
   it('perch never crawls, whatever the surface shows', () => {
     expect(findCopilotTarget(snap({ waitingTool: waitingTool('pytest') }), 'perch')).toBeNull()
-    expect(findCopilotTarget(snap({ ask: { recommendation: 'a', options: ['a'] } }), 'perch')).toBeNull()
-    expect(findCopilotTarget(snap({ contextPercent: 95, runState: 'done', hasCompact: true }), 'perch')).toBeNull()
+    expect(
+      findCopilotTarget(snap({ ask: { recommendation: 'a', options: ['a'] } }), 'perch'),
+    ).toBeNull()
+    expect(
+      findCopilotTarget(snap({ contextPercent: 95, runState: 'done', hasCompact: true }), 'perch'),
+    ).toBeNull()
   })
 
   it('copilot approves a safe waiting check and names the command', () => {
@@ -296,10 +300,7 @@ describe('findCopilotTarget — the five targets through the three modes', () =>
   })
 
   it('copilot opens the review when the turn produced edits', () => {
-    const finding = findCopilotTarget(
-      snap({ turnJustFinished: true, newEdits: 1 }),
-      'copilot',
-    )
+    const finding = findCopilotTarget(snap({ turnJustFinished: true, newEdits: 1 }), 'copilot')
     expect(finding).toMatchObject({
       target: 'open_review_or_preview',
       verdict: 'auto_act',

@@ -73,8 +73,15 @@ function CustomInstructionsCard({ model }: { model: SettingsModel }) {
 }
 
 export function BehaviourSection({ model }: { model: SettingsModel }) {
-  const { t, setWorkspaceDraft, setWsPickerOpen, workspaceDraft, wsPickerOpen, deepDraft, setDeepField } =
-    model
+  const {
+    t,
+    setWorkspaceDraft,
+    setWsPickerOpen,
+    workspaceDraft,
+    wsPickerOpen,
+    deepDraft,
+    setDeepField,
+  } = model
   const detailsMode = String(deepDraft?.chat?.['chat.details_mode'] ?? 'expanded')
 
   return (

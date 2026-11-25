@@ -207,14 +207,14 @@ async function settle(page: Page, excluded: string[]): Promise<Snapshot> {
   for (let attempt = 1; attempt < attempts; attempt += 1) {
     await page.waitForTimeout(150)
     const next = await snapshot(page, excluded)
-    if (next.text === previous.text && next.landmarks.join("|") === previous.landmarks.join("|")) {
+    if (next.text === previous.text && next.landmarks.join('|') === previous.landmarks.join('|')) {
       return next
     }
     previous = next
   }
   throw new Error(
     `the surface at ${page.url()} was still changing after ${attempts * 150} ms — ` +
-      "a page that never settles is a defect to name, not a race to average away",
+      'a page that never settles is a defect to name, not a race to average away',
   )
 }
 

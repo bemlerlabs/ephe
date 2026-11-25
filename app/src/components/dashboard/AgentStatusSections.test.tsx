@@ -24,10 +24,7 @@ import {
   UsageSection,
   useStatusPanelData,
 } from './AgentStatusSections'
-import {
-  STATUS_SECTION_SCROLL_POLICY,
-  type StatusSectionKind,
-} from './agent/statusSectionPolicy'
+import { STATUS_SECTION_SCROLL_POLICY, type StatusSectionKind } from './agent/statusSectionPolicy'
 import { QUERY_JUMP_EVENT } from '@/lib/panelEvents'
 import type { ChatMessage, PlanCardSpec, PlanItemStatus } from '@/types'
 import type { UsageDay, UsageSummary } from '@/lib/api'
@@ -84,7 +81,10 @@ const msg = (over: Partial<ChatMessage> = {}): ChatMessage => ({
   ...over,
 })
 
-const flushPromises = () => act(async () => { await Promise.resolve() })
+const flushPromises = () =>
+  act(async () => {
+    await Promise.resolve()
+  })
 
 // useStatusPanelData: plan precedence (frame wins, text is the fallback)
 describe('useStatusPanelData — plan precedence', () => {
@@ -175,9 +175,7 @@ describe('useStatusPanelData — queries, goal, jump', () => {
 
   it('goal is the trimmed first line of the first user message', () => {
     const u1 = msg({ role: 'user', content: '  Fix the login bug  \nwith more detail below' })
-    const { result } = renderHook(() =>
-      useStatusPanelData([msg({ content: 'ok' }), u1]),
-    )
+    const { result } = renderHook(() => useStatusPanelData([msg({ content: 'ok' }), u1]))
     expect(result.current.goal).toBe('Fix the login bug')
   })
 
@@ -338,9 +336,7 @@ describe('EnvironmentSection', () => {
 
   it('prints a clean tree as "0 changes"', () => {
     render(<EnvironmentSection branch="main" changes={0} />)
-    expect(screen.getByTestId('agent-status-environment-line').textContent).toContain(
-      '0 changes',
-    )
+    expect(screen.getByTestId('agent-status-environment-line').textContent).toContain('0 changes')
   })
 })
 
@@ -618,9 +614,7 @@ describe('UsageSection', () => {
     expect(screen.getAllByText('0 / 0')).toHaveLength(2) // today + 7-day fall back to zero
     expect(screen.getByText('5 / 1')).toBeTruthy() // 30-day row keeps the totals
     expect(
-      screen.getByText(
-        '7 turns estimated (no provider usage frame) — marked honestly.',
-      ),
+      screen.getByText('7 turns estimated (no provider usage frame) — marked honestly.'),
     ).toBeTruthy()
   })
 

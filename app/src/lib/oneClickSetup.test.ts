@@ -29,12 +29,18 @@ describe('recommendOneClickSetup', () => {
   })
 
   it('uses the full budget for the larger model when the machine holds it', () => {
-    const choice = recommendOneClickSetup([engine({ models: ['llama3:8b', 'qwen2.5-coder:32b'] })], 64)
+    const choice = recommendOneClickSetup(
+      [engine({ models: ['llama3:8b', 'qwen2.5-coder:32b'] })],
+      64,
+    )
     expect(choice?.model).toBe('qwen2.5-coder:32b')
   })
 
   it('states an unknown size instead of guessing when no memory is reported', () => {
-    const choice = recommendOneClickSetup([engine({ models: ['llama3:8b', 'qwen2.5-coder:32b'] })], null)
+    const choice = recommendOneClickSetup(
+      [engine({ models: ['llama3:8b', 'qwen2.5-coder:32b'] })],
+      null,
+    )
     expect(choice).toEqual({
       kind: 'local_ollama',
       url: 'http://127.0.0.1:11434',
@@ -68,7 +74,10 @@ describe('recommendOneClickSetup', () => {
 
   it('falls back to an endpoint the user already runs', () => {
     const choice = recommendOneClickSetup(
-      [engine({ reachable: false }), engine({ provider: 'custom_ollama', url: 'http://10.0.0.5:11434', models: ['llama3:8b'] })],
+      [
+        engine({ reachable: false }),
+        engine({ provider: 'custom_ollama', url: 'http://10.0.0.5:11434', models: ['llama3:8b'] }),
+      ],
       24,
     )
     expect(choice?.kind).toBe('custom_ollama')

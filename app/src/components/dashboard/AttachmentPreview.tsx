@@ -73,10 +73,7 @@ export default function AttachmentPreview({ attachments, onRemove }: AttachmentP
               ) : state === 'loading' ? (
                 <Loader2 className="attachment-icon animate-spin" aria-hidden="true" />
               ) : state === 'error' ? (
-                <AlertCircle
-                  className="attachment-icon attachment-icon-error"
-                  aria-hidden="true"
-                />
+                <AlertCircle className="attachment-icon attachment-icon-error" aria-hidden="true" />
               ) : (
                 <FileText className="attachment-icon" aria-hidden="true" />
               )}

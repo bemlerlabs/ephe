@@ -17,9 +17,10 @@ export const DEFAULT_COUNTDOWN_SECONDS = 2.5
 
 /** Seconds as the schema allows them (0-10), rounded to whole milliseconds. */
 export function countdownMs(seconds: number | null | undefined): number {
-  const value = typeof seconds === 'number' && Number.isFinite(seconds)
-    ? Math.min(10, Math.max(0, seconds))
-    : DEFAULT_COUNTDOWN_SECONDS
+  const value =
+    typeof seconds === 'number' && Number.isFinite(seconds)
+      ? Math.min(10, Math.max(0, seconds))
+      : DEFAULT_COUNTDOWN_SECONDS
   return Math.round(value * 1000)
 }
 export const RECEIPT_CAP = 10
@@ -208,7 +209,8 @@ export function findCopilotTarget(
     // not a shell command either, so it must not reach `reasonParam`, where the
     // panel would offer to remember a verb the classifier never judged.
     const command = shellTool ? shellCommandOf(snapshot.waitingTool) : ''
-    const safe = shellTool && classifyShellCommand(command, snapshot.remembered ?? []) === 'auto_act'
+    const safe =
+      shellTool && classifyShellCommand(command, snapshot.remembered ?? []) === 'auto_act'
     const selector = '[role="alertdialog"]'
     const reasonKey = command
       ? safe

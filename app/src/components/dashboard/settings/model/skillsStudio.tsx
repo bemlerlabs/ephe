@@ -218,7 +218,11 @@ export function SkillBuilderCard({ t, onCreated }: { t: T; onCreated: () => void
                 {t('settings.skillBuilderCreate')}
               </button>
               {note && (
-                <p className="text-ui-xs text-ink-soft" role="status" data-testid="skill-builder-note">
+                <p
+                  className="text-ui-xs text-ink-soft"
+                  role="status"
+                  data-testid="skill-builder-note"
+                >
                   {note}
                 </p>
               )}

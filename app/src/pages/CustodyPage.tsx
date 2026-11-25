@@ -29,7 +29,10 @@ import {
 
 /** Where two digests part: the shared head, and what each side carries after it. */
 /** Where two digests stop agreeing: the shared head, both tails, and the character. */
-export function fork(a: string, b: string): {
+export function fork(
+  a: string,
+  b: string,
+): {
   head: string
   aTail: string
   bTail: string
@@ -251,58 +254,55 @@ export default function CustodyPage() {
             <li className="text-ui-2xs text-ink-faint">{t('workspaces.filesNone')}</li>
           )}
           {files.map((file) => {
-            const digests = fork(
-              diffPrefix(file.recorded, 64),
-              diffPrefix(file.current ?? '', 64),
-            )
+            const digests = fork(diffPrefix(file.recorded, 64), diffPrefix(file.current ?? '', 64))
             return (
-            <li key={file.path} data-testid={`custody-file-${file.path}`}>
-              <div className="flex flex-wrap items-center gap-1.5 text-ui-2xs">
-                <span className="min-w-0 flex-1 truncate font-mono text-foreground/80" dir="ltr">
-                  {file.path}
-                </span>
-                <Badge
-                  variant={file.moved ? 'destructive' : 'outline'}
-                  className="shrink-0 px-1.5 py-0"
-                  data-testid={`custody-mark-${file.path}`}
-                >
-                  {file.moved ? t('custody.moved') : t('custody.matches')}
-                </Badge>
-              </div>
-              <div className="mt-0.5 space-y-0.5 pl-0.5 font-mono text-ui-2xs" dir="ltr">
-                <p className="flex flex-wrap items-baseline gap-1.5">
-                  <span className="w-14 shrink-0 text-ink-faint/70">{t('custody.recorded')}</span>
-                  <span className="break-all">
-                    {file.moved && file.current !== null ? (
-                      <>
-                        <span className="text-status-success/90">{digests.head}</span>
-                        <mark className="bg-transparent text-status-danger">{digests.aTail}</mark>
-                      </>
-                    ) : (
-                      <span className="text-ink-faint">{diffPrefix(file.recorded, 64)}</span>
-                    )}
+              <li key={file.path} data-testid={`custody-file-${file.path}`}>
+                <div className="flex flex-wrap items-center gap-1.5 text-ui-2xs">
+                  <span className="min-w-0 flex-1 truncate font-mono text-foreground/80" dir="ltr">
+                    {file.path}
                   </span>
-                </p>
-                {file.moved && file.current !== null && (
-                  <p
-                    className="flex flex-wrap items-baseline gap-1.5"
-                    data-testid={`custody-drift-${file.path}`}
+                  <Badge
+                    variant={file.moved ? 'destructive' : 'outline'}
+                    className="shrink-0 px-1.5 py-0"
+                    data-testid={`custody-mark-${file.path}`}
                   >
-                    <span className="w-14 shrink-0 text-ink-faint/70">{t('custody.onDisk')}</span>
+                    {file.moved ? t('custody.moved') : t('custody.matches')}
+                  </Badge>
+                </div>
+                <div className="mt-0.5 space-y-0.5 pl-0.5 font-mono text-ui-2xs" dir="ltr">
+                  <p className="flex flex-wrap items-baseline gap-1.5">
+                    <span className="w-14 shrink-0 text-ink-faint/70">{t('custody.recorded')}</span>
                     <span className="break-all">
-                      <span className="text-status-success/90">{digests.head}</span>
-                      <mark className="bg-transparent text-status-danger">{digests.bTail}</mark>
-                      <span
-                        className="ml-2 tabular-nums text-ink-faint"
-                        data-testid="custody-fork-index"
-                      >
-                        {t('custody.forkAt', { index: digests.index })}
-                      </span>
+                      {file.moved && file.current !== null ? (
+                        <>
+                          <span className="text-status-success/90">{digests.head}</span>
+                          <mark className="bg-transparent text-status-danger">{digests.aTail}</mark>
+                        </>
+                      ) : (
+                        <span className="text-ink-faint">{diffPrefix(file.recorded, 64)}</span>
+                      )}
                     </span>
                   </p>
-                )}
-              </div>
-            </li>
+                  {file.moved && file.current !== null && (
+                    <p
+                      className="flex flex-wrap items-baseline gap-1.5"
+                      data-testid={`custody-drift-${file.path}`}
+                    >
+                      <span className="w-14 shrink-0 text-ink-faint/70">{t('custody.onDisk')}</span>
+                      <span className="break-all">
+                        <span className="text-status-success/90">{digests.head}</span>
+                        <mark className="bg-transparent text-status-danger">{digests.bTail}</mark>
+                        <span
+                          className="ml-2 tabular-nums text-ink-faint"
+                          data-testid="custody-fork-index"
+                        >
+                          {t('custody.forkAt', { index: digests.index })}
+                        </span>
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </li>
             )
           })}
         </ul>

@@ -85,8 +85,14 @@ describe('SolHeuristicsCard', () => {
       target: { value: 'Call /opt/homebrew/bin/node directly' },
     })
     fireEvent.click(screen.getByTestId('sol-save-H1'))
-    await waitFor(() => expect(updateSolHeuristic).toHaveBeenCalledWith('H1', { action: 'Call /opt/homebrew/bin/node directly' }))
-    await waitFor(() => expect(screen.getByText('Call /opt/homebrew/bin/node directly')).toBeTruthy())
+    await waitFor(() =>
+      expect(updateSolHeuristic).toHaveBeenCalledWith('H1', {
+        action: 'Call /opt/homebrew/bin/node directly',
+      }),
+    )
+    await waitFor(() =>
+      expect(screen.getByText('Call /opt/homebrew/bin/node directly')).toBeTruthy(),
+    )
   })
 
   it('deletes a rule only after the second click', async () => {

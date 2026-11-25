@@ -343,11 +343,7 @@
     }
   ],
   "mobile": {
-    "widths": [
-      320,
-      375,
-      390
-    ],
+    "widths": [320, 375, 390],
     "surfaces": [
       {
         "path": "/chat",

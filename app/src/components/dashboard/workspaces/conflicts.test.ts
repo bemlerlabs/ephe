@@ -123,7 +123,7 @@ describe('setConflicts', () => {
   })
 })
 
-describe('the order\'s name for the radar (QD-013)', () => {
+describe("the order's name for the radar (QD-013)", () => {
   it('detectWorkspaceConflicts is the same rule, not a second one', () => {
     expect(detectWorkspaceConflicts).toBe(pathConflicts)
   })

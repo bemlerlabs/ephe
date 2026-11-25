@@ -71,7 +71,8 @@ function resolveReference(raw: string): string | null {
   const value = raw.trim()
   if (!value) return null
   if (/^(?:https?:|data:|blob:|#|\/api\/)/i.test(value)) return null
-  if (/^file:\/\//i.test(value)) return fileUrl(decodeURIComponent(value.replace(/^file:\/\//i, '')))
+  if (/^file:\/\//i.test(value))
+    return fileUrl(decodeURIComponent(value.replace(/^file:\/\//i, '')))
   if (value.startsWith('/')) return FILE_LIKE.test(value) ? fileUrl(value) : null
   if (FOREIGN_SCHEME.test(value)) return null
   return FILE_LIKE.test(value) ? fileUrl(value) : null

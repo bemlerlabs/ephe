@@ -26,7 +26,9 @@ export async function windowIsFullscreen(): Promise<boolean | null> {
   if (typeof window === 'undefined') return null
   const api = (
     window as unknown as {
-      __TAURI__?: { window?: { getCurrentWindow?: () => { isFullscreen?: () => Promise<boolean> } } }
+      __TAURI__?: {
+        window?: { getCurrentWindow?: () => { isFullscreen?: () => Promise<boolean> } }
+      }
     }
   ).__TAURI__?.window
   try {

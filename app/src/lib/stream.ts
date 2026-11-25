@@ -22,10 +22,7 @@
 import type { StreamChatRequest, StreamEvent } from '../types'
 
 export type StreamErrorCode =
-  | 'http_error'
-  | 'idle_timeout'
-  | 'network'
-  | 'stream_closed_before_done'
+  'http_error' | 'idle_timeout' | 'network' | 'stream_closed_before_done'
 
 export class StreamChatError extends Error {
   constructor(
@@ -71,7 +68,8 @@ export function readWithIdle(
   let timer: ReturnType<typeof setTimeout>
   const idle = new Promise<never>((_, reject) => {
     timer = setTimeout(
-      () => reject(new StreamChatError('idle timeout: no engine answer', undefined, 'idle_timeout')),
+      () =>
+        reject(new StreamChatError('idle timeout: no engine answer', undefined, 'idle_timeout')),
       ms,
     )
   })
@@ -182,13 +180,19 @@ export async function streamChat(req: StreamChatRequest, opts: StreamChatOptions
     if (err instanceof StreamChatError) throw err
     const network = err instanceof TypeError
     throw new StreamChatError(
-      network ? 'network error while reading the stream' : 'stream closed before the terminal frame',
+      network
+        ? 'network error while reading the stream'
+        : 'stream closed before the terminal frame',
       undefined,
       network ? 'network' : 'stream_closed_before_done',
     )
   }
   if (!sawTerminal && !opts.signal?.aborted) {
-    throw new StreamChatError('stream ended without a terminal frame', undefined, 'stream_closed_before_done')
+    throw new StreamChatError(
+      'stream ended without a terminal frame',
+      undefined,
+      'stream_closed_before_done',
+    )
   }
 }
 

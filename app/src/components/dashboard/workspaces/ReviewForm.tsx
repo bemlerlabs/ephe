@@ -113,8 +113,7 @@ export default function ReviewForm({
     }
   }
 
-  const authoredByReviewer =
-    evaluateCustodyGate(author ?? '', reviewer) === 'SELF_SIGN_FORBIDDEN'
+  const authoredByReviewer = evaluateCustodyGate(author ?? '', reviewer) === 'SELF_SIGN_FORBIDDEN'
 
   return (
     <div

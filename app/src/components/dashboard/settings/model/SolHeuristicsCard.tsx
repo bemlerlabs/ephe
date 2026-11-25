@@ -61,11 +61,21 @@ export function SolHeuristicsCard({ t }: { t: (key: string) => string }) {
   return (
     <SettingsGroup icon={Brain} title={t('settings.solGroup')}>
       {state === 'failed' ? (
-        <SettingsRow icon={Brain} title={t('settings.solUnavailable')} description={t('settings.solUnavailableHint')} testid="sol-unavailable">
+        <SettingsRow
+          icon={Brain}
+          title={t('settings.solUnavailable')}
+          description={t('settings.solUnavailableHint')}
+          testid="sol-unavailable"
+        >
           <span className="text-ui-xs text-ink-soft">—</span>
         </SettingsRow>
       ) : state !== 'ready' || rules.length === 0 ? (
-        <SettingsRow icon={Brain} title={t('settings.solEmpty')} description={t('settings.solEmptyHint')} testid="sol-empty">
+        <SettingsRow
+          icon={Brain}
+          title={t('settings.solEmpty')}
+          description={t('settings.solEmptyHint')}
+          testid="sol-empty"
+        >
           <span className="text-ui-xs text-ink-soft">{state === 'loading' ? '…' : '0'}</span>
         </SettingsRow>
       ) : (
@@ -118,9 +128,15 @@ export function SolHeuristicsCard({ t }: { t: (key: string) => string }) {
                 </button>
                 <button
                   type="button"
-                  aria-label={confirming === rule.id ? t('settings.solDeleteConfirm') : t('settings.solDelete')}
+                  aria-label={
+                    confirming === rule.id
+                      ? t('settings.solDeleteConfirm')
+                      : t('settings.solDelete')
+                  }
                   data-testid={`sol-delete-${rule.id}`}
-                  onClick={() => (confirming === rule.id ? void remove(rule) : setConfirming(rule.id))}
+                  onClick={() =>
+                    confirming === rule.id ? void remove(rule) : setConfirming(rule.id)
+                  }
                   className={`rounded-lg p-2 transition-colors max-lg:min-h-11 max-lg:min-w-11 ${
                     confirming === rule.id
                       ? 'bg-status-danger/20 text-status-danger'

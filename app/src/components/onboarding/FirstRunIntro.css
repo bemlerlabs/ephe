@@ -120,7 +120,9 @@
   color: rgb(255 253 245 / 0.75);
   font-size: var(--text-scale-ui);
   backdrop-filter: blur(8px);
-  transition: color 160ms ease, border-color 160ms ease;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease;
 }
 .intro-skip:hover {
   color: var(--intro-cream);

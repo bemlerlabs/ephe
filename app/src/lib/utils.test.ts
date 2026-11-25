@@ -61,8 +61,7 @@ const textTokens = [...sheet.matchAll(/(--text-[a-z0-9-]+)\s*:\s*([^;]+);/g)].fl
 )
 const isInk = (t: { value: string }) => t.value.startsWith('var(--color-')
 const isStep = (t: { value: string }) =>
-  !isInk(t) &&
-  /^(?:calc|max|min|clamp)\(|^var\(--|^\d+(?:\.\d+)?(?:px|rem|em)$/.test(t.value)
+  !isInk(t) && /^(?:calc|max|min|clamp)\(|^var\(--|^\d+(?:\.\d+)?(?:px|rem|em)$/.test(t.value)
 const steps = textTokens.filter(isStep)
 const inks = textTokens.filter(isInk)
 const asClass = (name: string) => name.replace(/^--/, '')

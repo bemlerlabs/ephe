@@ -146,8 +146,7 @@ async function openPanel(
 async function gotoTab(tab: ComponentProps<typeof SettingsPanel>['initialTab']): Promise<void> {
   fireEvent.click(screen.getByTestId(`settings-nav-${tab}`))
   await waitFor(
-    () =>
-      expect(screen.getByTestId(`settings-nav-${tab}`)).toHaveClass('border-l-hairline-strong'),
+    () => expect(screen.getByTestId(`settings-nav-${tab}`)).toHaveClass('border-l-hairline-strong'),
     { timeout: 2000, interval: 0 },
   )
 }
@@ -215,7 +214,14 @@ describe('the settings full page (P6 B6, ref-16/17/18/20)', () => {
     // footer while no other section is dirty.
     const quiet = await openPanel('appearance')
     expect(screen.queryByText('settings.save')).toBeNull()
-    for (const tab of ['artifacts', 'tasks', 'about', 'language', 'shortcuts', 'network'] as const) {
+    for (const tab of [
+      'artifacts',
+      'tasks',
+      'about',
+      'language',
+      'shortcuts',
+      'network',
+    ] as const) {
       // 'shortcuts' is a read board in the browser; the desktop shell saves its global
       // opt-in there.
       await gotoTab(tab)

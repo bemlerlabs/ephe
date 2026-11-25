@@ -49,7 +49,10 @@ export function RailAdoptAction({ id, name }: { id: string; name: string }) {
 
   if (needsPath) {
     return (
-      <span className="inline-flex items-center gap-1" data-testid={`artifact-row-adopt-path-${id}`}>
+      <span
+        className="inline-flex items-center gap-1"
+        data-testid={`artifact-row-adopt-path-${id}`}
+      >
         <input
           value={path}
           onChange={(event) => setPath(event.target.value)}

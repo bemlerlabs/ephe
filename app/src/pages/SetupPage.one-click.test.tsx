@@ -32,7 +32,12 @@ const getSetupStatus = vi.fn(async () => ({
 }))
 
 vi.mock('@/lib/api', () => ({
-  probeProvider: vi.fn(async () => ({ reachable: false, models: [], detail: '', state: 'unreachable' })),
+  probeProvider: vi.fn(async () => ({
+    reachable: false,
+    models: [],
+    detail: '',
+    state: 'unreachable',
+  })),
   updateSettings: (...a: unknown[]) => updateSettings(...(a as [])),
   resetSetup: vi.fn(async () => ({ configured: false })),
   skipSetup: vi.fn(async () => ({ configured: false, skipped: true })),

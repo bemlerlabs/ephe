@@ -63,7 +63,7 @@ async function boot(page: Page, label: string, consoleCapture?: string[]) {
 const composer = (page: Page) => page.locator('textarea').first()
 
 test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
-  test('P1 Baseline: Dashboard, Sidebar, Composer, keine UI-Errors', async ({ page }) => {
+  test('P1 Baseline: dashboard, sidebar, composer, no UI errors', async ({ page }) => {
     const errors: string[] = []
     await boot(page, '01-baseline', errors)
     await expect(page.locator('[data-testid="chat-sidebar"]')).toBeVisible()
@@ -73,11 +73,11 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P2 Chat: senden → Stream → Antwort; Composer bleibt beim Streamen tipbar', async ({
+  test('P2 Chat: send → stream → answer; the composer stays typeable while streaming', async ({
     page,
   }) => {
     const errors: string[] = []
-    await boot(page, '02a-chat-gesendet', errors)
+    await boot(page, '02a-chat-sent', errors)
     const ta = composer(page)
     await ta.fill('Hallo, sag in einem Satz wer du bist.')
     await ta.press('Enter')
@@ -96,9 +96,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P2 Hover-Toolbar: Copy + Neu generieren auf fertiger Assistant-Bubble', async ({
-    page,
-  }) => {
+  test('P2 Hover-Toolbar: copy + regenerate on a finished assistant bubble', async ({ page }) => {
     // A live free endpoint can take longer than the 60 s default; the stream-end
     // wait below is the real boundary.
     test.setTimeout(180_000)
@@ -128,7 +126,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P3 Auto-Titel: erste Message benennt Session an Wortgrenze; Rename bleibt bestehen', async ({
+  test('P3 Auto title: the first message names the session at a word boundary; a rename persists', async ({
     page,
   }) => {
     const errors: string[] = []
@@ -154,7 +152,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P6 Settings: Panel öffnet, Model-Picker live, Memory-Stats, Sprache de/en', async ({
+  test('P6 Settings: the panel opens, model picker live, memory stats, language de/en', async ({
     page,
   }) => {
     test.skip(!ACTIVE_MODEL_RE, 'no persisted engine model to compare against')
@@ -176,7 +174,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
       .first()
       .click()
     await page.waitForTimeout(1000)
-    await page.screenshot({ path: path.join(SHOTS, '04d-settings-sprache-en.png') })
+    await page.screenshot({ path: path.join(SHOTS, '04d-settings-language-en.png') })
     await page
       .evaluate(() => localStorage.getItem('i18nextLng'))
       .then((v) => {
@@ -185,7 +183,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P7 Slash-Commands: /model /sessions /skills /settings antworten im Chat', async ({
+  test('P7 Slash commands: /model /sessions /skills /settings answer in the chat', async ({
     page,
   }) => {
     test.skip(!ACTIVE_MODEL_RE, 'no persisted engine model to compare against')
@@ -197,18 +195,18 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
       await ta.press('Enter')
       await page.waitForTimeout(1200)
     }
-    await page.screenshot({ path: path.join(SHOTS, '05-slash-antworten.png') })
+    await page.screenshot({ path: path.join(SHOTS, '05-slash-answers.png') })
     // /model shows the owner's active model
     await expect(page.getByText(ACTIVE_MODEL_RE!).first()).toBeVisible()
     // an unknown command → feedback (not silence)
     await ta.fill('/definitely-not-a-command')
     await ta.press('Enter')
     await page.waitForTimeout(1200)
-    await page.screenshot({ path: path.join(SHOTS, '05b-slash-unbekannt.png') })
+    await page.screenshot({ path: path.join(SHOTS, '05b-slash-unknown.png') })
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P8 Mobile Viewport (390x844): Sidebar-Collapse, Composer, Bubbles', async ({ browser }) => {
+  test('P8 Mobile viewport (390x844): sidebar collapse, composer, bubbles', async ({ browser }) => {
     const ctx = await browser.newContext({
       viewport: { width: 390, height: 844 },
       isMobile: true,
@@ -302,9 +300,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     await ctx.close()
   })
 
-  test('P4 Attachments: Bild + Textdatei werden als Chips gerendert, entfernen funktioniert', async ({
-    page,
-  }) => {
+  test('P4 Attachments: image + text file render as chips, removing works', async ({ page }) => {
     const errors: string[] = []
     await boot(page, '07a-attach-start', errors)
     // fixtures: a 1x1 PNG (base64) + a text file
@@ -342,7 +338,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P5 Toasts: Sprachwechsel zeigt Success-Toast (live region, auto-dismiss)', async ({
+  test('P5 Toasts: switching the language shows a success toast (live region, auto-dismiss)', async ({
     page,
   }) => {
     const errors: string[] = []
@@ -360,13 +356,13 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
       .getByTestId('toaster-rail')
       .filter({ hasText: /Sprache geändert|Language changed/i })
     await expect(toast).toBeVisible({ timeout: 10000 })
-    await page.screenshot({ path: path.join(SHOTS, '08b-toast-sprache.png') })
+    await page.screenshot({ path: path.join(SHOTS, '08b-toast-language.png') })
     // auto-dismiss: the toast disappears on its own (5s + buffer)
     await expect(toast).toBeHidden({ timeout: 10000 })
     expect(uiErrors(errors)).toEqual([])
   })
 
-  test('P9 Thinking-Stream + G8 i18n: "Denkt nach…" live, danach kollabiert; keine EN-Phase-Labels', async ({
+  test('P9 Thinking stream + G8 i18n: the live thinking label shows, then collapses; no English phase labels', async ({
     page,
   }) => {
     // Live engine: reasoning latency varies a lot — the budget is set deliberately,
@@ -414,7 +410,7 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
   // again (the refs do not fire once more, and ResizeObserver does not report without
   // a size change). Tall answers then overlap the following
   // rows. Two turns: a tall answer + a short follow-up question makes it visible.
-  test('R36-B: Nach Stream-Ende ueberlappen Nachrichtenreihen nicht', async ({ page }) => {
+  test('R36-B: message rows do not overlap after the stream ends', async ({ page }) => {
     const errors: string[] = []
     await boot(page, 'r36b-overlap', errors)
     const ta = composer(page)

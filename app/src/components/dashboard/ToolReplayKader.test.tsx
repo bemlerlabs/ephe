@@ -13,8 +13,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 vi.mock('react-i18next', () => ({
   initReactI18next: { type: '3', init: () => Promise.resolve() },
   useTranslation: () => ({
-    t: (k: string, opts?: Record<string, unknown>) =>
-      opts ? `${k} ${JSON.stringify(opts)}` : k,
+    t: (k: string, opts?: Record<string, unknown>) => (opts ? `${k} ${JSON.stringify(opts)}` : k),
   }),
 }))
 
@@ -27,8 +26,22 @@ import { useChatStore } from '@/store/chatStore'
 const step = (text: string, ms: number) => ({ n: 1, type: 'tool', text, ms, state: 'done' })
 
 const turns = [
-  { sid: 's', turn_id: 't-new', model: 'm', ts: 2, duration_ms: null, steps: [step('new-step', 200)] },
-  { sid: 's', turn_id: 't-old', model: 'm', ts: 1, duration_ms: null, steps: [step('old-step', 100)] },
+  {
+    sid: 's',
+    turn_id: 't-new',
+    model: 'm',
+    ts: 2,
+    duration_ms: null,
+    steps: [step('new-step', 200)],
+  },
+  {
+    sid: 's',
+    turn_id: 't-old',
+    model: 'm',
+    ts: 1,
+    duration_ms: null,
+    steps: [step('old-step', 100)],
+  },
 ]
 
 const messages = [
@@ -48,7 +61,11 @@ beforeEach(() => {
 })
 
 const card = (id: string) =>
-  render(<ToolReplayKader message={(messages as unknown as { id: string }[]).find((m) => m.id === id) as never} />)
+  render(
+    <ToolReplayKader
+      message={(messages as unknown as { id: string }[]).find((m) => m.id === id) as never}
+    />,
+  )
 
 describe('ToolReplayKader turn scoping', () => {
   it('shows the steps and the duration of the message’s own turn', async () => {
@@ -77,7 +94,9 @@ describe('ToolReplayKader turn scoping', () => {
     const { container } = render(
       <ToolReplayKader message={(legacy as unknown as { id: string }[])[0] as never} />,
     )
-    await waitFor(() => expect(container.querySelector('[data-testid="tool-replay-kader-0"]')).toBeTruthy())
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="tool-replay-kader-0"]')).toBeTruthy(),
+    )
     expect(container.textContent).toContain('100')
   })
 })
