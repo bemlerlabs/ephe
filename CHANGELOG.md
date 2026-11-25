@@ -137,10 +137,38 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   where it used to replace it. The server process stopped writing that variable: a choice saved in
   the register was visible only to the process that stored it, so a terminal in another shell, or
   the same command after a restart, answered from an environment it had never set. An unusable value
-  now answers 422, where it previously settled into the environment and reported success.
+  now answers 422, where it previously settled into the environment and reported success (`dbaf3f9`).
+- tests: the Playwright specs are type-checked, and the check runs inside the commit hook. Nothing
+  typed `app/tests` before: 98 errors across 13 files at rc=2, on a tree where every spec was trusted
+  because vitest covers `app/src` alone. `app/tsconfig.test.json` extends the app's own config over
+  `tests/`, and the local gate's new leg calls `app/node_modules/.bin/tsc` directly, because the same
+  call through `pnpm exec` reconciles dependency state and aborts without a TTY (rc=1, 14:33:01). The
+  leg judges the files a commit carries: a type error in a spec the commit does not touch is a skip
+  that names its count (`fc99f13`, `61a78ee`).
+- tests: QG3 answers its own budget route. The case had never asserted anything on a leg that ran it;
+  the CI leg skips without the dev handle, and on the dev leg the popover read `6 / 0`, because the
+  denominator comes from `GET /api/context/budget` and no server answers there (measured 10:03:51,
+  `pct 0 vs 6/0`). Its seed is now a mirror of the route's dict under markers, the expected strings
+  are built by the product's own formatters for the leg's language, and
+  `tests/test_qg3_budget_seed_contract.py` pins that mirror against a live call of `context_budget()`,
+  so a field renamed on either side turns the python file red (`e855d86`).
 
 ### Fixed
 
+- installer: `install.sh --no-start` returned on a fresh clone. The re-exec into the checked-out
+  tree replayed `"$@"` after the option loop had shifted every argument away, so the second half ran
+  flagless and execed `ephe start --port 8765 --open`; the installer process never came back, which
+  is what four container legs died on with a working server in their own logs. The caller's argv is
+  captured before the loop and replayed. `install.ps1` forwards its parameters, so the defect was
+  bash-only (`bc37298`).
+- installer: the frontend build survives a node the oxide engines exclude. npm exits 0 while skipping
+  `@tailwindcss/oxide`'s platform binding (npm/cli#4828) and vite then dies loading its own config.
+  The build step tries the `packageManager` pin from `app/package.json` through `npx` first, and where
+  npm is used it pulls the binding for both libc candidates with `--no-save`, so `package.json` and
+  `pnpm-lock.yaml` stay untouched. Measured on four container legs (debian and ubuntu, arm64 native
+  and amd64 emulated) with `dist/index.html` at 5725 bytes, `GET /` answering 200 and one asset
+  answering 200; the Windows side mirrors the contract and has not been measured on a Windows host
+  (`bc37298`).
 - A bundle's identity no longer follows the interpreter's bytecode cache: importing a plugin
   handler in a test run moved the digest the catalogue and the signature are computed over, so a
   fresh checkout and a warm working tree disagreed and the freshness gate failed on the two new
