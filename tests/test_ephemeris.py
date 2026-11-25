@@ -10,10 +10,10 @@ encounters — never WHAT happened. Pins:
 2. load fail-soft: a broken line gets skipped, it never raises.
 3. chart: header lines + 7 day rows + hour ruler; the sown hour
    shows the full block (█).
-4. empty chart → dotted sky + "Der Himmel wartet", never raises.  # language-gate: ignore (quoted chart line as it ships, core/ephemeris.py:134)
+4. empty chart → dotted sky + "The sky is waiting", never raises.
 5. Per-day normalization: a quiet day still shows █ at its own
    maximum (every day its own constellation).
-6. Faded: orbits outside the horizon count as "verblasst" and  # language-gate: ignore (quoted chart footer word as it ships, core/ephemeris.py:151)
+6. Faded: orbits outside the horizon count as "faded" and
    do not appear in the picture.
 7. PRIVACY CONTRACT (value equality): the store file holds exclusively
    the keys d/h/k/n — no path, no message, no model name.
@@ -91,7 +91,7 @@ class TestChart:
         out = em.chart(self._seeded(), days=7, today=TODAY)
         lines = out.splitlines()
         assert lines[0].startswith("◍ Ephe Ephemeris")
-        assert "Bahnen, keine Inhalte" in lines[1]
+        assert "Orbits, no content" in lines[1]
         day_rows = [ln for ln in lines if "│" in ln]
         assert len(day_rows) == 7
         assert day_rows[-1].startswith("Mo 28.09")  # 2026-09-28 is a Monday
@@ -106,7 +106,7 @@ class TestChart:
 
     def test_empty_sky_never_crashes(self):
         out = em.chart([], days=7, today=TODAY)
-        assert "Der Himmel wartet" in out
+        assert "The sky is waiting" in out
         assert out.count("│") == 14  # 7 rows × 2 delimiters
 
     def test_per_day_normalization(self):
@@ -123,7 +123,7 @@ class TestChart:
     def test_faded_outside_horizon(self):
         events = self._seeded() + [{"d": "2026-05-01", "h": 3, "k": "tool", "n": 7}]
         out = em.chart(events, days=7, today=TODAY)
-        assert "7 verblasst" in out
+        assert "7 faded" in out
         assert "01.05" not in out
 
 
@@ -172,7 +172,7 @@ class TestCli:
         assert "Ephemeris" in out
         assert "28.09" in out
 
-    def test_cmd_amber_writes_bernstein(self, tmp_path: Path, monkeypatch, capsys):
+    def test_cmd_amber_writes_the_crystal(self, tmp_path: Path, monkeypatch, capsys):
         import argparse
 
         from core import ephemeris as em2
@@ -186,5 +186,5 @@ class TestCli:
         r = cmd_amber(argparse.Namespace(month="2026-09"))
         assert r == 0
         out = capsys.readouterr().out
-        assert "werkzeuge" in out
+        assert "tools       4" in out
         assert (tmp_path / ".ephe" / "amber" / "2026-09.json").is_file()

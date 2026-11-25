@@ -89,7 +89,7 @@ def save_security_config(
     )
     if cfg.approval_profile not in VALID_APPROVAL_PROFILES:
         raise ValueError(
-            f"Unbekanntes Approval-Profil: {cfg.approval_profile!r} (erlaubt: {', '.join(VALID_APPROVAL_PROFILES)})"
+            f"Unknown approval profile: {cfg.approval_profile!r} (allowed: {', '.join(VALID_APPROVAL_PROFILES)})"
         )
     target = path or security_config_path()
     target.parent.mkdir(parents=True, exist_ok=True)

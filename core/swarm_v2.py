@@ -1016,7 +1016,7 @@ class SwarmOrchestrator:
         results: list[str] = []
         for i, env in enumerate(envelopes):
             if env is None:
-                results.append(f"[Quelle {i+1} nicht verfuegbar: kein Ergebnis]")
+                results.append(f"[Source {i+1} unavailable: no result]")
             elif isinstance(env, str):          # defensive: mock/legacy form
                 results.append(env)
             elif env.status != "ok":
@@ -1128,9 +1128,9 @@ class SwarmOrchestrator:
 
     async def _synthesize(self, subtasks: list[str], results: list[str]) -> str:
         """Synthesizer agent: combines the agent results into one answer."""
-        parts = [f"Originalaufgabe: {self.task}\n"]
+        parts = [f"Original task: {self.task}\n"]
         for i, (subtask, result) in enumerate(zip(subtasks, results), 1):
-            parts.append(f"Teilaufgabe {i}: {subtask}\nErgebnis:\n{result}")
+            parts.append(f"Subtask {i}: {subtask}\nResult:\n{result}")
 
         combined = "\n\n---\n\n".join(parts)
 
@@ -1173,7 +1173,7 @@ class SwarmOrchestrator:
             logger.error(f"◑ Synthesizer error: {exc}")
             # fallback: simply join the results
             return "\n\n---\n\n".join(
-                f"## Teilaufgabe {i+1}\n{r}" for i, r in enumerate(results)
+                f"## Subtask {i+1}\n{r}" for i, r in enumerate(results)
             )
 
 

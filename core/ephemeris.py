@@ -59,7 +59,7 @@ def record(
     catalogue. Returns the record that was written."""
     if kind not in KINDS:
         raise ValueError(
-            f"unbekannte Bahnpunkt-Art: {kind!r} — erlaubt: {', '.join(KINDS)}"
+            f"Unknown orbit kind: {kind!r} (allowed: {', '.join(KINDS)})"
         )
     now = now or datetime.now()
     event = {
@@ -95,7 +95,7 @@ def load(store: Path | None = None) -> list[dict]:
     return events
 
 
-_WEEKDAYS = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
+_WEEKDAYS = ("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
 _FULL = "█"
 _DOT = "·"
 
@@ -127,11 +127,11 @@ def chart(events: list[dict], *, days: int = 7, today: date | None = None) -> st
             faded_n += n
 
     lines = [
-        f"◍ Ephe Ephemeris — die letzten {days} Tage",
-        "Bahnen, keine Inhalte — WANN Ephe lebendig war, nie WAS geschah.",
+        f"◍ Ephe Ephemeris — the last {days} days",
+        "Orbits, no content — WHEN Ephe was alive, never WHAT happened.",
     ]
     if not any(by_day.values()):
-        lines.append("Der Himmel wartet.")
+        lines.append("The sky is waiting.")
 
     for offset in range(days - 1, -1, -1):
         day = today - timedelta(days=offset)
@@ -146,13 +146,13 @@ def chart(events: list[dict], *, days: int = 7, today: date | None = None) -> st
                     cells[hour] = _FULL
         lines.append(f"{label} │{''.join(cells)}│")
 
-    foot = f"Sichtweite {days} Tage · {total_n} Bahnen"
+    foot = f"Horizon {days} days · {total_n} orbits"
     if faded_n:
-        foot += f" · {faded_n} verblasst"
+        foot += f" · {faded_n} faded"
     lines.append(f"({foot})")
     # Hour ruler as the lowest axis; the cells start at column 10.
     lines.append(
-        "          0     6     12    18   23h   ← Stunde"
+        "          0     6     12    18   23h   ← hour"
     )
     return "\n".join(lines)
 

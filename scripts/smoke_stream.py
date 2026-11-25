@@ -14,8 +14,8 @@ import sys
 import urllib.request
 
 PROMPT = (
-    "Führe exakt diesen Shell-Befehl mit dem run_shell Tool aus: "
-    "echo SMOKE_OK. Rufe kein anderes Tool auf. Antworte danach mit der Ausgabe."
+    "Run exactly this shell command with the run_shell tool: "
+    "echo SMOKE_OK. Call no other tool. Then answer with its output."
 )
 MAX_ATTEMPTS = int(sys.argv[1]) if len(sys.argv) > 1 else 3
 

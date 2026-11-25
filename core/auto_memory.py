@@ -100,8 +100,8 @@ DEFAULT_SOURCE = "user"
 _MIN_ALNUM_RATIO = 0.65
 _REFUSAL_PREFIXES = (
     "i cannot", "i can not", "i am unable", "i'm unable", "not able to",
-    "i'm sorry, but", "ich kann nicht", "ich bin nicht in der lage",
-    "error:", "failed:", "fehler:",
+    "i'm sorry, but", "ich kann nicht", "ich bin nicht in der lage",  # language-gate: ignore (the German a refusing engine answer can start with)
+    "error:", "failed:", "fehler:",  # language-gate: ignore (the German a refusing engine answer can start with)
 )
 _DEFAULT_MAX_ENTRIES = 1000
 _EVICTABLE_SOURCE = "auto_memory"

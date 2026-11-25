@@ -145,7 +145,7 @@ def save_voice_config(
         ),
     )
     if cfg.tts_engine not in VALID_TTS_ENGINES:
-        raise ValueError(f"Unbekannte TTS-Engine: {cfg.tts_engine!r} (erlaubt: {', '.join(VALID_TTS_ENGINES)})")
+        raise ValueError(f"Unknown TTS engine: {cfg.tts_engine!r} (allowed: {', '.join(VALID_TTS_ENGINES)})")
     if not cfg.supertonic_voice.strip():
         raise ValueError(
             "supertonic_voice is empty — set a voice style name, for example 'M1' "
@@ -161,9 +161,9 @@ def save_voice_config(
             f"(allowed: {SUPERTONIC_STEPS_MIN}..{SUPERTONIC_STEPS_MAX}, the upstream CLI's own bounds)."
         )
     if cfg.stt_model not in VALID_STT_MODELS:
-        raise ValueError(f"Unbekanntes STT-Modell: {cfg.stt_model!r} (erlaubt: {', '.join(VALID_STT_MODELS)})")
+        raise ValueError(f"Unknown STT model: {cfg.stt_model!r} (allowed: {', '.join(VALID_STT_MODELS)})")
     if cfg.stt_language not in VALID_STT_LANGUAGES:
-        raise ValueError(f"Unknown STT language: {cfg.stt_language!r} (erlaubt: {', '.join(VALID_STT_LANGUAGES)})")
+        raise ValueError(f"Unknown STT language: {cfg.stt_language!r} (allowed: {', '.join(VALID_STT_LANGUAGES)})")
     target = path or voice_config_path()
     target.parent.mkdir(parents=True, exist_ok=True)
     try:

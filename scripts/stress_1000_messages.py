@@ -113,7 +113,7 @@ MEMORY_FACTS = [
     "My walking route is eight blocks long",
 ]
 
-DE_STOPWORDS = ["und", "ist", "nicht", "der", "die", "das", "sie", "wir", "mit", "für", "auf", "ich", "du", "bei", "auch"]
+DE_STOPWORDS = ["und", "ist", "nicht", "der", "die", "das", "sie", "wir", "mit", "für", "auf", "ich", "du", "bei", "auch"]  # language-gate: ignore (the words this detector counts)
 EN_STOPWORDS = ["the", "you", "are", "what", "why", "how", "with", "this", "that", "because", "please", "answer", "would", "will", "there"]
 KANA_RE = re.compile(r"[\u3040-\u30ff]")
 
