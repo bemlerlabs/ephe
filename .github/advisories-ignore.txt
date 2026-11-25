@@ -211,17 +211,17 @@ GHSA-g3hv-75wg-m249  # package=minimatch ecosystem=npm scope=development state=f
 GHSA-8g5g-mxqh-grgj  # package=vite ecosystem=npm scope=development state=fixed affected=>=6.4.4,<6.4.5 fixed_in=6.4.5 recheck=2026-12-07
 
 # GHSA-wrw7-89jp-8q8g = RUSTSEC-2024-0429 — glib.
-# GitHub's actual state as measured: alert #1 is OPEN — `gh api
-# "repos/bemlerlabs/ephe/dependabot/alerts?state=open&per_page=100"` answered one row
-# (#1, GHSA-wrw7-89jp-8q8g, `state=open`, severity medium,
-# `first_patched_version=0.20.0`) at 2026-11-24 12:16:59 +0100 on macOS 26.6 (Darwin
-# arm64), first observed the same day at 09:47:59 +0100. That reading is of the
-# committed lock, which still names a registry glib 0.18.5; the patch in our tree
-# (vendored copy plus `[patch.crates-io]`, below) does not close the alert by itself —
-# only a merged fix pull request or the owner ends it, and if the vendored pin is ever
-# merged GitHub may close the alert as fixed for no reason but the lockfile losing its
-# registry glib line: the closure would record a source swap as a fix, which the owner's
-# ruling below does not accept. This file is not a deletion and GitHub does not read
+# GitHub's actual state as measured: alert #1 was open for a day and is now `fixed`. The
+# open-alerts query (`gh api
+# "repos/bemlerlabs/ephe/dependabot/alerts?state=open&per_page=100"`) answered one row on
+# 2026-11-24 at 12:16:59 +0100 — #1, GHSA-wrw7-89jp-8q8g, severity medium, first patched
+# 0.20.0 — first observed that morning at 09:47:59 +0100 on macOS 26.6 (Darwin arm64). The
+# same query answered 0 rows at 2026-11-25 07:49 +0100. `fixed_at` on the alert reads
+# 2026-11-25 07:47:41 +0100: six seconds after the push carrying the vendored pin reached
+# main. What the lock says about us has not changed: it names a patched glib 0.18.5 that
+# the [patch.crates-io] entry supplies. What this note predicted is what happened: the alert
+# closed because the lockfile lost its registry glib line, so the closure records a source
+# swap and no upstream release. This file is not a deletion and GitHub does not read
 # it — the row is our written decision for this repository's own gates. The list holds
 # versions back and nothing else; security alerts and their fixes do not depend on it —
 # an alert closes when a related fix pull request is merged or the owner ends it. That is
@@ -231,11 +231,12 @@ GHSA-8g5g-mxqh-grgj  # package=vite ecosystem=npm scope=development state=fixed 
 # 5e5a32b203f38b0239051970193d59d5e381b5c87a42b12e800308e66f734acb (a plain fetch of the
 # same URL can return navigation only, so the page is cited and not quoted). Two owner
 # rulings stand on this row, both 2026-11-24: earlier in the day that glib moves only on a
-# real fix, with no suppression in place of one; at 21:26 +0100 that alert #1 is ended by
-# owner dismissal with a written reason, because the fix ships in our own source, while the
-# lockfile still waits for glib >= 0.20.0 the day upstream can carry it. The dismissal is
-# recorded on this row once made, with its own measurement; until then the state above is
-# the state.
+# real fix, with no suppression in place of one; at 21:26 +0100 that alert #1 is ended with a
+# written reason, because the fix ships in our own source, while the lockfile still waits for
+# glib >= 0.20.0 the day upstream can carry it. No dismissal request was ever sent: the
+# platform had already ended the alert as `fixed`, so `dismissed_reason` and
+# `dismissed_comment` on the alert are empty and the written reason for the closure is this
+# row plus the changelog entry.
 # The requirement strings behind the refusal, read 2026-11-24 from the registry manifests and
 # the crates.io API: gtk 0.18.2 and atk 0.18.2 require glib "0.18"; libappindicator 0.9.0
 # requires glib, gtk and gtk-sys "0.18"; tauri 2.12.7 (crates.io's newest stable, published
