@@ -54,6 +54,7 @@ RETIRED = (
 KEEPS = {
     ("core/memory_embed_gemma.py", "ort"): "import onnxruntime as ort — the library's own alias",
     ("core/memory_embed_onnx.py", "ort"): "import onnxruntime as ort — the library's own alias",
+    ("core/plugin_signing.py", "der"): "the DER wire format of a SubjectPublicKeyInfo, not an article",
     ("scripts/readme_check.py", "alt"): "the alt text of a markdown image — English markup term",
     ("server/routes/settings.py", "alt"): "an alternative endpoint URL on a neighbouring port",
 }

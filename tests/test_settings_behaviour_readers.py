@@ -17,7 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, ROOT)
 
-from core.settings_schema import save_deep_settings, validate_sections  # noqa: E402
+from core.settings_schema import (  # noqa: E402
+    normalize_field,
+    save_deep_settings,
+    validate_sections,
+)
 
 
 def _set(**fields: int) -> None:
@@ -95,3 +99,11 @@ def test_every_option_is_labelled_in_both_languages(empty_ephe_home) -> None:
             assert de and en and de != en, f"{key}/{value}"
             assert entries[key]["optionLabels"], f"{key}: deep_view passes no texts through"
         assert key in HINTS, f"{key}: selection without an explanation"
+
+def test_removed_companion_form_lands_on_the_moth():
+    """A stored value of the removed form still gets a companion, never an empty box."""
+    assert normalize_field("appearance.companion_species", "fire_bee") == "paper_moth", (
+        "the stored value of a removed option maps onto the default form, it is not rewritten away"
+    )
+    for kept in ("paper_moth", "ember_spark", "minimal"):
+        assert normalize_field("appearance.companion_species", kept) == kept, kept
