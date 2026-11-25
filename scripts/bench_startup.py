@@ -117,14 +117,17 @@ def _child_env(config_dir: Path, live: bool, overrides: dict[str, str] | None = 
     """The environment every start runs with. `--live` is the only branch that reads user state."""
     env = dict(os.environ)
     env.pop("EPHE_SETUP_MODE", None)
-    env["EPHE_CONFIG_DIR"] = str(config_dir)
     env["PYTHONUNBUFFERED"] = "1"
     # Kill inherited knobs that would make two machines' numbers describe different products.
     for name in ("PYTHONSTARTUP", "PYTHONPATH"):
         env.pop(name, None)
     if live:
+        # A bench config dir here would leave `--live` measuring an empty setup-mode config and
+        # printing it as the machine's choice, so the live branch names no config dir at all.
+        env.pop("EPHE_CONFIG_DIR", None)
         env.update(overrides or {})
         return env
+    env["EPHE_CONFIG_DIR"] = str(config_dir)
     env.update(
         {
             "EPHE_MODEL_PROVIDER": "local_ollama",
