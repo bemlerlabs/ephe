@@ -183,6 +183,82 @@ else
     skip+=("tauri parity: no plugin package, Rust lock file or frontend path in scope")
 fi
 
+# --- the spec tree's types: app/tests drives a browser, so its types are a product surface ---
+# vitest collects `src/**/*.{test,spec}.{ts,tsx}` and never `app/tests`, so until 2026-11-25 no
+# stage type-checked a Playwright spec: `app/tsconfig.json` includes only `src`, and the specs were
+# typed by nobody. The first run of this leg measured 98 errors in 13 files, four of them arguments
+# the tooling never reads -- `interval` where Playwright wants `intervals`, `actionTimeout` inside
+# `browser.newContext()`, a third positional argument to `test()`, a message where options belong --
+# which is the class of defect this leg exists for: a spec that silently does less than it says.
+#
+# tsc exits 2 on a type error and 1 when it cannot read its own config (measured: TS5058 for a
+# missing project file), so the two numbers cannot share a word here. A finding refuses; an
+# instrument that never got to read refuses to decide, which is exit 3.
+#
+# This reads the worktree, which the rest of this script deliberately does not. The cost of reading
+# the staged blob instead would be a temp tree with a second `node_modules`, and a leg that cannot
+# run is how a type error reached main in the first place. The scope rule keeps it honest: only a
+# finding in a file this commit carries refuses the commit, and anything else the same run saw
+# belongs to the whole-tree leg in `ci-gates.yml`, which judges a clean checkout.
+spec_types_needed=0
+for path in "${scope[@]:-}"; do
+    case "$path" in
+        app/tests/*)
+            spec_types_needed=1
+            ;;
+    esac
+done
+if [ "$spec_types_needed" -eq 1 ]; then
+    types_out="$(mktemp)"
+    if [ ! -f app/tsconfig.test.json ]; then
+        died+=("spec types: app/tsconfig.test.json is not in this tree, so app/tests was not type-checked")
+    elif [ ! -x app/node_modules/.bin/tsc ]; then
+        died+=("spec types: app/node_modules/.bin/tsc is not installed, so app/tests was not type-checked")
+    else
+        # Called directly. Measured 14:33:01: `pnpm exec` checks the dependency state before
+        # execing, tries to reinstall when that state disagrees with the lockfile, and refuses with
+        # ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY when no TTY is attached, so a hook routed
+        # through pnpm can start an install on a tree another lane is working in.
+        ( cd app && ./node_modules/.bin/tsc -p tsconfig.test.json --noEmit ) >"$types_out" 2>&1
+        types_status=$?
+        if [ "$types_status" -ge 128 ]; then
+            died+=("spec types: tsc died with signal $((types_status - 128)): app/tests was not type-checked")
+        elif [ "$types_status" -ne 0 ] && [ "$types_status" -ne 2 ]; then
+            died+=("spec types: tsc exited $types_status without a verdict; a type error exits 2, so this is the instrument or its config")
+        else
+            findings_here=0
+            findings_elsewhere=0
+            while IFS= read -r line; do
+                case "$line" in
+                    *": error TS"*)
+                        matched=0
+                        for path in "${scope[@]:-}"; do
+                            rel="${path#app/}"
+                            case "$line" in
+                                "$rel("*|"$rel:"*) matched=1 ;;
+                            esac
+                        done
+                        if [ "$matched" -eq 1 ]; then
+                            findings_here=$((findings_here + 1))
+                            printf '    %s\n' "$line" >&2
+                        else
+                            findings_elsewhere=$((findings_elsewhere + 1))
+                        fi
+                        ;;
+                esac
+            done < "$types_out"
+            if [ "$findings_here" -gt 0 ]; then
+                fail+=("spec types: $findings_here type error(s) in a file this commit carries under app/tests")
+            elif [ "$findings_elsewhere" -gt 0 ] || [ "$types_status" -ne 0 ]; then
+                skip+=("spec types: tsc reported $findings_elsewhere error(s) outside this commit's paths; the whole-tree leg judges a clean checkout")
+            fi
+        fi
+    fi
+    rm -f "$types_out"
+else
+    skip+=("spec types: no app/tests path in scope")
+fi
+
 # --- the catalog rows, over the index entries this commit carries ---
 # A bundle edit that leaves its catalog row behind makes the store name bytes the
 # directory no longer holds; a skill pack edit does the same to skills-lock.json,

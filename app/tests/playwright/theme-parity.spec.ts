@@ -444,13 +444,17 @@ async function auditPage(page: Page): Promise<Finding[]> {
 
       const parse = (value: string): Rgb | null => {
         const m = /rgba?\(([^)]+)\)/.exec(value)
-        if (!m) return null
-        const parts = m[1]
+        const body = m?.[1]
+        if (body === undefined) return null
+        const parts = body
           .split(/[\s,/]+/)
           .filter(Boolean)
           .map((token) => (token.endsWith('%') ? Number(token.slice(0, -1)) / 100 : Number(token)))
-        if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null
-        return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 }
+        const [r, g, b, a] = parts
+        if (r === undefined || g === undefined || b === undefined) return null
+        if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null
+        if (a !== undefined && Number.isNaN(a)) return null
+        return { r, g, b, a: a ?? 1 }
       }
 
       const blend = (fg: Rgb, ground: Rgb): Rgb => ({
@@ -695,7 +699,10 @@ async function capture(
   }
 }
 
-const boot = async (page: Page, theme: string, origin: string, label = 'page') => {
+// The theme stays a positional slot: every caller names the ground it walks. The boot sets
+// no ground and reads one class back — `light` — while the rule that no second ground exists
+// at all is `tests/test_forest_only.py:63` (test_the_forest_is_the_only_ground), not this one.
+const boot = async (page: Page, _theme: string, origin: string, label = 'page') => {
   watchErrors(page, label)
   page.setDefaultNavigationTimeout(20_000)
   page.setDefaultTimeout(10_000)
@@ -893,10 +900,12 @@ test.describe('D0 contrast parity on the one ground', () => {
           // every reload after the first would ask the worker instead of this fixture and read
           // index.html as JSON (`visual.spec.ts:239` pays for the same lesson).
           serviceWorkers: 'block',
-          // No action waits forever: a control that cannot be reached is a finding this wave
-          // reads, not a run that spends its ten-minute budget staring at it.
-          actionTimeout: 8_000,
         })
+        // No action waits forever: a control that cannot be reached is a finding this wave
+        // reads, not a run that spends its ten-minute budget staring at it. A context option
+        // by that name does not exist and did nothing; the real lever is the default. `boot`
+        // still raises the per-page default to 10 s, so the measured legs keep their budget.
+        await context.setDefaultTimeout(8_000)
 
         // The registers, the run states and the settings tabs.
         const page = await context.newPage()

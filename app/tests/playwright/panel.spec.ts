@@ -1,6 +1,20 @@
 import { test, expect } from '@playwright/test'
 import { ensureOnboarded, gotoHash, hasDevHandle, openSidebarTier } from './helpers'
 
+/**
+ * The session count read through the dev-only handle `src/store/chatStore.ts` hangs on
+ * the window. Runs in the page. -1 when the build carries no handle, so a guard ahead of
+ * it decides the skip and the assertion never compares two -1 values.
+ */
+function sessionCount(): number {
+  const store = (
+    window as unknown as {
+      __epheStore?: { getState: () => { sessions: unknown[] } }
+    }
+  ).__epheStore
+  return store?.getState().sessions.length ?? -1
+}
+
 // Round 9: regression for the round 5/7 features — reference-B toggle panel,
 // dock left/right, ⌘1–5 shortcuts, frost-pulse classes.
 test.describe('Agent-Panel Toggles & Dock (Runde 5/7)', () => {
@@ -276,11 +290,9 @@ test.describe('Sidebar Aktionszeilen (Runden-G3, Referenz-Paritaet)', () => {
   // have it. Skip with a reason instead of a wrong verdict.
   test('⌘N (Tastatur) erzeugt eine neue Aufgabe wie die Sidebar-Zeile', async ({ page }) => {
     test.skip(!(await hasDevHandle(page)), 'benötigt __epheStore (nur Dev-Server)')
-    const before = await page.evaluate(() => window.__epheStore?.getState().sessions.length ?? -1)
+    const before = await page.evaluate(sessionCount)
     await page.keyboard.press('Meta+n')
-    await expect
-      .poll(async () => page.evaluate(() => window.__epheStore?.getState().sessions.length ?? -1))
-      .toBe(before + 1)
+    await expect.poll(async () => page.evaluate(sessionCount)).toBe(before + 1)
   })
 
   test('Group/Project-Umschalter persistiert die Ansicht', async ({ page }) => {

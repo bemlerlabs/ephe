@@ -352,7 +352,9 @@ async function measureStableWindow(
     records.push(await measureWindow(page, engine, `${name}-${index + 1}`, arm, drive))
   }
   records.sort((left, right) => left.longFrames - right.longFrames)
-  return records[Math.floor(records.length / 2)]
+  const median = records[Math.floor(records.length / 2)]
+  if (!median) throw new Error(`${name}: ${runs} runs produced no window to take a median from`)
+  return median
 }
 
 // The zero-long-frame budget is a host reading. When another workflow shares the runner, a
@@ -362,7 +364,9 @@ const LOAD_PER_CPU_BAR = 2.0
 
 function expectNoLongFrames(record: WindowRecord, label: string) {
   const parallel = test.info().config.workers > 1
-  const perCpu = loadavg()[0] / Math.max(cpus().length, 1)
+  // A missing load reading counts as idle, which keeps the strict branch: the budget
+  // stands down only on a measured co-tenant, never on an absent measurement.
+  const perCpu = (loadavg()[0] ?? 0) / Math.max(cpus().length, 1)
   if (!parallel && perCpu <= LOAD_PER_CPU_BAR) {
     expect(record.longFrames, label).toBe(0)
     return

@@ -92,7 +92,7 @@ export default defineConfig({
       // in this leg, so `pnpm run test:e2e` collected 160 tests in 31 files instead of the
       // 139 in 27 the config describes, and the 21 extras were exactly those four files —
       // setup-e2e (a real DGX call whose beforeAll aborts without
-      // EPHE_EPHE_E2E_DGX_URL), dogfood (needs the Vite dev server on :5173),
+      // EPHE_E2E_DGX_URL), dogfood (needs the Vite dev server on :5173),
       // artifact-export (POSTs through that proxy) and u6-focus (self-skips). The Python
       // guard could not see it: tests/test_playwright_port_hygiene.py:declared_test_ignore
       // reads the first literal `testIgnore:` in this file, which is the top-level one, so
@@ -130,7 +130,7 @@ export default defineConfig({
             // reduce stops the seven CSS loops at rest. It does not reach framer-motion,
             // which keeps entrance animations reporting `running` after their end value —
             // the per-shot guard in visual.spec.ts measures advancing currentTime instead.
-            use: { reducedMotion: 'reduce' },
+            use: { reducedMotion: 'reduce' as const },
           },
         ]
       : []),

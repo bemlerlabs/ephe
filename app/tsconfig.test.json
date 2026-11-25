@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    /* The spec tree is checked, never compiled: it drives a browser and a fixture
+       server, so an emitted copy would be a second source of truth. */
+    "noEmit": true,
+    /* Specs read fixtures off disk and start a fixture server, which is Node work;
+       the app itself stays a browser bundle under tsconfig.json. */
+    "types": ["node"]
+  },
+  "include": ["tests"]
+}

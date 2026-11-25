@@ -45,23 +45,26 @@ type Cell = {
   ink: string
 }
 
+/** A colour the way these helpers carry it: three channels, in the browser's order. */
+type Rgb = [number, number, number]
+
 function channel(c: number): number {
   const v = c / 255
   return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
 }
 
-function luminance(rgb: number[]): number {
+function luminance(rgb: Rgb): number {
   return 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2])
 }
 
-function contrast(a: number[], b: number[]): number {
+function contrast(a: Rgb, b: Rgb): number {
   const l1 = luminance(a)
   const l2 = luminance(b)
   return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
 }
 
 /** `rgb(66, 66, 66)` / `rgba(66, 66, 66, 0.2)` as the browser's computed style spells them. */
-function parseColor(value: string): { rgb: number[]; alpha: number } {
+function parseColor(value: string): { rgb: Rgb; alpha: number } {
   const match = value.match(/rgba?\(([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,/\s]+([\d.]+))?\)?/)
   if (!match) throw new Error(`computed colour arrived unparsable: ${value}`)
   return {
@@ -70,8 +73,12 @@ function parseColor(value: string): { rgb: number[]; alpha: number } {
   }
 }
 
-function composite(fill: number[], ground: number[], alpha: number): number[] {
-  return fill.map((c, i) => c * alpha + ground[i] * (1 - alpha))
+function composite(fill: Rgb, ground: Rgb, alpha: number): Rgb {
+  return [
+    fill[0] * alpha + ground[0] * (1 - alpha),
+    fill[1] * alpha + ground[1] * (1 - alpha),
+    fill[2] * alpha + ground[2] * (1 - alpha),
+  ]
 }
 
 async function grid(page: Page): Promise<Cell[]> {
@@ -196,10 +203,13 @@ test.describe('glass layers in the built bundle', () => {
     // and every ratio in the world read green while the float layer painted nothing.
     const source = join(fileURLToPath(new URL('../../src', import.meta.url)))
     const used = new Set<string>()
-    for (const name of readdirSync(source, { recursive: true })) {
+    for (const name of readdirSync(source, { recursive: true, encoding: 'utf8' })) {
       if (!/\.(ts|tsx)$/.test(name)) continue
       const text = readFileSync(join(source, name), 'utf8')
-      for (const hit of text.matchAll(/(?<![-\w])(glass-[a-z][a-z-]*)/g)) used.add(hit[1])
+      for (const hit of text.matchAll(/(?<![-\w])(glass-[a-z][a-z-]*)/g)) {
+        const cls = hit[1]
+        if (cls) used.add(cls)
+      }
     }
     expect(used.size, `no glass class found under ${source}`).toBeGreaterThanOrEqual(3)
     const assets = join(fileURLToPath(new URL('../../dist/assets', import.meta.url)))
@@ -218,7 +228,7 @@ test.describe('glass layers in the built bundle', () => {
     // since this file has to spell the names to refuse them.
     const source = join(fileURLToPath(new URL('../../src', import.meta.url)))
     const carriers: string[] = []
-    for (const name of readdirSync(source, { recursive: true })) {
+    for (const name of readdirSync(source, { recursive: true, encoding: 'utf8' })) {
       if (!/\.(ts|tsx|css)$/.test(name)) continue
       if (readFileSync(join(source, name), 'utf8').includes('liquid-glass')) carriers.push(name)
     }

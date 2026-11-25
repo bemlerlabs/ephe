@@ -526,7 +526,7 @@ test.describe('U6 focus and tab order', () => {
     for (const theme of ['forest'] as const) {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
       const page = await context.newPage()
-      await openChat(page, theme)
+      await openChat(page)
       const stops = await walkTabOrder(page, `idle-${theme}`)
       logWalk(`idle-${theme}`, stops)
       expect(stops.length).toBeGreaterThan(0)

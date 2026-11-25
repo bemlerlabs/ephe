@@ -130,11 +130,8 @@ const fixtureGaps: number[] = []
 // mutation watcher for the DOM and frame instants, Event Timing for the browser's own number.
 // The window key is a literal because a serialized page function cannot see module scope.
 function installLatencyProbe() {
-  const turns: {
-    turnStartMs: number
-    firstByteMs: number | null
-    firstChunkMs: number | null
-  }[] = []
+  type Turn = { turnStartMs: number; firstByteMs: number | null; firstChunkMs: number | null }
+  const turns: Turn[] = []
   const paints: { mutationMs: number; frameMs: number }[] = []
   // The plan card's own paint (row 9 of docs/PLAN_SURFACE_2026-10-11.md). The predicate reads the
   // first step row rather than the card element: the element arrives with the heading and a step
@@ -199,6 +196,8 @@ function installLatencyProbe() {
     if (!fulfilled()) return
     const mutationMs = now()
     const armed = pending
+    // `fulfilled()` is only true with a watch in hand; the check is the type's, not the run's.
+    if (!armed) return
     pending = null
     void nextFrame().then((frameMs) => {
       if (armed.kind === 'paint') {
@@ -268,7 +267,7 @@ function installLatencyProbe() {
     const started = now()
     const response = await nativeFetch(input as RequestInfo, init)
     if (!url.includes('/api/chat/stream') || !response.body) return response
-    const record = { turnStartMs: started, firstByteMs: null, firstChunkMs: null }
+    const record: Turn = { turnStartMs: started, firstByteMs: null, firstChunkMs: null }
     turns.push(record)
     const source = response.body.getReader()
     const decoder = new TextDecoder()
@@ -334,13 +333,18 @@ function installLatencyProbe() {
   }
 }
 
-type WindowProbe = {
+/** What `installLatencyProbe` hangs on the window under one key. */
+type LatencyProbe = {
   armPaint(): void
   armPlan(): void
   armGesture(): void
   counts(): { turns: number; paints: number; gestures: number; plans: number }
   summary(): ProbeSummary
 }
+
+/** The window shape the probe arrives in. The key stays a literal at each read: a
+ *  serialized page function cannot see module scope, so no shared constant can carry it. */
+type WindowWithProbe = { __pl: LatencyProbe }
 
 // Waits on the probe's own counters so a stall names the leg that did not record, instead of
 // a 30 s timeout that says only "something never happened".
@@ -351,7 +355,7 @@ async function waitForProbeCounts(
 ) {
   const deadline = Date.now() + timeoutMs
   for (;;) {
-    const counts = await page.evaluate(() => (window as unknown as WindowProbe).__pl.counts())
+    const counts = await page.evaluate(() => (window as unknown as WindowWithProbe).__pl.counts())
     const enough =
       (want.turns === undefined || counts.turns >= want.turns) &&
       (want.paints === undefined || counts.paints >= want.paints) &&
@@ -376,7 +380,7 @@ async function waitForProbeCounts(
         })(),
       }))
       const turn = await page.evaluate(
-        () => (window as unknown as WindowProbe).__pl.summary().turns.slice(-1)[0],
+        () => (window as unknown as WindowWithProbe).__pl.summary().turns.slice(-1)[0],
       )
       const frames = await page.evaluate(
         () =>
@@ -444,7 +448,7 @@ test.describe('R5 perceived latency', () => {
         // count, and a count does not care how loaded the box is.
         requests: fixtureRequests[kind],
       })
-      fixtures.push({ kind, ...started })
+      fixtures.push(started)
       console.log(
         `r5-latency FIXTURE kind=${kind} origin=${started.origin} port=${started.port} ` +
           `pid=${started.pid} engineMs=${ENGINE_MS} turns=${TURNS} gestures=${GESTURES} ` +
@@ -513,11 +517,13 @@ test.describe('R5 perceived latency', () => {
       const page = await context.newPage()
       await openChat(page)
       const gapIndex = fixtureGaps.length
-      await page.evaluate(() => (window as unknown as WindowProbe).__pl.armPaint())
+      await page.evaluate(() => (window as unknown as WindowWithProbe).__pl.armPaint())
       await page.locator(CHAT_INPUT).fill('latency probe turn')
       await page.keyboard.press('Enter')
       await waitForProbeCounts(page, { turns: 1, paints: 1 }, 25_000)
-      const summary = await page.evaluate(() => (window as unknown as WindowProbe).__pl.summary())
+      const summary = await page.evaluate(() =>
+        (window as unknown as WindowWithProbe).__pl.summary(),
+      )
       await context.close()
 
       const record = summary.turns[0]!
@@ -597,7 +603,7 @@ test.describe('R5 perceived latency', () => {
       requests: fixtureRequests.chat,
       chunks: PLAN_CHUNKS,
     })
-    fixtures.push({ kind: 'chat', ...plan })
+    fixtures.push(plan)
 
     const engineToReadable: number[] = []
     const sendToReadable: number[] = []
@@ -605,11 +611,13 @@ test.describe('R5 perceived latency', () => {
       const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
       const page = await context.newPage()
       await openChat(page, plan.origin)
-      await page.evaluate(() => (window as unknown as WindowProbe).__pl.armPlan())
+      await page.evaluate(() => (window as unknown as WindowWithProbe).__pl.armPlan())
       await page.locator(CHAT_INPUT).fill('Plan the two route changes')
       await page.keyboard.press('Enter')
       await waitForProbeCounts(page, { turns: 1, plans: 1 }, 25_000)
-      const summary = await page.evaluate(() => (window as unknown as WindowProbe).__pl.summary())
+      const summary = await page.evaluate(() =>
+        (window as unknown as WindowWithProbe).__pl.summary(),
+      )
       await context.close()
 
       const turn = summary.turns[0]!
@@ -645,11 +653,11 @@ test.describe('R5 perceived latency', () => {
     const processing: number[] = []
 
     for (let attempt = 0; attempt < GESTURES; attempt += 1) {
-      await page.evaluate(() => (window as unknown as WindowProbe).__pl.armGesture())
+      await page.evaluate(() => (window as unknown as WindowWithProbe).__pl.armGesture())
       await page.keyboard.press('/')
       await waitForProbeCounts(page, { gestures: attempt + 1 }, 10_000)
       const gesture = await page.evaluate(
-        () => (window as unknown as WindowProbe).__pl.summary().gestures.slice(-1)[0]!,
+        () => (window as unknown as WindowWithProbe).__pl.summary().gestures.slice(-1)[0]!,
       )
       keyToFrame.push(gesture.menuFrameMs - gesture.keyDownMs)
       keyToDom.push(gesture.menuMutationMs - gesture.keyDownMs)

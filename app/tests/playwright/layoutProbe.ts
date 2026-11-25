@@ -48,10 +48,12 @@ export function collisionProbe(sel: string) {
       }
     })
   const hits: string[] = []
-  for (let i = 0; i < leaves.length; i++)
-    for (let j = i + 1; j < leaves.length; j++) {
-      const a = leaves[i],
-        b = leaves[j]
+  for (let i = 0; i < leaves.length; i++) {
+    const a = leaves[i]
+    if (!a) continue
+    // Sliced rather than indexed: a slice yields defined boxes, an index read under
+    // `noUncheckedIndexedAccess` does not.
+    for (const b of leaves.slice(i + 1)) {
       const inside =
         (a.x <= b.x && a.right >= b.right && a.y <= b.y && a.bottom >= b.bottom) ||
         (b.x <= a.x && b.right >= a.right && b.y <= a.y && b.bottom >= a.bottom)
@@ -60,5 +62,6 @@ export function collisionProbe(sel: string) {
       const oy = Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y)
       if (ox > 4 && oy > 4) hits.push(`${a.id} ⨯ ${b.id} (${Math.round(ox)}x${Math.round(oy)}px)`)
     }
+  }
   return { missing: false, hits }
 }

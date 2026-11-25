@@ -109,7 +109,7 @@ test.describe('Langsession-Benchmark (Runde 12)', () => {
             ).__epheStore
             return store?.getState().currentSession?.messages.length ?? 0
           }),
-        { timeout: 15_000, interval: 500 },
+        { timeout: 15_000, intervals: [500] },
       )
       .toBe(120)
     const restored = await page.evaluate(() => {

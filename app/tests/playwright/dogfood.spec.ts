@@ -442,7 +442,9 @@ test.describe('Dogfood G1–G8 (dev 5173 + backend 8765)', () => {
     await waitTurnDone()
     await page.waitForTimeout(1500) // the end-of-turn re-measure has to have run through
     const overlaps = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll('[data-testid="message-row"]'))
+      // HTML elements, not plain Elements: the row is positioned by an inline transform
+      // and measured by height, and neither exists on the base interface.
+      const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="message-row"]'))
         .map((el) => ({
           start: parseInt((el.style.transform.match(/-?\d+(?:\.\d+)?/) ?? ['0'])[0] ?? '0', 10),
           h: el.offsetHeight,

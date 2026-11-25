@@ -628,27 +628,33 @@ async function shoot(page: Page, shot: Shot) {
   // section). Reduce stops the seven CSS loops, not those.
   const movingInside = (root: string) =>
     page.evaluate(
-      async ([sel, gap]) => {
+      async ([sel, gap]: [string, number]) => {
         const box = document.querySelector(sel)
+        // `target` belongs to KeyframeEffect, not to every AnimationEffect.
+        const targetOf = (a: Animation): Element | null =>
+          a.effect instanceof KeyframeEffect ? a.effect.target : null
         const inside = () =>
           document.getAnimations().filter((a) => {
-            const t = a.effect ? a.effect.target : null
+            const t = targetOf(a)
             return (
               a.playState === 'running' && t instanceof Element && box !== null && box.contains(t)
             )
           })
-        const before = inside().map((a) => [a, a.currentTime])
+        const read = (a: Animation): [Animation, CSSNumberish | null] => [a, a.currentTime]
+        const before = inside().map(read)
         await new Promise((r) => setTimeout(r, gap))
-        const after = new Map(inside().map((a) => [a, a.currentTime]))
+        const after = new Map(inside().map(read))
         return before
           .filter(([a, t]) => after.has(a) && after.get(a) !== t)
           .map(([a]) => {
-            const t = a.effect ? a.effect.target : null
-            const el = t instanceof Element ? t : null
-            return `${a.animationName || a.constructor.name}@${el ? `${el.tagName}.${String(el.className).slice(0, 40)}` : 'none'}`
+            const el = targetOf(a)
+            // `animationName` is a CSSAnimation reading; a scripted animation has none and
+            // is named by its constructor, as before.
+            const name = a instanceof CSSAnimation ? a.animationName : ''
+            return `${name || a.constructor.name}@${el ? `${el.tagName}.${String(el.className).slice(0, 40)}` : 'none'}`
           })
       },
-      [root, 250],
+      [root, 250] as [string, number],
     )
 
   /**

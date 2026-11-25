@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
  *
  * Prerequisites (checked inside the test itself with clear errors):
  *   1. app/dist/ exists             → `npm run build`
- *   2. the DGX is reachable         → EPHE_EPHE_E2E_DGX_URL (default: the Spark tailnet)
+ *   2. the DGX is reachable         → EPHE_E2E_DGX_URL (default: the Spark tailnet)
  *   3. a Python venv with FastAPI/uvicorn/httpx
  *
  * No mock: the test flow is the real end-user flow:
