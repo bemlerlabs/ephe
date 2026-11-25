@@ -3,6 +3,10 @@ import { existsSync, statSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { cpus, loadavg } from 'node:os'
 import { ensureOnboarded, hasDevHandle } from './helpers'
+// The product's own formatters: QG3 asserts the popover prints the seeded numbers
+// exactly the way the product prints them for the leg's language.
+import { formatNumber } from '../../src/lib/dateLocale'
+import { formatPercent } from '../../src/lib/contextMeter'
 
 /**
  * W12 — quality gate of the e2e layer (state-of-the-art, layered):
@@ -19,6 +23,35 @@ import { ensureOnboarded, hasDevHandle } from './helpers'
  */
 
 const SHOTS = '/tmp/qg_w12'
+
+// QG3-BUDGET-SEED-START — contract mirror of the dict returned by context_budget()
+// in server/routes/context.py. tests/test_qg3_budget_seed_contract.py compares this
+// JSON against the route's own return statement and turns red when either side
+// renames a field or a breakdown category. The numbers obey the route's identities:
+// percent = round(estimated_tokens / window_tokens * 100, 2) (banker's rounding,
+// 768/24576 → 3.12), and each breakdown share is one category's char share of the
+// total — seeded fully labelled, so the shares sum to 100.
+const QG3_BUDGET_JSON = `{
+  "session_id": "qg-w12",
+  "message_count": 1,
+  "char_count": 3226,
+  "estimated_tokens": 768,
+  "window_tokens": 24576,
+  "window_source": "legacy",
+  "counted_via": "native",
+  "tokenizer": "calibrated-4.2",
+  "percent": 3.12,
+  "compaction_threshold": 28,
+  "compaction_active": false,
+  "breakdown": [
+    { "name": "Messages", "percent": 60.0 },
+    { "name": "System prompt", "percent": 25.0 },
+    { "name": "System tools", "percent": 10.0 },
+    { "name": "Skills", "percent": 5.0 }
+  ],
+  "stages": []
+}`
+// QG3-BUDGET-SEED-END
 
 interface SeedCall {
   id: string
@@ -211,7 +244,7 @@ test.describe('QG W12 — layered quality gates', () => {
     // against this budget while its load stayed under the bar — parallel workers that are
     // I/O-bound do not raise the average, so the worker count is the sharper of the two.
     // The budget is not relaxed; it is asserted where it can be believed (workers: 1).
-    const perCpu = loadavg()[0] / cpus().length
+    const perCpu = (loadavg()[0] ?? 0) / Math.max(cpus().length, 1)
     const parallel = test.info().config.workers > 1
     if (!parallel && perCpu <= 2.0) {
       expect(bootMs, `Boot ${bootMs}ms`).toBeLessThanOrEqual(3000)
@@ -279,7 +312,9 @@ test.describe('QG W12 — layered quality gates', () => {
       const all = Array.from(
         list.querySelectorAll('[data-testid="stream-text-block"],[data-testid="tool-stream-rows"]'),
       )
-      const pos: number[] = []
+      // A fixed triple, not a sparse list: a missing anchor stays visible as NaN instead
+      // of vanishing from the comparison.
+      const pos: [number, number, number] = [NaN, NaN, NaN]
       all.forEach((el, i) => {
         const tx = el.textContent || ''
         if (tx.startsWith('Praeambel.')) pos[0] = i
@@ -289,8 +324,12 @@ test.describe('QG W12 — layered quality gates', () => {
       return { pos, total: all.length }
     })
     expect(order.total).toBeGreaterThanOrEqual(3)
-    expect(order.pos[0]).toBeLessThan(order.pos[1])
-    expect(order.pos[1]).toBeLessThan(order.pos[2])
+    const [preamble, toolRow, answer] = order.pos
+    expect(preamble, 'the preamble anchor is in the DOM').not.toBeNaN()
+    expect(toolRow, 'the tool row anchor is in the DOM').not.toBeNaN()
+    expect(answer, 'the answer anchor is in the DOM').not.toBeNaN()
+    expect(preamble).toBeLessThan(toolRow)
+    expect(toolRow).toBeLessThan(answer)
 
     // Level 1+2+interaction: two collapsed thinking-phase rows (aria-expanded),
     // clickable — after the click the phase text appears in the DOM.
@@ -299,7 +338,7 @@ test.describe('QG W12 — layered quality gates', () => {
     const phaseBtns = page
       .locator('[data-testid="message-bubble"] button[aria-expanded]')
       .filter({ hasText: /Thought|nachgedacht|Gedacht/i })
-    await expect(phaseBtns).toHaveCount(2, 'Denk-Phasen-Zeilen')
+    await expect(phaseBtns).toHaveCount(2)
     await phaseBtns.first().click()
     await expect(page.getByText('Erste Phase.')).toBeVisible()
     // Level 1: the tool row with its status
@@ -317,14 +356,19 @@ test.describe('QG W12 — layered quality gates', () => {
   test('QG3: Numeric self-consistency — popover % == round(N/M*100), breakdown sum ~100', async ({
     page,
   }) => {
-    // The three numbers it cross-checks need a session in the store. This test used to
-    // depend on QG2 having seeded one — but every test gets a fresh page and storage, so
-    // the dependency never held: the popover read 0 / 0 and the level-4 check became
-    // `pct 0 vs 0/0` → NaN, measured 2026-11-25 (lead's dogfood run: QG3 failed with
-    // 'Expected: NaN', and failed identically with streamBlocks.tsx stashed away — the
-    // check never asserted anything on any leg). It now seeds its own session with the
-    // same helper QG2 uses, so the numbers exist on both legs that run this test.
+    // The numbers cross-checked here need a session in the store and a budget on the
+    // wire. Both were missing on the legs that actually ran this test: the CI leg only
+    // ever skipped it (no dev handle in the built bundle), and on the dev leg the
+    // popover read `6 / 0` — the seed fills the store, but the denominator comes from
+    // GET /api/context/budget and no server answers on the dev leg. Measured
+    // 2026-11-25 10:03:51–10:03:55 (`pct 0 vs 6/0`). The budget is now intercepted
+    // with a contract mirror of the route's dict (QG3_BUDGET_JSON — the shape check is
+    // tests/test_qg3_budget_seed_contract.py, so this seed is a copy of the product's
+    // contract, not a number typed into the spec).
     await page.setViewportSize({ width: 390, height: 844 })
+    await page.route('**/api/context/budget*', (route) =>
+      route.fulfill({ contentType: 'application/json', body: QG3_BUDGET_JSON }),
+    )
     await page.goto('/#/chat', { waitUntil: 'load' })
     // The context figure lives in the single breakdown toggle now (the separate tok chip was
     // retired: one home per screen, 105edc18). The cross-checks below still hold.
@@ -334,31 +378,45 @@ test.describe('QG W12 — layered quality gates', () => {
     await page.getByTestId('statusbar-breakdown-toggle').click()
     await expect(page.getByTestId('context-popover')).toBeVisible()
 
-    const m = await page.evaluate(() => {
+    // The seam this test holds: the numbers come from the seed, the formatting from
+    // the product. This leg prints German — helpers.ensureOnboarded pins
+    // i18nextLng='de' — so the expected strings below are the product's own
+    // formatNumber/formatPercent output for de, not a locale-agnostic regex that
+    // would pass English and German alike (the startswith("Thought") case in
+    // different clothing).
+    const b = JSON.parse(QG3_BUDGET_JSON) as {
+      estimated_tokens: number
+      window_tokens: number
+      percent: number
+      breakdown: { name: string; percent: number }[]
+    }
+    const header = `${formatNumber(b.estimated_tokens, 'de')} / ${formatNumber(
+      b.window_tokens,
+      'de',
+    )} (${formatPercent(b.percent, 'de')})`
+    const printed = await page.evaluate(() => {
       const dlg = document.querySelector('[data-testid="context-popover"]')!
-      const mt = dlg.textContent!.match(/([\d.,]+)\s*\/\s*([\d.,]+)\s*\((\d+(?:[.,]\d+)?)%\)/)
-      if (!mt) return { num: NaN, win: NaN, pct: NaN, rows: [] as number[] }
-      const rows = Array.from(dlg.querySelectorAll('li')).map((li) => {
-        // The two spans of the row sit right next to each other — the percentage is
-        // the last numeric token of the row.
-        const mt = li.textContent!.match(/(\d+(?:[.,]\d+)?)%\s*$/)
-        return mt ? Number(mt[1].replace(',', '.')) : NaN
-      })
       return {
-        num: Number(mt[1].replace(/,/g, '')),
-        win: Number(mt[2].replace(/,/g, '')),
-        pct: Number(mt[3].replace(',', '.')),
-        rows,
+        text: dlg.textContent!,
+        rows: Array.from(dlg.querySelectorAll('li')).map((li) => li.textContent!),
       }
     })
+    expect(printed.text, `popover header lacks "${header}"`).toContain(header)
+    // Level 4: the seeded numbers have to fit each other by the route's own identity
     expect(
-      Number.isFinite(m.num) && Number.isFinite(m.win) && Number.isFinite(m.pct),
-      `header not parsable: ${JSON.stringify(m)}`,
-    ).toBeTruthy()
-    // Level 4: the three numbers have to fit each other
-    expect(m.pct, `pct ${m.pct} vs ${m.num}/${m.win}`).toBeCloseTo((m.num / m.win) * 100, 0.6)
+      b.percent,
+      `percent ${b.percent} vs ${b.estimated_tokens}/${b.window_tokens}`,
+    ).toBeCloseTo((b.estimated_tokens / b.window_tokens) * 100, 0.6)
+    // Each row prints name + its share through the product formatter; equality on the
+    // row text is what makes a silently missing or drifting row red here.
+    expect(printed.rows.length, 'one row per seeded category').toBe(b.breakdown.length)
+    for (const r of b.breakdown) {
+      expect(printed.rows, `row ${r.name}`).toContain(
+        `${r.name}${formatNumber(r.percent, 'de', 3)}%`,
+      )
+    }
     // Breakdown: sum of the shares ~ 100 (decimals add up with rounding error)
-    const sum = m.rows.reduce((a, b) => a + b, 0)
+    const sum = b.breakdown.reduce((a, r) => a + r.percent, 0)
     expect(sum).toBeGreaterThanOrEqual(99)
     expect(sum).toBeLessThanOrEqual(101)
   })
@@ -398,9 +456,7 @@ test.describe('QG W12 — layered quality gates', () => {
     }
   })
 
-  test('QG5: Tap-target and truncation quality (measured, not estimated)', async ({
-    page,
-  }) => {
+  test('QG5: Tap-target and truncation quality (measured, not estimated)', async ({ page }) => {
     // Measures the seeded transcript (seedQg) — DEV-only store handle, same as QG2:
     // navigate first, then ask the loaded page for the handle.
     await page.goto('/#/chat', { waitUntil: 'load' })
@@ -495,7 +551,7 @@ test.describe('QG W12 — layered quality gates', () => {
       const d = ctx.getImageData(0, 0, c.width, c.height).data
       const seen = new Set<number>()
       for (let i = 0; i < d.length; i += 4 * 17) {
-        seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2])
+        seen.add(((d[i] ?? 0) << 16) | ((d[i + 1] ?? 0) << 8) | (d[i + 2] ?? 0))
         if (seen.size >= 3) break
       }
       return seen.size
