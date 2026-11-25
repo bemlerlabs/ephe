@@ -6,4 +6,4 @@
 // for why the whole frontend pass is scoped to commits that carry frontend files.
 export default {
   '*.{ts,tsx}': ['prettier --write', 'eslint --fix'],
-};
+}

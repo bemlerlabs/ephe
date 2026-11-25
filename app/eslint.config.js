@@ -19,10 +19,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // `_arg` convention: named-but-deliberately-unused parameters (mocks,
       // interface fulfilment) are not an error
       '@typescript-eslint/no-unused-vars': [
@@ -37,11 +34,13 @@ export default tseslint.config(
         'warn',
         {
           selector: 'Literal[value=/\\btext-mist(?!-)/]',
-          message: 'Semantischen Token-Alias statt Primitiv-Klasse verwenden (text-status-* / globals.css @theme).',
+          message:
+            'Semantischen Token-Alias statt Primitiv-Klasse verwenden (text-status-* / globals.css @theme).',
         },
         {
           selector: 'Literal[value=/\\bbg-black-forest\\b/]',
-          message: 'Semantischen Token-Alias statt Primitiv-Klasse verwenden (surface-* / globals.css @theme).',
+          message:
+            'Semantischen Token-Alias statt Primitiv-Klasse verwenden (surface-* / globals.css @theme).',
         },
       ],
     },

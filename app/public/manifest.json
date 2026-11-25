@@ -7,9 +7,7 @@
   "scope": "/",
   "start_url": "/",
   "display": "standalone",
-  "display_override": [
-    "standalone"
-  ],
+  "display_override": ["standalone"],
   "background_color": "#15120F",
   "theme_color": "#15120F",
   "orientation": "any",
@@ -52,9 +50,6 @@
       ]
     }
   ],
-  "categories": [
-    "productivity",
-    "utilities"
-  ],
+  "categories": ["productivity", "utilities"],
   "prefer_related_applications": false
 }

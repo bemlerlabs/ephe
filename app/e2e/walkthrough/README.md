@@ -11,10 +11,10 @@ expectations, its prose — is the record.
 
 `walkthroughOutDir(slug)` (`walkthrough-out.ts`) resolves the directory:
 
-| `EPHE_WALKTHROUGH_OUT` | output |
-| --- | --- |
-| unset | `app/.walkthrough-out/<slug>/` (git-ignored) |
-| set | `<EPHE_WALKTHROUGH_OUT>/<slug>/`, repo-relative or absolute |
+| `EPHE_WALKTHROUGH_OUT` | output                                                      |
+| ---------------------- | ----------------------------------------------------------- |
+| unset                  | `app/.walkthrough-out/<slug>/` (git-ignored)                |
+| set                    | `<EPHE_WALKTHROUGH_OUT>/<slug>/`, repo-relative or absolute |
 
 Every spec calls it, so an ordinary verification run leaves `docs/media`
 untouched. The run prints the directory it wrote to.
