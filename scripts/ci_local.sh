@@ -45,11 +45,16 @@ died=()
 # --- what is being committed ---
 # Added, copied, modified, renamed; a deletion has no blob to lint. The scope is the whole index
 # because this hook cannot see the pathspec `git commit -- <paths>` will use, so on a shared tree a
-# second strand's staged path is judged here too. `EPHE_COMMIT_PATHS` (space-separated) narrows it
-# to the paths one commit takes, and the first line names the scope the run decided with.
+# second strand's staged path is judged here too. `EPHE_COMMIT_PATHS` narrows it to the paths one
+# commit takes. Separators may be spaces or newlines: `read -a` stops at the first newline, so a
+# multi-line declaration used to be judged as its first path alone (measured, a 15-path declaration
+# reached a scope of 1 at 17:04:34). The scope line names what was declared, what matched and what
+# the index does not hold, because a silently shrunken scope is a hook that passes by accident.
 explicit=()
 if [ -n "${EPHE_COMMIT_PATHS:-}" ]; then
-    read -r -a explicit <<< "$EPHE_COMMIT_PATHS"
+    declared_list="${EPHE_COMMIT_PATHS//$'\n'/ }"
+    declared_list="${declared_list//$'\t'/ }"
+    read -r -a explicit <<< "$declared_list"
 fi
 staged=()
 while IFS= read -r -d '' path; do
@@ -68,7 +73,15 @@ if [ "${#explicit[@]}" -gt 0 ]; then
             done
         done
     fi
-    echo "ci-local: scope from EPHE_COMMIT_PATHS, ${#scope[@]} of ${#staged[@]} staged path(s)"
+    echo "ci-local: scope from EPHE_COMMIT_PATHS, ${#scope[@]} of ${#explicit[@]} declared, ${#staged[@]} staged path(s)"
+    for want in "${explicit[@]:-}"; do
+        [ -z "$want" ] && continue
+        matched=0
+        for path in "${staged[@]:-}"; do
+            [ "$path" = "$want" ] && matched=1
+        done
+        [ "$matched" -eq 0 ] && echo "ci-local: DECLARED BUT NOT STAGED: $want"
+    done
 else
     scope=("${staged[@]:-}")
     echo "ci-local: scope is the whole index, ${#scope[@]} staged path(s); EPHE_COMMIT_PATHS narrows it"
