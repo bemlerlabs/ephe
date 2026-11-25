@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { existsSync, statSync, readFileSync } from 'node:fs'
+import path from 'node:path'
 import { cpus, loadavg } from 'node:os'
 import { ensureOnboarded, hasDevHandle } from './helpers'
 
@@ -85,12 +86,12 @@ function seedQg(): void {
   })
 }
 
-test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
+test.describe('QG W12 — layered quality gates', () => {
   test.beforeEach(async ({ page }) => {
     await ensureOnboarded(page)
   })
 
-  test('QG1: Boot-Matrix — Testid-Menge eindeutig + nicht leer, UI-Fehler 0, Budgets', async ({
+  test('QG1: Boot matrix — test id set unique + non-empty, 0 UI errors, budgets', async ({
     page,
   }) => {
     const errors: string[] = []
@@ -159,6 +160,16 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     const t0 = Date.now()
     await page.goto('/#/chat', { waitUntil: 'load' })
     await page.waitForSelector('[data-testid="panel-chat"]', { timeout: 15000 })
+    // This test measures the boot of the BUILT bundle served by the product backend:
+    // the ≤29 ceiling counts the API reads that bundle makes against that backend
+    // (2026-11-11 ledger in the ceiling's comment above). On the Vite dev leg there is
+    // no backend — every boot read answers 404 and the count measures the missing
+    // server, not the bundle (measured 2026-11-25: 30 calls, /api/settings ×4 etc).
+    // The dev handle is the dev leg's signature; the CI leg keeps asserting.
+    test.skip(
+      await hasDevHandle(page),
+      'boot-API budget measures the built bundle against the product backend; the Vite dev leg serves no backend, so its 404s would be counted as boot traffic',
+    )
     // The ceiling counts the boot reads; the first health probe is one of them, and a
     // later tick of the same URL is the interval, which the boundary above excludes
     // from the boot set.
@@ -245,7 +256,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     expect(uiErrors).toEqual([])
   })
 
-  test('QG2: Takt-Chronologie — DOM-Reihenfolge == Block-Ankunftsordnung, Phasen vollstaendig', async ({
+  test('QG2: Turn chronology — DOM order == block arrival order, phases complete', async ({
     page,
   }) => {
     // seedQg reaches into window.__epheStore, the dev-only store handle
@@ -303,19 +314,23 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     await page.screenshot({ path: `${SHOTS}/qg2_takt.png` }).catch(() => {})
   })
 
-  test('QG3: Zahlen-Selbstkonsistenz — Popover % == round(N/M*100), Breakdown-Summe ~100', async ({
+  test('QG3: Numeric self-consistency — popover % == round(N/M*100), breakdown sum ~100', async ({
     page,
   }) => {
-    // The three numbers it cross-checks come from the seeded session QG2 fills through
-    // the DEV-only store handle (chatStore.ts, `import.meta.env.DEV`): without a session
-    // the popover reads 0 / 0 (0 %) and the level-4 check is 0 vs NaN. Guard on the app
-    // page, not on about:blank — see QG2.
+    // The three numbers it cross-checks need a session in the store. This test used to
+    // depend on QG2 having seeded one — but every test gets a fresh page and storage, so
+    // the dependency never held: the popover read 0 / 0 and the level-4 check became
+    // `pct 0 vs 0/0` → NaN, measured 2026-11-25 (lead's dogfood run: QG3 failed with
+    // 'Expected: NaN', and failed identically with streamBlocks.tsx stashed away — the
+    // check never asserted anything on any leg). It now seeds its own session with the
+    // same helper QG2 uses, so the numbers exist on both legs that run this test.
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/#/chat', { waitUntil: 'load' })
     // The context figure lives in the single breakdown toggle now (the separate tok chip was
     // retired: one home per screen, 105edc18). The cross-checks below still hold.
     await page.waitForSelector('[data-testid="statusbar-breakdown-toggle"]')
     test.skip(!(await hasDevHandle(page)), 'needs vite dev server (DEV-only __epheStore handle)')
+    await page.evaluate(seedQg)
     await page.getByTestId('statusbar-breakdown-toggle').click()
     await expect(page.getByTestId('context-popover')).toBeVisible()
 
@@ -338,7 +353,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     })
     expect(
       Number.isFinite(m.num) && Number.isFinite(m.win) && Number.isFinite(m.pct),
-      `Kopfzeile nicht parbar: ${JSON.stringify(m)}`,
+      `header not parsable: ${JSON.stringify(m)}`,
     ).toBeTruthy()
     // Level 4: the three numbers have to fit each other
     expect(m.pct, `pct ${m.pct} vs ${m.num}/${m.win}`).toBeCloseTo((m.num / m.win) * 100, 0.6)
@@ -348,7 +363,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     expect(sum).toBeLessThanOrEqual(101)
   })
 
-  test('QG4: Storage-Chip == Store-Wahrheit (Zaehlung + MB-Format), aktualisiert nach 2. Session', async ({
+  test('QG4: Storage chip == store truth (count + MB format), updated after the 2nd session', async ({
     page,
   }) => {
     // The level-4 cross-check below reads the chip's numbers against
@@ -383,7 +398,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     }
   })
 
-  test('QG5: Tap-Ziel- und Truncations-Qualitaet (gemessen, nicht geschaetzt)', async ({
+  test('QG5: Tap-target and truncation quality (measured, not estimated)', async ({
     page,
   }) => {
     // Measures the seeded transcript (seedQg) — DEV-only store handle, same as QG2:
@@ -436,25 +451,28 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
       }
       return bad
     })
-    expect(overflow, 'Boxen ausserhalb des Viewports').toEqual([])
+    expect(overflow, 'boxes outside the viewport').toEqual([])
   })
 
-  test('QG6: PNG-Medienqualitaet — IHDR-Masse == DPR-Skalierung, Bytes > Floor, Nicht-Leerheit', async ({
+  test('QG6: PNG media quality — IHDR dimensions == DPR scaling, bytes > floor, not blank', async ({
     page,
   }) => {
-    // Playwright runs out of app/ — the docs root is one level higher.
-    const root = `${process.cwd()}/..`
-    // Measured actual dimensions of the fresh w10_7 set (not estimated).
+    // A media round is produced locally by the walkthrough run (command in
+    // app/e2e/walkthrough/README.md); it is not checked in, so the round to check is
+    // named by environment rather than by a path baked into the tree.
+    const env = process.env.EPHE_Q_MEDIA_ROUND
+    const dir = env ? path.resolve(env) : ''
+    // The w10_7 capture viewports: desktop 1280x900, mobile 390x844.
     const files = [
       ['w10_71_desktop_strom.png', 1280, 900],
       ['w10_75_mobile.png', 390, 844],
     ] as const
     test.skip(
-      files.some(([f]) => !existsSync(`${root}/docs/media/w10_7026-09-09/${f}`)),
-      "the round's media receipts are produced locally and are not checked in, so this assertion cannot run on a fresh checkout",
+      !dir || files.some(([f]) => !existsSync(`${dir}/${f}`)),
+      "the round's media receipts are produced locally and are not checked in, so this assertion cannot run on a fresh checkout — set EPHE_Q_MEDIA_ROUND to a walkthrough run's output directory",
     )
     for (const [f, w, h] of files) {
-      const full = `${root}/docs/media/w10_7026-09-09/${f}`
+      const full = `${dir}/${f}`
       expect(existsSync(full), f).toBeTruthy()
       const bytes = statSync(full).size
       expect(bytes, `${f} Bytes`).toBeGreaterThan(2048)
@@ -466,7 +484,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
       expect(ih, `${f} IHDR-H`).toBe(h)
     }
     // Non-blankness in the decoder: >= 3 distinct pixel values over a sample
-    await page.goto(`file://${root}/docs/media/w10_7026-09-09/w10_71_desktop_strom.png`)
+    await page.goto(`file://${dir}/w10_71_desktop_strom.png`)
     const distinct = await page.evaluate(() => {
       const img = document.querySelector('img') as HTMLImageElement
       const c = document.createElement('canvas')
@@ -485,7 +503,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     expect(distinct).toBeGreaterThanOrEqual(3)
   })
 
-  test('QG7: Determinismus — zweiter identischer Boot liefert denselben Testid-Satz', async ({
+  test('QG7: Determinism — a second identical boot yields the same test id set', async ({
     page,
   }) => {
     await page.goto('/#/chat', { waitUntil: 'load' })
@@ -506,7 +524,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
     expect(idsA.length).toBeGreaterThan(8)
   })
 
-  test('QG8: a11y-Vollstaendigkeit — jeder Button mit zugaenglichem Namen, Fokus sichtbar', async ({
+  test('QG8: a11y completeness — every button with an accessible name, focus visible', async ({
     page,
   }) => {
     await page.goto('/#/chat', { waitUntil: 'load' })
@@ -519,7 +537,7 @@ test.describe('QG W12 — geschichtete Qualitaets-Gates', () => {
       }
       return names
     })
-    expect(res, `Buttons ohne zugaenglichen Namen: ${res.join(', ')}`).toEqual([])
+    expect(res, `buttons without accessible name: ${res.join(', ')}`).toEqual([])
     // Focus indicator on the composer (the focus-visible rule works) — measured after Tab
     await page.getByTestId('send-btn').focus()
     const outline = await page.evaluate(() => {
