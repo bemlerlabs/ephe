@@ -1,6 +1,6 @@
 /**
  * The first open: the 12.8-second Black Forest film — a spark falls into the clearing,
- * runs a spline over the stream, spins into a fire tornado and becomes the bee that
+ * runs a spline over the stream, spins into a fire tornado and becomes the moth that
  * hovers in the awakening; the title and the way in appear with her.
  *
  * The scene is a live 60 fps choreography (`IntroFilm`), not a cut of stills: the same

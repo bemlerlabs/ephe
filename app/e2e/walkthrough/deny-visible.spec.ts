@@ -1,8 +1,7 @@
 /**
- * deny-visible.spec.ts — wave 10 / w10-12: "a deny is visibly swallowed"
- * (docs/media/user-walkthrough-2026-10-12/FINDINGS.md, section "Confirmed — medium").
+ * deny-visible.spec.ts — wave 10 / w10-12: "a deny is visibly swallowed".
  *
- * The defect as measured: after the approval dialog is denied, the tool row in the
+ * The defect this spec pins: after the approval dialog is denied, the tool row in the
  * transcript still read "· Completed" — a refusal painted as a success. The cause was
  * one-sided: `app/src/lib/streamActions.ts` wrote `status: 'completed'` for EVERY
  * `tool_done` frame, and `app/src/lib/toolStreamModel.ts` only knew the word `failed`,

@@ -41,30 +41,14 @@ vi.mock('react-i18next', () => ({
   }),
 }))
 
-// TypingIndicator reads the store + a media query; framer-motion is stripped to
-// plain divs so only the a11y attributes remain in the tree.
-vi.mock('@/store/chatStore', () => ({ useChatStore: () => ({ isTyping: true }) }))
-vi.mock('@/hooks/useMediaQuery', () => ({ useMediaQuery: () => false }))
-vi.mock('framer-motion', async () => {
-  const React = await import('react')
-  const strip = ({ initial, animate, exit, transition, ...rest }: Record<string, unknown>) => {
-    void initial
-    void animate
-    void exit
-    void transition
-    return React.createElement('div', rest)
-  }
-  // The surfaces animate with `m` — LazyMotion's core component; the app root
-  // mounts the feature set once (App.tsx). The stub has to answer for `m`.
-  return { m: { div: strip } }
-})
+// The thinking line's a11y case lives beside its figure, in
+// src/components/brand/ThinkingMark.test.tsx.
 
 import AskUserQuestionCard from './AskUserQuestionCard'
 import CheckpointControls from './CheckpointControls'
 import TimelineRail from './TimelineRail'
 import ActivityFeed from './ActivityFeed'
 import MetricsGauges from './MetricsGauges'
-import TypingIndicator from './TypingIndicator'
 import type { ChatCheckpoint } from '@/lib/checkpoints'
 import type { ChatMessage } from '@/types'
 
@@ -197,14 +181,5 @@ describe('ws3 a11y — MetricsGauges', () => {
     expect(screen.getByText('CPU load')).toBeInTheDocument()
     expect(screen.getByText('Memory')).toBeInTheDocument()
     expect(screen.getByText('Disk')).toBeInTheDocument()
-  })
-})
-
-describe('ws3 a11y — TypingIndicator', () => {
-  it('announces the thinking state through a status role', () => {
-    render(<TypingIndicator />)
-    const status = screen.getByRole('status')
-    expect(status).toHaveTextContent('Thinking…')
-    expect(status.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true')
   })
 })

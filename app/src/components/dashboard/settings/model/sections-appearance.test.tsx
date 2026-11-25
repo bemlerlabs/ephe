@@ -58,7 +58,7 @@ const sections = [
         labelEn: 'Companion form',
         default: 'paper_moth',
         value: 'paper_moth',
-        options: ['paper_moth', 'fire_bee', 'ember_spark', 'minimal'],
+        options: ['paper_moth', 'ember_spark', 'minimal'],
       },
       {
         key: 'appearance.companion_behavior',

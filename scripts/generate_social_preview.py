@@ -10,10 +10,11 @@ What it draws (all of it from tokens the app already ships):
 - ground   = --color-canvas #15120F, lifted with a --color-surface #1D1917
              highlight and a darker falloff; the only ground the product offers
              since the paper theme was retired (2026-10-19)
-- figure   = app/public/onboarding/bee-3d-hero.png, the shipped bee artwork the
-             icon kit and the first-run scene carry, inlined as a data URI so the
-             card cannot point at a file that moved. 2120x1504 at source, which is
-             what the 2x render of this card needs
+- figure   = docs/media/paper-moth-master.png, the tracked master the brand
+             figure is cut from, inlined as a data URI so the card cannot point at
+             a file that moved. 1024x1024 RGBA at source; the card's mark box is
+             548x452 CSS px at 2x, so the large mark is upsampled ~7% — the one
+             place this card would want a bigger master
 - type     = Space Grotesk (display), Inter (body), JetBrains Mono (kicker/footer),
              self-hosted @fontsource woff2 — never a system fallback
 - colour   = --color-brand #E8543F for the kicker (5.13:1 on the canvas),
@@ -48,10 +49,11 @@ ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "app"
 FONTS = APP / "node_modules" / "@fontsource"
 
-#: The bee the product ships as its face: the same artwork the icon kit is cut
-#: from and the first-run scene floats. Transparent, 2120x1504, already committed.
-BEE_PNG = APP / "public" / "onboarding" / "bee-3d-hero.png"
-BEE = "data:image/png;base64," + base64.b64encode(BEE_PNG.read_bytes()).decode()
+#: The moth the product ships as its face: the tracked master the brand figure is
+#: cut from, the same drawing `app/src/components/brand/PaperMothGlyph.tsx` folds.
+#: Transparent, 1024x1024, already committed.
+MOTH_PNG = ROOT / "docs" / "media" / "paper-moth-master.png"
+MOTH = "data:image/png;base64," + base64.b64encode(MOTH_PNG.read_bytes()).decode()
 
 OUT_ASSET = ROOT / "docs" / "media" / "ephe-social-preview-1200x630.png"
 OUT_PUBLIC = APP / "public" / "og-image.png"
@@ -127,8 +129,8 @@ h1{{position:absolute;left:71px;top:264px;width:648px;font-family:'Space Grotesk
 <body>
   <div class="glow"></div>
   <div class="frame"></div>
-  <div class="mark"><img src="{BEE}" alt=""></div>
-  <div class="lockup"><span class="m"><img src="{BEE}" alt=""></span><span class="wordmark">Ephe</span></div>
+  <div class="mark"><img src="{MOTH}" alt=""></div>
+  <div class="lockup"><span class="m"><img src="{MOTH}" alt=""></span><span class="wordmark">Ephe</span></div>
   <div class="kicker">{KICKER}</div>
   <h1>{HEADLINE}</h1>
   <div class="sub">{SUB}</div>

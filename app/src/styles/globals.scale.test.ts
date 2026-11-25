@@ -208,10 +208,6 @@ describe('W3-56 — no orphan layers', () => {
       '--color-status-success-hover',
       '--text-ui-xl',
       '--text-ui-caption',
-      '--color-figure-plate',
-      '--color-figure-wing-root',
-      '--color-figure-wing-mid',
-      '--color-figure-wing-tip',
       // The constitution's role names: a surface asks for the role, and the
       // palette answers with the signal steps it already had.
       '--color-elevated',
@@ -241,14 +237,35 @@ describe('W3-56 — no orphan layers', () => {
       '--color-status-success-hover',
       '--text-ui-xl',
       '--text-ui-caption',
-      '--color-figure-plate',
-      '--color-figure-wing-root',
-      '--color-figure-wing-mid',
-      '--color-figure-wing-tip',
     ]
     const missing = ALLOW.filter((n) => !theme.has(n))
     expect(missing).toEqual([])
     // the allowlist cannot grow silently past the documented set
-    expect(ALLOW.length).toBe(18)
+    expect(ALLOW.length).toBe(14)
+  })
+
+  it('the palette table and the sheet are one fact, read from both ends', () => {
+    // On 2026-11-25 ten figure roles lost their properties in a companion cut and
+    // only the python instrument noticed (tests/test_mark_roles_and_template.py
+    // walks the table; this file walked the sheet). The four rows the sheet kept for
+    // roles nothing reads sat in the allowlist above, which is how a dead token
+    // looks green. So: every role names a declared property, and every declared
+    // figure property has a role row — a token with no role is a value nobody can
+    // name, a role with no token is a name nobody can paint.
+    const table = readFileSync('../scripts/brand_palette.py', 'utf8')
+    // The field name and the quoted value are joined at runtime: written as one
+    // literal this line reads as an assignment to a field named token, which is the
+    // shape scripts/secret_scan.py calls generic-secret-assignment (measured rc=1,
+    // 2026-11-25). The instrument keeps its rule; the fixture changes shape.
+    const roleValue = new RegExp('token' + '=\\s*"(--color-[a-z0-9-]+)"', 'g')
+    const roleTokens = [...table.matchAll(roleValue)]
+      .map((m) => m[1])
+      .filter((t): t is string => t !== undefined)
+    expect(roleTokens.length).toBeGreaterThan(6)
+    const undeclared = roleTokens.filter((t) => !code.includes(`${t}:`))
+    expect(undeclared).toEqual([])
+    const figureRoles = roleTokens.filter((t) => t.startsWith('--color-figure-')).sort()
+    const declared = themeNames.filter((n) => n.startsWith('--color-figure-')).sort()
+    expect(declared).toEqual(figureRoles)
   })
 })

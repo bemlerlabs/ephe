@@ -17,7 +17,7 @@ import { walkthroughOutDir } from './walkthrough-out.ts'
  * and are named as such everywhere they appear.
  *
  * Artifacts this file writes, below its walkthrough capture dir (walkthrough-out.ts;
- * the dated set is docs/media/user-walkthrough-2026-10-12/persona-02-erste-frage/):
+ * run output only, nothing from a run is committed):
  *   NN-*.png
  *   .../timing.json       — per turn: first-token ms + wall ms (loaded-box)
  *   .../observations.json — composer/status-bar/scroll/readability reads,
@@ -369,7 +369,7 @@ async function waitForTurnEnd(page: Page, timeoutMs: number) {
 }
 
 // ── notes.md runtime block ──────────────────────────────────────────────────
-// The hand-written framing in notes.md stays; this block, fenced by markers, is
+// Surrounding prose in notes.md stays; this block, fenced by markers, is
 // replaced on every run with what the run actually observed — including the two
 // wall times, so the latency numbers live in the notes and cannot drift from the
 // measurement that produced them.

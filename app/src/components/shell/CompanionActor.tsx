@@ -2,18 +2,22 @@
  * The companion in the product surfaces — the same cut-out actor the first open
  * ends on, or the ember spark of act two, or the quiet mark.
  *
- * The actor is three images plus the forehead flame, so a click-flight can turn
+ * The actor is three images plus the thread it flies on, so a click-flight can turn
  * the whole figure on its 3D axis and a burst can leave it in gold without a
  * repaint. `turnTo` and `burst` are imperative because the welcome cards aim the
  * figure at themselves, not at a component state.
+ *
+ * The moth carries no eyelids. The lids that used to sit here were painted at
+ * 38.68 % and 52.83 % of the hero canvas, which is where the previous figure's two
+ * eyes were; on the folded paper figure the same box covers a wing fold, and the
+ * moth has no face to close — its two knots are folds, drawn in `PaperMothGlyph`.
  */
 import './Companion.css'
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 import { playSparkBurst, playWingWhoosh } from '@/lib/spiritAudio'
 import { EpheMark } from '@/components/shell/EpheMark'
-import { BeeEyelids } from '@/components/bee/BeeEyelids'
 
-export type CompanionSpecies = 'paper_moth' | 'fire_bee' | 'ember_spark' | 'minimal'
+export type CompanionSpecies = 'paper_moth' | 'ember_spark' | 'minimal'
 
 /** Each cut-out actor is a body, two hinged wings and one accent part. */
 interface ActorArt {
@@ -28,13 +32,6 @@ const MOTH_ART: ActorArt = {
   wingLeft: '/onboarding/paper-moth-wing-l.webp',
   wingRight: '/onboarding/paper-moth-wing-r.webp',
   accent: '/onboarding/paper-moth-thread.webp',
-}
-
-const BEE_ART: ActorArt = {
-  body: '/onboarding/bee-3d-actor.webp',
-  wingLeft: '/onboarding/bee-3d-wing-l.webp',
-  wingRight: '/onboarding/bee-3d-wing-r.webp',
-  accent: '/onboarding/bee-3d-flame.webp',
 }
 
 export interface CompanionHandle {
@@ -82,7 +79,6 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
     const sparks = useRef<Spark[]>([])
     const raf = useRef(0)
     const turnTimer = useRef(0)
-    const [wink, setWink] = useState(0)
 
     const burst = useCallback(() => {
       playSparkBurst(4)
@@ -173,8 +169,8 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
 
     useEffect(() => () => cancelAnimationFrame(raf.current), [])
 
-    const art = species === 'fire_bee' ? BEE_ART : MOTH_ART
-    const showsActor = species === 'paper_moth' || species === 'fire_bee'
+    const art = MOTH_ART
+    const showsActor = species === 'paper_moth'
 
     return (
       <div
@@ -190,14 +186,7 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
         {showsActor && (
           <div
             className="companion-turn"
-            onClick={
-              onActivate
-                ? () => {
-                    setWink((value) => value + 1)
-                    onActivate()
-                  }
-                : undefined
-            }
+            onClick={onActivate ? () => onActivate() : undefined}
           >
             <span className="companion-glow" />
             <div className="companion-motion">
@@ -215,7 +204,6 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
                 draggable={false}
               />
               <img className="companion-flame" src={art.accent} alt="" draggable={false} />
-              <BeeEyelids still={still} winkSignal={wink} />
             </div>
           </div>
         )}

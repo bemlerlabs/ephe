@@ -217,7 +217,7 @@ export function paintIntroParticles(
     }
   }
 
-  // The awakened bee's own rising motes.
+  // The awakened moth's own rising motes.
   if (t > AWAKEN_AT) {
     const fadeIn = smooth(AWAKEN_AT, AWAKEN_AT + 600, t)
     for (const seed of MOTES) {

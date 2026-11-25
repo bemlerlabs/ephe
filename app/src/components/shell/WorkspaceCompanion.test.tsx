@@ -56,13 +56,15 @@ describe('WorkspaceCompanion', () => {
     expect(companion.querySelector('.companion-flame')).toBeTruthy()
   })
 
-  it('keeps the bee as a chosen species with its own sprites', () => {
+  // The form is gone from the offered options; the stored value is not rewritten.
+  // What the row may do is render the moth, never an empty box.
+  it('carries a saved fire_bee choice onto the moth instead of losing the companion', () => {
     seed({ 'appearance.companion_enabled': true, 'appearance.companion_species': 'fire_bee' })
     render(<WorkspaceCompanion runState="ready" hasMessages />)
     const companion = screen.getByTestId('workspace-companion')
-    expect(companion.dataset.species).toBe('fire_bee')
+    expect(companion.dataset.species).toBe('paper_moth')
     expect(companion.querySelector('img.companion-body')?.getAttribute('src')).toBe(
-      '/onboarding/bee-3d-actor.webp',
+      '/onboarding/paper-moth-actor.webp',
     )
   })
 

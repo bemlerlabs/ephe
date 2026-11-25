@@ -1,0 +1,87 @@
+/* The thinking sign: one axis, two faces, the clock of the scene.
+ *
+ * The turn IS the state, so the frames never travel along the line: the stage turns
+ * on its own vertical axis and the two faces swap at the frame that is edge-on, where
+ * neither of them is painted. Only `transform` animates — no layout, no paint loop, no
+ * timer in JS. The cycle is six scene beats (three times the bar's work pulse, 3.6 s),
+ * which keeps the swap far below the flicker range: one face change per 1.8 s.
+ *
+ * Both switches at the foot land the sign on the standing letter with the moth put
+ * away. The word beside it is untouched by either switch: a run that shows no motion
+ * shows the same sentence as one that does. */
+
+.ephe-think {
+  --ephe-think-size: 1.125rem; /* the weight the bar's glyph already carries */
+  --ephe-think-cycle: calc(var(--ephe-scene-beat) * 6);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--ephe-think-size);
+  block-size: var(--ephe-think-size);
+  perspective: 320px;
+}
+
+.ephe-think-stage {
+  grid-area: 1 / 1;
+  position: relative;
+  inline-size: 100%;
+  block-size: 100%;
+  transform-style: preserve-3d;
+  animation: ephe-think-turn var(--ephe-think-cycle) linear infinite;
+}
+
+.ephe-think-frame {
+  position: absolute;
+  inset: 0;
+  display: block;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.ephe-think-frame[data-face='letter'] {
+  transform: rotateY(0deg);
+}
+
+.ephe-think-frame[data-face='moth'] {
+  transform: rotateY(180deg);
+}
+
+/* Two holds and two turns. The holds carry no motion, so the eye rests on a figure
+   rather than on travelling geometry; the turns take the scene's organic curve and
+   land exactly on the edge-on frame. */
+@keyframes ephe-think-turn {
+  0%,
+  20% {
+    transform: rotateY(0deg);
+    animation-timing-function: var(--ease-organic);
+  }
+  30%,
+  70% {
+    transform: rotateY(180deg);
+    animation-timing-function: var(--ease-organic);
+  }
+  80%,
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+/* The operating system's switch and the user's, one rule each, same outcome. */
+@media (prefers-reduced-motion: reduce) {
+  .ephe-think-stage {
+    animation: none !important;
+    transform: none !important;
+  }
+  .ephe-think-frame[data-face='moth'] {
+    opacity: 0 !important;
+  }
+}
+
+html.no-motion .ephe-think-stage {
+  animation: none !important;
+  transform: none !important;
+}
+
+html.no-motion .ephe-think-frame[data-face='moth'] {
+  opacity: 0 !important;
+}

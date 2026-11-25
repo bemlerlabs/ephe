@@ -31,8 +31,8 @@
  *  (5) the help/shortcuts surfaces — does the product document its own keyboard
  *      shortcuts and its own capabilities anywhere in the UI?
  *
- * Artifacts: the walkthrough capture dir (walkthrough-out.ts); the dated set is
- * docs/media/user-walkthrough-2026-10-12/what-it-tells-you/
+ * Artifacts: the walkthrough capture dir (walkthrough-out.ts); run output only,
+ * nothing from a run is committed:
  *   - NN-name.png, full page
  *   - observations.json — the verbatim findings, the console/page/request
  *     failures, and a one-line verdict per question.

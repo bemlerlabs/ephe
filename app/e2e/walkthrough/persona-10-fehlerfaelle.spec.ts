@@ -15,9 +15,9 @@
  *      reloaded chat say
  *   e) an empty message and a whitespace-only message
  *
- * Artifacts: the walkthrough capture dir (walkthrough-out.ts); the dated set is
- * docs/media/user-walkthrough-2026-10-12/persona-10-fehlerfaelle/
- * (NN-name.png, full page). The captured strings are logged per case as
+ * Artifacts: the walkthrough capture dir (walkthrough-out.ts); run output only,
+ * nothing from a run is committed (NN-name.png, full page). The captured
+ * strings are logged per case as
  * `[case-id] what: "value"` and attached to the test as annotations.
  *
  * The spec never stops or restarts the server. A failed expectation is soft, so

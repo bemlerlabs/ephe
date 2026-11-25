@@ -54,18 +54,29 @@ describe.each(BEHAVIOURS)('the start screen under "%s"', (behavior) => {
   it('keeps the companion figure when the companion is on', () => {
     seed(
       field('appearance.companion_enabled', 'bool', true),
+      field('appearance.companion_species', 'select', 'paper_moth'),
+      field('appearance.companion_behavior', 'select', behavior),
+    )
+    render(<WelcomeEmptyState onStartMission={vi.fn()} />)
+    expect(screen.getByTestId('actor-paper_moth')).toBeTruthy()
+    expect(screen.queryByTestId('moth-fallback')).toBeNull()
+  })
+
+  it('puts a saved fire_bee choice on the moth', () => {
+    seed(
+      field('appearance.companion_enabled', 'bool', true),
       field('appearance.companion_species', 'select', 'fire_bee'),
       field('appearance.companion_behavior', 'select', behavior),
     )
     render(<WelcomeEmptyState onStartMission={vi.fn()} />)
-    expect(screen.getByTestId('actor-fire_bee')).toBeTruthy()
-    expect(screen.queryByTestId('moth-fallback')).toBeNull()
+    expect(screen.getByTestId('actor-paper_moth')).toBeTruthy()
+    expect(screen.queryByTestId('actor-fire_bee')).toBeNull()
   })
 
   it('falls back to the brand figure when the companion is off', () => {
     seed(
       field('appearance.companion_enabled', 'bool', false),
-      field('appearance.companion_species', 'select', 'fire_bee'),
+      field('appearance.companion_species', 'select', 'paper_moth'),
       field('appearance.companion_behavior', 'select', behavior),
     )
     render(<WelcomeEmptyState onStartMission={vi.fn()} />)

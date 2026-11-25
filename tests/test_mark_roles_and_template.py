@@ -304,10 +304,17 @@ class TestTheGateOnTheRepository:
         done = run_gate(ROOT)
         assert done.returncode == 0, done.stdout + done.stderr
         assert "0 problem(s)" in done.stdout, done.stdout
-        # Six in-app/public vectors: favicon.svg, mark.svg, mark-mono.svg and the
-        # bee's three cuts (calm, fierce, template).
-        assert "6 svg(s), 1 template asset(s)" in done.stdout, done.stdout
-        assert "forest mark red" in done.stdout and "= 5.13:1" in done.stdout, done.stdout
+        # Three in-app/public vectors: favicon.svg, mark.svg and mark-mono.svg. The
+        # three cuts of the companion removed on 2026-11-25 went with it; a fourth
+        # vector in this count would mean one came back.
+        assert "3 svg(s), 1 template asset(s)" in done.stdout, done.stdout
+        # The mark's own ink on the forest field: 17.16:1 against the 4.5:1 floor.
+        # The 5.13:1 this line pinned before was the removed companion's red, read
+        # off its own cut (proven with `git archive HEAD`: the leg printed it for
+        # scripts/…/fire-spirit-bee.svg, never for mark.svg). The leg measures one
+        # reference per vector — mark.svg also names --color-firefly twice, and no
+        # ratio here would change if that path were dropped.
+        assert "forest mark red" in done.stdout and "= 17.16:1" in done.stdout, done.stdout
         # The paper reading (5.42:1) left with the ground it measured; a second
         # ratio in this output would mean a second ground came back.
         assert "paper" not in done.stdout, done.stdout

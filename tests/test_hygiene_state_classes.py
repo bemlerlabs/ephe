@@ -200,7 +200,7 @@ class TestLegitimatePaths:
             "app/src/features/artifacts/artifactStore.test.ts",
             "evals/trajectories.jsonl",
             "plugins/guide/prompts/golden.jsonl",
-            "docs/media/user-walkthrough-2026-10-12/plan-accept/trace.jsonl",
+            "marketplace/artifacts/countdown-0.1.0.zip",
         ]
         assert tracked_artifacts(sources) == []
 

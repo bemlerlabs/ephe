@@ -26,8 +26,8 @@
  * app/src/components/dashboard/chat/index.tsx, .../settings/index.tsx,
  * .../ArtifactRail.tsx, app/src/App.tsx.
  *
- * Evidence dir: the walkthrough capture dir (walkthrough-out.ts); the dated set is
- * docs/media/user-walkthrough-2026-10-12/persona-06-tastatur/
+ * Capture dir: the walkthrough capture dir (walkthrough-out.ts); runs write
+ * there locally and nothing from a run is committed.
  */
 import { test, expect, type Page } from '@playwright/test'
 import fs from 'node:fs'

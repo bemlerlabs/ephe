@@ -156,7 +156,7 @@ def generic_value_below_threshold(value: str) -> bool:
     if SLUG_LIKE.match(value):
         return True
     if value.startswith("--") and value.replace("-", "").replace("_", "").isalnum():
-        # A CSS custom property name (`token="--color-figure-plate"`). A credential
+        # A CSS custom property name (`token="--color-figure-paper"`). A credential
         # does not start with two hyphens and does not read as a word.
         return True
     return entropy(value) < MIN_ENTROPY or is_placeholder(value)

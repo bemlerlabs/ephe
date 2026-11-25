@@ -38,7 +38,7 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
   const sparkRef = useRef<HTMLDivElement>(null)
   const eyesRef = useRef<HTMLSpanElement>(null)
   const impactRef = useRef<HTMLDivElement>(null)
-  const beeRef = useRef<HTMLDivElement>(null)
+  const mothRef = useRef<HTMLDivElement>(null)
   const bokehRef = useRef<HTMLDivElement>(null)
   const wingLRef = useRef<HTMLImageElement>(null)
   const lidLRef = useRef<HTMLElement>(null)
@@ -90,7 +90,7 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
       const spark = sparkAt(t)
 
       // Five camera setups cut on the film's own clock. Each shot owns its scale,
-      // its origin and its pan; the forest rides the camera, the bee never does.
+      // its origin and its pan; the forest rides the camera, the moth never does.
       const shot = shotAt(t)
       stage.dataset.shot = String(shot)
       const beat = (center: number) => Math.exp(-(((t - center) / 85) ** 2))
@@ -176,10 +176,10 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
         set(impactRef.current, 'opacity', '0')
       }
 
-      // The bee: born out of the fire, then alive.
+      // The moth: born out of the fire, then alive.
       const born = t - MORPH_AT
       if (born < 0) {
-        set(beeRef.current, 'opacity', '0')
+        set(mothRef.current, 'opacity', '0')
       } else {
         const appear = smooth(0, 260, born)
         const grow = easeOutBack(clamp(born / 640))
@@ -190,9 +190,9 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
         const tilt = capture ? Math.cos(t * 0.0013) * 1.4 : pointer.current.y * 2.2
         const hover = t > AWAKEN_AT ? 1 + Math.sin(hovered * 0.0016) * 0.014 : 1
         const scale = (born < 640 ? 0.25 + (1.08 - 0.25) * grow : 1.08 - 0.08 * settle) * hover
-        set(beeRef.current, 'opacity', `${appear}`)
+        set(mothRef.current, 'opacity', `${appear}`)
         set(
-          beeRef.current,
+          mothRef.current,
           'transform',
           `translate(-50%, -50%) translate3d(${lean}px, ${breathe}px, 0) rotateX(${tilt}deg) rotateZ(${lean * 0.6}deg) scale(${scale})`,
         )
@@ -204,7 +204,7 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
         const glow = 40 - 26 * settle
         const blur = (1 - settle) * 1.2
         set(
-          beeRef.current,
+          mothRef.current,
           'filter',
           `brightness(${brightness.toFixed(3)}) sepia(${sepia.toFixed(3)}) saturate(${saturate.toFixed(3)}) blur(${blur.toFixed(2)}px) drop-shadow(0 0 ${glow.toFixed(1)}px rgba(255, 191, 71, ${(0.85 - 0.45 * settle).toFixed(3)}))`,
         )
@@ -297,9 +297,9 @@ export default function IntroFilm({ capture = false }: { capture?: boolean }) {
         </span>
       </div>
       <div ref={bokehRef} className="intro-live-bokeh" />
-      <div ref={beeRef} className="intro-live-bee">
+      <div ref={mothRef} className="intro-live-moth">
         <img
-          className="intro-live-bee-body"
+          className="intro-live-moth-body"
           src="/onboarding/paper-moth-actor.webp"
           alt=""
           draggable={false}

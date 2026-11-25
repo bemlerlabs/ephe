@@ -11,13 +11,13 @@
  * It behaves like a real newcomer: open the app, look at what the first screen shows,
  * read the rail, open every main destination he would plausibly click, and try one
  * message. Every meaningful step is photographed full-page into the walkthrough
- * capture dir (walkthrough-out.ts); the dated set is
- * docs/media/user-walkthrough-2026-10-12/persona-01-erstnutzer/.
+ * capture dir (walkthrough-out.ts) — run output only, nothing from a run is
+ * committed.
  *
  * As it runs it appends an observed-facts block (per-step observations + every console
  * error, page error and failed network request) into that directory's notes.md, between
- * the RUNTIME markers. Re-running replaces only that block; the hand-written framing in
- * notes.md is preserved.
+ * the RUNTIME markers. Re-running replaces only that block; prose a reader added around
+ * the markers is preserved.
  *
  * Selector policy: `data-testid` / role / text exactly as they exist in app/src — never a
  * CSS class. Each lookup carries a fallback shape so a single renamed attribute does not

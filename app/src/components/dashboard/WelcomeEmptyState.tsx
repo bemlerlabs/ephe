@@ -46,7 +46,7 @@ export default function WelcomeEmptyState({ onStartMission }: WelcomeEmptyStateP
   const usage = tourMarker?.answers.usage
   const recommended = usage && usage !== 'mix' ? (STARTER_CARD_BY_USAGE[usage] ?? null) : null
 
-  // A click on a card (or on the companion) turns the bee toward the card,
+  // A click on a card (or on the companion) turns the figure toward the card,
   // leaves a spark burst and starts the run.
   const activateCard = useCallback(
     (index: number, degrees = 0) => {
@@ -85,11 +85,7 @@ export default function WelcomeEmptyState({ onStartMission }: WelcomeEmptyStateP
         {companionEnabled && companionSpecies !== 'minimal' ? (
           <CompanionActor
             ref={companionRef}
-            species={
-              companionSpecies === 'fire_bee' || companionSpecies === 'ember_spark'
-                ? companionSpecies
-                : 'paper_moth'
-            }
+            species={companionSpecies === 'ember_spark' ? companionSpecies : 'paper_moth'}
             scale={companionScale}
             still={still}
             size="hero"

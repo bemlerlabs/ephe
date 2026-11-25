@@ -193,31 +193,17 @@
   --color-firefly: hsl(7.46 78.6% 57.8%);
   --color-firefly-glow: hsl(7 84% 66%);
 
-  /* Figure material — the fire spirit's own palette (scripts/brand_palette.py,
+  /* Figure material — what the companion is drawn from (scripts/brand_palette.py,
      roles figure_*). The palette answers "what IS a colour" one layer up; these
      answer what the being is made of, so they stand once here and hold on paper
      as well: the drawing reads the same on either ground, and only the glass wing
      and the brand roles above bend with the theme. */
   --color-figure-paper: #EFE6D2;     /* the moth's sheet */
   --color-figure-paper-lit: #FBF5E6; /* the lit face of a fold */
-  --color-figure-paper-shade: #D8C9AC; /* turned-away face, crease */
+  --color-figure-paper-shade: #D8C9AC; /* the shade side of a fold */
   --color-figure-paper-body: #C8B591; /* the rolled body slip */
-  --color-figure-soot: #221A15;      /* body, fringe, brow cuts */
-  --color-figure-plate: #33221A;     /* comb plates, antenna balls */
-  --color-figure-fur: #563323;       /* brim, foot stubs */
-  --color-figure-mou: #9A5730;       /* flame-lit fur: antenna rods, tuft, mouth */
-  --color-figure-ember: #F2A274;     /* the ember stop of the eye gradient */
-  --color-figure-cream: #F7F0E0;     /* eyes, the plume's hot core */
-  --color-figure-head-hi: #2C2523;   /* the head sphere's upper-left highlight */
-  --color-figure-head-core: #191311; /* the head sphere's velvet core */
-  --color-figure-head-shadow: #120F0E; /* the head sphere's lower shadow */
-  --color-figure-honey-mid: #FFD166; /* the honey lantern's middle gold */
-  --color-figure-honey-deep: #FF9F1C; /* the honey lantern's deep amber */
-  --color-figure-iris: #F5A623;      /* the amber iris */
-  --color-figure-shine: #FFFDF6;     /* catchlight on eye and ball */
-  --color-figure-wing-root: #452718; /* glass wing, root stop */
-  --color-figure-wing-mid: #8A5232;  /* glass wing, middle stop */
-  --color-figure-wing-tip: #D9A87C;  /* glass wing, tip stop — the lit edge */
+  --color-figure-cream: #F7F0E0;     /* the scene fire's hot core (.ephe-scene-core) */
+  --color-figure-head-shadow: #120F0E; /* the app-icon square under the rendered hero */
 
   /* Amber — warning accent (formerly lichen) */
   --color-lichen: var(--color-signal-warn);
@@ -1493,84 +1479,6 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
 /* settle = stillness: no breath, no halo (§5.3 "rest"). */
 .ephe-mark[data-state="settle"] { animation: none; }
 
-/* 5. The fire spirit: the being the first-run arc acts with
-   Hooks for the TSX side:
-     .ephe-spirit[data-register="calm|fierce"] — which frame paints
-     [data-state]                              — what it is doing (rest/land/hold/lean/lead)
-     --ephe-spirit-size                        — its box
-   Both frames stand in the same grid cell, so the turn is one opacity crossfade
-   and no layout moves; the frame that is not painting costs nothing. */
-.ephe-spirit {
-  --ephe-spirit-size: 6rem;
-  --ephe-spirit-turn-duration: calc(var(--ephe-scene-beat) * 0.7);
-  position: relative;
-  display: inline-grid;
-  flex: none;
-  inline-size: var(--ephe-spirit-size);
-  block-size: var(--ephe-spirit-size);
-  isolation: isolate;
-}
-.ephe-spirit-frame {
-  grid-area: 1 / 1;
-  display: block;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--ephe-spirit-turn-duration) var(--ease-out-soft);
-}
-.ephe-spirit-frame > svg {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  overflow: visible;
-}
-.ephe-spirit[data-register="calm"] .ephe-spirit-frame[data-frame="calm"],
-.ephe-spirit[data-register="fierce"] .ephe-spirit-frame[data-frame="fierce"] {
-  opacity: 1;
-}
-
-/* The four sheet poses that are a transform rather than a redraw: the calm head
-   tilt, the forward lean, the flight arc and the curled ember lantern. The figure
-   itself stays one drawing; only its frame moves. */
-.ephe-spirit[data-state="lean"] .ephe-spirit-frame {
-  transform: rotate(-4deg) translateY(1.5%);
-}
-.ephe-spirit[data-state="lead"] .ephe-spirit-frame {
-  transform: rotate(5deg) translateX(4%);
-}
-.ephe-spirit[data-state="flight"] .ephe-spirit-frame {
-  animation: ephe-spirit-flight 1.25s var(--ease-out-soft) infinite;
-}
-.ephe-spirit[data-state="flight"]::after {
-  content: '';
-  position: absolute;
-  inset-inline: -18% -6%;
-  inset-block: 58% 12%;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(60% 40% at 20% 60%,
-    color-mix(in oklab, var(--color-firefly-glow) 70%, transparent) 0%,
-    transparent 72%);
-  filter: blur(6px);
-  animation: ephe-spirit-trail 0.9s linear infinite;
-}
-.ephe-spirit[data-state="ember"] .ephe-spirit-frame {
-  transform: rotate(8deg) scale(0.92);
-  filter: brightness(0.9) saturate(0.85);
-}
-.ephe-spirit[data-state="ember"] .ephe-spirit-frame [data-part="face"] {
-  opacity: 0.35;
-}
-@keyframes ephe-spirit-flight {
-  0%,
-  100% { transform: rotate(-7deg) translateY(0); }
-  50% { transform: rotate(-3deg) translateY(-5%); }
-}
-@keyframes ephe-spirit-trail {
-  0% { opacity: 0.25; transform: translateX(-6%) scaleX(0.8); }
-  60% { opacity: 0.7; }
-  100% { opacity: 0; transform: translateX(8%) scaleX(1.1); }
-}
-
 /* 6. The first-run arc: eight beats on one 600 ms unit
    Threat is scale and ground glow, never a face (the scene study's own reading):
    the wall spreads across the ground over beats 1-3, lifts at the surge, and falls
@@ -1726,8 +1634,7 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
   .ephe-scene-ground,
   .ephe-scene-flash,
   .ephe-scene-actor,
-  .ephe-scene-actor-leave,
-  .ephe-spirit-frame {
+  .ephe-scene-actor-leave {
     animation: none !important;
     transition: none !important;
   }
@@ -1747,8 +1654,7 @@ html.no-motion .ephe-mark[data-state="work"]:not(:has(:is(.ephe-mark-accent, [da
 html.no-motion .ephe-scene-ground,
 html.no-motion .ephe-scene-flash,
 html.no-motion .ephe-scene-actor,
-html.no-motion .ephe-scene-actor-leave,
-html.no-motion .ephe-spirit-frame {
+html.no-motion .ephe-scene-actor-leave {
   animation: none !important;
   transition: none !important;
 }

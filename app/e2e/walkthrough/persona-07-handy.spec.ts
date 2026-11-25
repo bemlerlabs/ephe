@@ -3,8 +3,7 @@
  *
  * Live walkthrough: a real server, a real engine, NO route interception. Every
  * step is captured as a full-page screenshot at 390 px into the walkthrough capture
- * dir (walkthrough-out.ts); the dated set is
- * docs/media/user-walkthrough-2026-10-12/persona-07-handy/.
+ * dir (walkthrough-out.ts) — run output only, nothing from a run is committed.
  *
  * What this measures, in the persona's own terms:
  *   01  the shell at 390 — is the chat reachable, does anything scroll sideways,

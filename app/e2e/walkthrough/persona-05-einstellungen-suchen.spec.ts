@@ -17,10 +17,9 @@
  *  (d) can the user change it, save it, and see that it took effect?
  *
  * Every step is photographed full-page into the walkthrough capture dir
- * (walkthrough-out.ts); the dated set is
- * docs/media/user-walkthrough-2026-10-12/persona-05-einstellungen-suchen/.
+ * (walkthrough-out.ts) — run output only, nothing from a run is committed.
  * The run appends its observed-facts block plus findings.json into that same
- * directory; the hand-written framing in notes.md is preserved.
+ * directory; prose a reader added around the markers is preserved.
  *
  * Selector policy: `data-testid` / ARIA role only — never a CSS class and never a
  * copy string, except where the copy itself is the subject (the nav search and

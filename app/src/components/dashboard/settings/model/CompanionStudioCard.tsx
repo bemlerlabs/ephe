@@ -16,7 +16,7 @@ export const COMPANION_KEYS = [
   'appearance.companion_countdown_seconds',
 ] as const
 
-const SPECIES: CompanionSpecies[] = ['paper_moth', 'fire_bee', 'ember_spark', 'minimal']
+const SPECIES: CompanionSpecies[] = ['paper_moth', 'ember_spark', 'minimal']
 
 function valueOf(model: SettingsModel, key: string, fallback: string | number | boolean) {
   const field = (model.deepSections ?? [])

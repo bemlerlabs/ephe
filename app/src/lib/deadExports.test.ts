@@ -83,7 +83,6 @@ const UNIMPORTED: Record<string, string> = {
     'export function rowsFromOptions(options: ModelOption[], group: string): ModelR',
   'app/src/components/onboarding/FirstRunIntro.tsx#BEAT_MS': 'export const BEAT_MS = 600',
   'app/src/components/onboarding/FirstRunIntro.tsx#CONDENSE_MS': 'export const CONDENSE_MS = 240',
-  'app/src/components/shell/FireSpirit.tsx#FireSpirit': 'export function FireSpirit({',
   'app/src/lib/api/agents.ts#getAgent':
     'export function getAgent(id: string): Promise<AgentRecord> {',
   'app/src/lib/api/marketplace.ts#getMarketHome':

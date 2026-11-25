@@ -84,14 +84,21 @@ describe('the start-screen hero', () => {
   )
 
   it('wears the chosen species while the companion is on', () => {
+    seed({ 'appearance.companion_enabled': true, 'appearance.companion_species': 'ember_spark' })
+    render(<WelcomeEmptyState onStartMission={vi.fn()} />)
+    expect(hero().classList.contains('companion-actor')).toBe(true)
+    expect(hero().dataset.species).toBe('ember_spark')
+  })
+
+  it('brings a saved fire_bee choice onto the moth', () => {
     seed({ 'appearance.companion_enabled': true, 'appearance.companion_species': 'fire_bee' })
     render(<WelcomeEmptyState onStartMission={vi.fn()} />)
     expect(hero().classList.contains('companion-actor')).toBe(true)
-    expect(hero().dataset.species).toBe('fire_bee')
+    expect(hero().dataset.species).toBe('paper_moth')
   })
 
   it('stays the brand moth when the companion is switched off', () => {
-    seed({ 'appearance.companion_enabled': false, 'appearance.companion_species': 'fire_bee' })
+    seed({ 'appearance.companion_enabled': false, 'appearance.companion_species': 'paper_moth' })
     render(<WelcomeEmptyState onStartMission={vi.fn()} />)
     expect(hero()).toBeTruthy()
     expect(hero().classList.contains('companion-actor')).toBe(false)

@@ -23,7 +23,7 @@ import { useCompanionDrag } from './useCompanionDrag'
 import type { CopilotMode } from '@/lib/companionCopilot'
 import { useTranslation } from 'react-i18next'
 
-const SPECIES: CompanionSpecies[] = ['paper_moth', 'fire_bee', 'ember_spark', 'minimal']
+const SPECIES: CompanionSpecies[] = ['paper_moth', 'ember_spark', 'minimal']
 
 export default function WorkspaceCompanion({
   runState,

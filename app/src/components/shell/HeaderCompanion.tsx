@@ -17,7 +17,7 @@ import { useCompanionCopilot } from '@/lib/useCompanionCopilot'
 import { useSetupRepair } from '@/lib/companionRepair'
 import type { CopilotMode } from '@/lib/companionCopilot'
 
-const SPECIES: CompanionSpecies[] = ['paper_moth', 'fire_bee', 'ember_spark', 'minimal']
+const SPECIES: CompanionSpecies[] = ['paper_moth', 'ember_spark', 'minimal']
 
 export default function HeaderCompanion({
   runState,

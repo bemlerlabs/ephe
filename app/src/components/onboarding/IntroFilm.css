@@ -134,7 +134,7 @@
     0 0 8px rgb(255 250 220 / 0.95),
     0 0 16px rgb(255 200 100 / 0.7);
 }
-.intro-live-bee {
+.intro-live-moth {
   position: absolute;
   left: 50%;
   top: 50%;
@@ -147,7 +147,7 @@
   opacity: 0;
   will-change: transform, filter, opacity;
 }
-.intro-live-bee-body {
+.intro-live-moth-body {
   position: absolute;
   inset: 0;
   width: 100%;

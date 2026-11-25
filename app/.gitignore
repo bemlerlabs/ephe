@@ -50,11 +50,11 @@ Thumbs.db
 playwright-report/
 blob-report/
 test-results/
-# Playwright real-run Artefakte (lokal generiert)
+# Playwright real-run artefacts (generated locally)
 test-results-real/
 
-# Walkthrough captures (e2e/walkthrough/walkthrough-out.ts). The dated set a finding
-# cites stays tracked under docs/media/user-walkthrough-2026-10-12/; a run writes here.
+# Walkthrough captures (e2e/walkthrough/walkthrough-out.ts): every run writes here
+# by default; captures are run output and nothing from them is tracked.
 .walkthrough-out/
 
 # Deep-dive audit probe scripts (local rerun tooling, not product code)

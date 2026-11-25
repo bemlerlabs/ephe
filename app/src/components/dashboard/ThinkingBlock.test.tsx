@@ -3,7 +3,8 @@
  *
  * GIVEN  ThinkingBlock with props { thinking: ThinkingPhase | null }
  * WHEN   the thinking phase is null / running / finished
- * THEN   null / live „Denkt nach…" (aria-busy) / collapsible „Gedacht für Ns" // language-gate: ignore — both are the German locale labels the product renders (locales/de.json)
+ * THEN   null / the live thinking line (aria-busy) / a collapsed finished label
+ *        (the words themselves belong to the locale bundles and are not quoted here)
  */
 import { describe, it, expect, beforeAll, afterEach } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
@@ -22,9 +23,17 @@ describe('ThinkingBlock', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('shows the live Thinking label with aria-busy while thinking runs', () => {
+  it('shows the live thinking line with aria-busy while thinking runs', () => {
     render(<ThinkingBlock thinking={{ start: Date.now(), end: null }} />)
-    expect(screen.getByText('Thinking…')).toBeInTheDocument()
+    const status = screen.getByTestId('thinking-status')
+    expect(status.getAttribute('role')).toBe('status')
+    expect(status.getAttribute('aria-live')).toBe('polite')
+    // The word comes from the bundle, so it is not quoted here — the line carries one.
+    expect(status.textContent?.trim()).toBeTruthy()
+    const mark = status.querySelector('[data-testid="thinking-mark"]') as Element
+    expect(mark.getAttribute('aria-hidden')).toBe('true')
+    // The per-second tick is deliberately outside the live region.
+    expect(status.contains(screen.getByTestId('thinking-timer'))).toBe(false)
     expect(document.querySelector('[aria-busy="true"]')).not.toBeNull()
   })
 

@@ -305,15 +305,17 @@ export const InteractiveMothGuide = forwardRef<MothGuideHandle, GuideProps>(
       }
     }, [still])
 
-    if (still) return null
-
+    // Reduced motion means no movement, not no companion: the same figure stays on
+    // the stage, frozen by the two rule sets at the foot of InteractiveMothGuide.css
+    // (`@media (prefers-reduced-motion: reduce)` and `html.no-motion`), and only the
+    // spark canvas — a thing that cannot exist still — is left out.
     return (
       <>
-        <canvas ref={canvasRef} className="moth-guide-sparks" aria-hidden="true" />
+        {still ? null : <canvas ref={canvasRef} className="moth-guide-sparks" aria-hidden="true" />}
         <div
           ref={rootRef}
           data-testid="interactive-moth-guide"
-          className={`moth-guide${flying ? ' is-flying' : ''}`}
+          className={`moth-guide${still ? ' is-still' : flying ? ' is-flying' : ''}`}
           style={{ '--moth-size': size } as React.CSSProperties}
           aria-hidden="true"
         >

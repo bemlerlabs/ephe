@@ -1,5 +1,5 @@
 /**
- * P3: the thinking phase ticks live ("Thinking… · Ns").
+ * P3: the thinking phase ticks live (the locale's word, then the seconds).
  *
  * GIVEN  a ThinkingBlock with an open phase (end === null)
  * WHEN   time runs forward (fake timers, 1s interval)
@@ -27,13 +27,17 @@ describe('ThinkingBlock: the live thinking timer (P3 Ephe norm)', () => {
     vi.useFakeTimers()
     const t0 = Date.now()
     render(<ThinkingBlock thinking={{ start: t0 - 7000, end: null }} />)
+    // The word belongs to the locale bundle, so this file never quotes it: it pins
+    // that the line beside the timer does not move while the seconds run.
+    const statusText = screen.getByTestId('thinking-status').textContent
+    expect(statusText).toBeTruthy()
     expect(screen.getByTestId('thinking-timer').textContent).toContain('7s')
     act(() => {
       vi.advanceTimersByTime(1000)
     })
     expect(screen.getByTestId('thinking-timer').textContent).toContain('8s')
     // the live label sitting next to it stays unchanged
-    expect(screen.getByText('Thinking…')).toBeTruthy()
+    expect(screen.getByTestId('thinking-status').textContent).toBe(statusText)
   })
 
   it('freezes after the phase ends: a static Thought for Ns with no timer', () => {
@@ -77,7 +81,8 @@ describe('ThinkingBlock: the live thinking timer (P3 Ephe norm)', () => {
     const t0 = Date.now()
     render(<ThinkingBlock thinking={{ start: t0 - 7000, end: null, text: 'zwischengedacht' }} />)
     expect(screen.queryByTestId('thinking-timer')).toBeNull()
-    expect(screen.queryByText('Thinking…')).toBeNull()
+    expect(screen.queryByTestId('thinking-status')).toBeNull()
+    expect(screen.queryByTestId('thinking-mark')).toBeNull()
     // the block itself and its reasoning text stay (a different field covers that)
     expect(screen.getByTestId('thinking-block').getAttribute('aria-busy')).toBe('true')
     expect(screen.getByText('zwischengedacht')).toBeTruthy()

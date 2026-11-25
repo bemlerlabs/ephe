@@ -1,4 +1,4 @@
-/* The first open — three questions with the bee as guide. The stage is the
+/* The first open — three questions with the moth as guide. The stage is the
    scene's ground, quieter than the intro: a low ember light, the panel as a
    sheet on it, and the being moving one place per answer. */
 .tour-stage {
@@ -21,18 +21,6 @@
     radial-gradient(50% 40% at 78% 12%, color-mix(in oklab, var(--color-brand) 7%, transparent), transparent 70%),
     linear-gradient(to bottom, transparent 60%, color-mix(in oklab, var(--color-brand) 6%, transparent));
 }
-.tour-bee {
-  position: absolute;
-  inset-inline-start: clamp(2rem, 10vw, 14rem);
-  inset-block-end: clamp(4rem, 12vh, 10rem);
-  transition: transform 700ms var(--ease-settle);
-  pointer-events: none;
-}
-.tour-bee[data-step="1"] { transform: translate(4vw, -2vh) rotate(-3deg); }
-.tour-bee[data-step="2"] { transform: translate(7vw, -4vh) rotate(2deg); }
-.tour-bee[data-step="3"] { transform: translate(3vw, -5vh); }
-.tour-bee[data-step="4"] { transform: translate(9vw, -3vh) rotate(-2deg); }
-.tour-bee[data-step="5"] { transform: translate(24vw, -7vh) scale(0.9); }
 .tour-panel {
   position: relative;
   justify-self: end;
@@ -271,19 +259,11 @@
     display: block;
     padding: 4.5rem 1rem 2rem;
   }
-  .tour-bee {
-    position: relative;
-    inset: auto;
-    margin: 0 auto 1rem;
-    width: max-content;
-    transform: none !important;
-  }
   .tour-panel { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tour-panel,
   .tour-body,
-  .tour-bee,
   .tour-switch,
   .tour-switch-thumb,
   .tour-primary,
@@ -291,20 +271,17 @@
     animation: none !important;
     transition: none !important;
   }
-  .tour-bee { transform: none !important; }
 }
 html.no-motion .tour-panel,
 html.no-motion .tour-body,
-html.no-motion .tour-bee,
 html.no-motion .tour-switch,
 html.no-motion .tour-switch-thumb {
   animation: none !important;
   transition: none !important;
 }
-html.no-motion .tour-bee { transform: none !important; }
 
-/* Scene 5-7: the forest stays behind the cards, the bee carries the step change,
-   and the finale flies the bee into the header mark. */
+/* Scene 5-7: the forest stays behind the cards, the moth carries the step change,
+   and the finale flies it into the header mark. */
 .tour-forest {
   position: fixed;
   inset: 0;
@@ -411,10 +388,6 @@ html.no-motion .tour-bee { transform: none !important; }
 .tour-desk-actions {
   color: rgb(247 240 224 / 0.7);
 }
-.tour-bee.is-guard .ephe-spirit {
-  filter: drop-shadow(0 0 26px rgb(255 191 71 / 0.75));
-}
-
 .tour-engine-core {
   position: relative;
   width: 4.5rem;

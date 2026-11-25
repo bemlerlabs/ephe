@@ -9,7 +9,8 @@
  * The source lives in `app/src/assets/mark.svg`, and the generator and the icon
  * kit both write it from the same function: one source, no hand-maintained copy.
  *
- * The gradient ids are rewritten per instance: the bee's `bspc-` prefix carries
+ * The gradient ids are rewritten per instance: the `bspc-` prefix the generator
+ * stamps onto every gradient in the source carries
  * the instance id, because two marks on one page would otherwise emit the same
  * ids and the second would draw with no gradient.
  */

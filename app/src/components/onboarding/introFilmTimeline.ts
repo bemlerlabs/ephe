@@ -1,6 +1,6 @@
 /**
  * The first-open film's clock: five camera cuts, the spark's spline through the
- * clearing and the bee's birth. Everything here is a pure function of time, which is
+ * clearing and the moth's birth. Everything here is a pure function of time, which is
  * what lets `__epheIntroSeek(ms)` render the same frame the live loop shows.
  */
 export const FILM_MS = 12_800
@@ -112,7 +112,7 @@ export function chaseAt(t: number) {
   return { x: last.x, y: last.y }
 }
 
-/** The spark's path in viewport fractions; null once the bee owns the frame. */
+/** The spark's path in viewport fractions; null once the moth owns the frame. */
 export function sparkAt(t: number): { x: number; y: number } | null {
   if (t < IMPACT_MS) {
     const u = easeOutCubic(t / IMPACT_MS)

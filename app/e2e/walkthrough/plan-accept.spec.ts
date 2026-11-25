@@ -1,8 +1,8 @@
 /**
  * plan-accept.spec.ts — Architect mode's exit, driven the way a user drives it.
  *
- * FINDINGS.md (docs/media/user-walkthrough-2026-10-12) records the blocker: the mode then
- * called `plan` drafted a real plan and wrote nothing — its guard holds — and then Accept
+ * The blocker this spec pins: the mode then called `plan` drafted a real plan and
+ * wrote nothing — its guard holds — and then Accept
  * sent the prose "Plan accepted — proceed." as an ordinary message while the composer
  * stayed in `plan`, so the turn that was supposed to execute the plan still had no write
  * tool and the file the plan promised never appeared.
@@ -33,9 +33,9 @@
  *     source.
  *   - run with `--timeout 900000`: a plan turn plus the run it triggers are two real
  *     engine turns.
- * Evidence (screenshots + observations.json + trace.jsonl) lands in the walkthrough
- * capture dir (walkthrough-out.ts); the dated set is
- * docs/media/user-walkthrough-2026-10-12/plan-accept/.
+ * Captures (screenshots + observations.json + trace.jsonl) land in the
+ * walkthrough capture dir (walkthrough-out.ts); run output only, nothing from a
+ * run is committed.
  *
  * Selectors (read from source):
  *   mode selector  app/src/components/dashboard/chat/ComposerModeChip.tsx:41  data-testid="composer-mode-selector"

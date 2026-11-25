@@ -33,15 +33,12 @@ Frontend unit tests use Vitest (`pnpm test`); Playwright specs live in `app/test
 
 ## Demo videos
 
-The tree publishes no recorded clips; [`DEMOS.md`](DEMOS.md) lists what a reader can look at
-instead. A clip is made by the recorder that lives in this tree — `scripts/record_demo.py`,
-not a maintainer-only tool kept outside it. It drives Playwright's `record_video` against the
-built app the product server serves on `:8765`, films the cases `chat`, `shell`, `help` and
-`edit`, and converts each recording to an animated WebP with ffmpeg, into `/tmp/ephe_demo`.
-It needs ffmpeg on `PATH` (or `EPHE_FFMPEG_BIN`) and a cached Playwright Chromium (or
-`EPHE_CHROME_BIN`), and it says so and stops when either is missing. Running it puts nothing
-in the repository: a generated image enters the tree only when a committed document names,
-for that file, the surface it targets and the decision it is evidence for.
+The tree publishes no recorded clips; [`DEMOS.md`](DEMOS.md) is the home for the recorder —
+`scripts/record_demo.py`, its four cases, its `/tmp/ephe_demo` output and the `preflight()`
+that refuses before a browser opens. Two facts live here rather than there because a developer
+hits them first: each recording is converted to an animated WebP with ffmpeg, and the two
+tools it needs are found through `PATH` and the Playwright cache, overridable with
+`EPHE_FFMPEG_BIN` and `EPHE_CHROME_BIN`.
 
 ## Project Structure
 
