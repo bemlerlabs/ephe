@@ -54,6 +54,9 @@ def _route_category_names() -> list[str]:
         if isinstance(node, ast.FunctionDef) and node.name == "_breakdown"
     )
     loop = next(node for node in ast.walk(fn) if isinstance(node, ast.For))
+    # Reading this shape is the point of the case: a route that stops iterating a literal
+    # tuple of pairs has changed the contract this file holds it to.
+    assert isinstance(loop.iter, ast.Tuple), "the route no longer iterates a literal tuple of pairs"
     names: list[str] = []
     for element in loop.iter.elts:  # for name, chars in (("Messages", hist), ...)
         assert isinstance(element, ast.Tuple) and len(element.elts) == 2
