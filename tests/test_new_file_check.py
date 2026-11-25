@@ -406,3 +406,170 @@ class TestProductTextIsNamedNotSilenced:
         """GIVEN the named asset with a tell and German lines WHEN the verdict is built THEN the tell survives the exemption."""
         rows = check.violations([ASSET], set(), {ASSET: 3}, {ASSET: 56})
         assert rows == [(ASSET, 3, 0)]
+
+
+#: The whole-tree entry has its own cases below because it is the one entry no injected
+#: seam reaches: it asks git for the paths and reads their bytes off the disk.
+
+
+def _git(root: Path, *args: str) -> str:
+    """One git call against the fixture repository, output returned."""
+    import subprocess
+
+    done = subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Fixture",
+            "-c",
+            "user.email=fixture@example.invalid",
+            "-C",
+            str(root),
+            *args,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return done.stdout
+
+
+def _git_repo(
+    root: Path,
+    tracked: dict[str, str],
+    *,
+    untracked: dict[str, str] | None = None,
+    ignored: dict[str, str] | None = None,
+) -> Path:
+    """A real checkout: committed files, working-tree files, and files git ignores.
+
+    `git ls-files` is the whole gate's input on this path, so the fixture has to be a
+    repository rather than a directory of text: which of these files the gate sees is
+    the thing under test.
+    """
+    root.mkdir(parents=True, exist_ok=True)
+    _git(root, "init", "-q")
+
+    def write(rel: str, text: str) -> None:
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+
+    for rel, text in (ignored or {}).items():
+        write(".gitignore", f"{rel}\n")
+    for rel, text in tracked.items():
+        write(rel, text)
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "seed the fixture")
+    for rel, text in (untracked or {}).items():
+        write(rel, text)
+    return root
+
+
+def _listed(root: Path) -> list[str]:
+    """What the gate's own two git calls return for this checkout."""
+    tracked = _git(root, "ls-files").splitlines()
+    untracked = _git(root, "ls-files", "--others", "--exclude-standard").splitlines()
+    return sorted(set(tracked) | set(untracked))
+
+
+def _walk(root: Path, tmp_path: Path, *flags: str) -> int:
+    """The whole-tree entry: no path list, no reader, git and the disk only."""
+    return check.main(
+        [
+            "--root", str(root),
+            "--prose-baseline", str(prose_baseline(tmp_path, {})),
+            "--language-baseline", str(german_baseline(tmp_path, {})),
+            *flags,
+        ]
+    )
+
+
+class TestTheWholeTreeWalkAsksGit:
+    """The entry a commit hook never calls and a wave never runs: no `--paths-from`."""
+
+    def test_the_walk_judges_every_path_git_lists_and_passes(self, tmp_path, capsys):
+        """GIVEN a clean fixture checkout WHEN the whole-tree entry runs THEN its own count is the verdict."""
+        repo = _git_repo(
+            tmp_path / "checkout",
+            {"core/order.py": clean_block(3), "scripts/tool_main.py": clean_block(2)},
+            untracked={"scripts/tool_extra.py": clean_block(2)},
+            ignored={"build/dropped.py": tell_block(3)},
+        )
+        code = _walk(repo, tmp_path)
+        out = capsys.readouterr().out
+        assert code == 0, out
+        assert f"{len(_listed(repo))} path(s) neither baseline covers are clean" in out, out
+        assert len(_listed(repo)) == 4
+        assert "build/dropped.py" not in out
+
+    def test_the_walk_judges_a_file_that_was_never_committed(self, tmp_path, capsys):
+        """GIVEN one untracked file carrying tells WHEN the whole-tree entry runs THEN it is named.
+
+        This is the wave-3 shape over real git: the file is absent from
+        `git ls-files`, so only the `--others --exclude-standard` call can reach it.
+        """
+        repo = _git_repo(
+            tmp_path / "checkout",
+            {"core/order.py": clean_block(2)},
+            untracked={"scripts/brand_new.py": clean_block(1) + "\n" + tell_block(3)},
+        )
+        code = _walk(repo, tmp_path)
+        out = capsys.readouterr().out
+        assert code == 1, out
+        assert "scripts/brand_new.py: 3 tell(s)" in out, out
+
+    def test_both_entries_report_the_same_verdict_for_the_same_paths(self, tmp_path, capsys):
+        """GIVEN one checkout WHEN both entries judge it THEN the two verdicts are the same text."""
+        repo = _git_repo(
+            tmp_path / "checkout",
+            {"core/order.py": clean_block(2), "scripts/tool_main.py": clean_block(3)},
+            untracked={"scripts/tool_extra.py": clean_block(2)},
+        )
+        listing = tmp_path / "paths.txt"
+        listing.write_text("\n".join(_listed(repo)) + "\n", encoding="utf-8")
+
+        walked = _walk(repo, tmp_path)
+        walked_out = capsys.readouterr().out
+
+        listed = check.main(
+            [
+                "--root", str(repo),
+                "--prose-baseline", str(prose_baseline(tmp_path, {})),
+                "--language-baseline", str(german_baseline(tmp_path, {})),
+                "--paths-from", str(listing),
+            ]
+        )
+        listed_out = capsys.readouterr().out
+
+        assert walked == listed == 0
+        assert walked_out == listed_out
+
+    def test_a_directory_that_is_no_checkout_is_an_error_naming_the_call(self, tmp_path, capsys):
+        """GIVEN a directory with no repository WHEN the whole-tree entry runs THEN it errors."""
+        code = _walk(tmp_path / "not-a-checkout", tmp_path)
+        err = capsys.readouterr().err
+        assert code == 2
+        assert "ERROR" in err
+        assert "git failed" in err
+
+    def test_a_walk_without_its_git_call_never_reports_a_clean_tree(self, tmp_path, capsys, monkeypatch):
+        """GIVEN the walk's git helper missing from the module WHEN the entry runs THEN nothing passes.
+
+        The accident this case exists for: a wave's edit removed the helper that the
+        whole-tree entry calls, every injected-path case stayed green, and the gate
+        would have gone silent on a tree carrying findings.
+        """
+        repo = _git_repo(
+            tmp_path / "checkout",
+            {"core/order.py": clean_block(2)},
+            untracked={"scripts/brand_new.py": clean_block(1) + "\n" + tell_block(3)},
+        )
+        monkeypatch.delattr(check, "run_git", raising=False)
+        try:
+            code = _walk(repo, tmp_path)
+        except NameError:
+            code = 1
+        out = capsys.readouterr().out
+        assert code != 0
+        assert "PASS" not in out

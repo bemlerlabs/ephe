@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -927,3 +928,441 @@ def test_a_local_index_whose_artifact_hash_disagrees_is_refused_by_the_service(
     assert result["status"] == "hash_mismatch", result
     assert result["expected"] == FORGED, result
     assert not (device / "plugins" / "alpha").exists()
+
+
+class TestTheTerminalReportsWhatTheChainChecked:
+    """The five answers the verb owes a reader at a terminal, driven through `ephe plugin`."""
+
+    def test_a_signed_install_prints_the_digest_the_key_covers_beside_the_bytes_that_arrived(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The record and the artifact carry different digests, and both belong on the screen."""
+        payload, record, public = _signed_tree(tmp_path / "src", "alpha", "1.0.0")
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(
+            tmp_path / "market",
+            [_v2_version("1.0.0", artifact, sha256_hex(payload), signature=record)],
+            trust="community",
+        )
+        _publish_user_key(device, public)
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        code, out, err = _run_cli(["plugin", "install", "alpha", "--source", source["id"]], capsys)
+
+        assert code == 0, (out, err)
+        assert record["sha256"] != sha256_hex(payload)
+        assert f"  hash     sha256 {sha256_hex(payload)}" in out, out
+        assert f"  signed   sha256 {record['sha256']} — what the key covers" in out, out
+        assert "  key      ES256 kid=publisher, verified by the user key" in out, out
+        assert "(config:trusted-keys/publisher.pub.pem)" in out, out
+        assert "  source   local" in out, out
+        assert "key      none" not in out, out
+
+    def test_a_signature_no_key_answers_names_the_signer_and_where_a_key_belongs(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The record demands a signer the keyring does not hold: the refusal has to say which."""
+        payload, record, _public = _signed_tree(tmp_path / "src", "alpha", "1.0.0")
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(
+            tmp_path / "market",
+            [_v2_version("1.0.0", artifact, sha256_hex(payload), signature=record)],
+            trust="community",
+        )
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        code, out, err = _run_cli(["plugin", "install", "alpha", "--source", source["id"]], capsys)
+
+        assert code == 1, (out, err)
+        assert "signature_invalid" in err, err
+        assert "kid=publisher" in err, err
+        assert "trusted-keys/*.pub.pem" in err, err
+        assert not (device / "plugins" / "alpha").exists()
+
+    def test_a_version_the_catalog_does_not_offer_points_at_the_catalog(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """`--version` over a name the index holds, with no such row: the answer names the verb to run."""
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0"))
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(tmp_path / "market", [_v2_version("1.0.0", artifact, sha256_hex(payload))])
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        code, out, err = _run_cli(
+            ["plugin", "install", "alpha", "--source", source["id"], "--version", "9.9.9"], capsys
+        )
+
+        assert code == 1, (out, err)
+        assert "unknown_version" in err, err
+        assert "ephe plugin list" in err, err
+        assert not (device / "plugins" / "alpha").exists()
+
+    def test_a_source_id_the_registry_does_not_hold_is_answered_with_a_code(
+        self, device, tmp_path, capsys
+    ) -> None:
+        """The plan call itself raising is an answer, not a traceback at the terminal."""
+        code, out, err = _run_cli(
+            ["plugin", "install", "alpha", "--source", "no-such-source"], capsys
+        )
+
+        assert code == 1, (out, err)
+        assert "unknown_source" in err, err
+        assert "no-such-source" in err, err
+        assert "Traceback" not in out + err
+        assert not (device / "plugins").exists() or not _tree_state(device / "plugins")
+
+    def test_a_bundle_already_installed_says_so_and_writes_nothing(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The second call over the same version is a report: same bytes, same tree, exit zero."""
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0"))
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(tmp_path / "market", [_v2_version("1.0.0", artifact, sha256_hex(payload))])
+        source = _local_source(tmp_path, monkeypatch, index)
+        argv = [
+            "plugin",
+            "install",
+            "alpha",
+            "--source",
+            source["id"],
+            "--trust-local",
+            "--expected-sha256",
+            sha256_hex(payload),
+        ]
+
+        first, out, err = _run_cli(argv, capsys)
+        before = _tree_state(device / "plugins")
+        code, out, err = _run_cli(argv, capsys)
+
+        assert first == 0, (out, err)
+        assert code == 0, (out, err)
+        assert "already installed" in out, out
+        assert "the catalog offers" in out, out
+        assert _tree_state(device / "plugins") == before
+
+    def test_the_json_answer_carries_the_record_a_key_answered(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """`--json` is read by a script, so the verified record has to be in its body."""
+        payload, record, public = _signed_tree(tmp_path / "src", "alpha", "1.0.0")
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(
+            tmp_path / "market",
+            [_v2_version("1.0.0", artifact, sha256_hex(payload), signature=record)],
+            trust="community",
+        )
+        _publish_user_key(device, public)
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        code, out, err = _run_cli(
+            ["plugin", "install", "alpha", "--source", source["id"], "--json"], capsys
+        )
+
+        assert code == 0, (out, err)
+        answer = json.loads(out)
+        assert answer["status"] == "extracted", answer
+        assert answer["verified"]["signature"]["kid"] == "publisher", answer
+        assert answer["verified"]["signature_kind"] == "listing", answer
+
+    def test_the_json_answer_for_a_refusal_keeps_the_code_and_exits_one(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """A machine-readable refusal is still a refusal: exit one, code in the body."""
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0"))
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(tmp_path / "market", [_v2_version("1.0.0", artifact, sha256_hex(payload))])
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        code, out, err = _run_cli(
+            [
+                "plugin",
+                "install",
+                "alpha",
+                "--source",
+                source["id"],
+                "--trust-local",
+                "--expected-sha256",
+                FORGED,
+                "--json",
+            ],
+            capsys,
+        )
+
+        assert code == 1, (out, err)
+        answer = json.loads(out)
+        assert answer["status"] != "extracted", answer
+        assert "hash_mismatch" in json.dumps(answer), answer
+        assert not (device / "plugins" / "alpha").exists()
+
+    def test_an_artifact_the_source_folder_does_not_hold_is_answered_with_a_code(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The index promises bytes the folder never carried: the verb answers with a code.
+
+        The fetcher names this `artifact_missing`; the staging installer folds every
+        fetch failure into `fetch_failed`, which is what the terminal gets to see.
+        """
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0"))
+        (tmp_path / "market" / "artifacts").mkdir(parents=True, exist_ok=True)
+        index = _v2_index(
+            tmp_path / "market",
+            [_v2_version("1.0.0", tmp_path / "market" / "artifacts" / "alpha-1.0.0.zip", sha256_hex(payload))],
+        )
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        code, out, err = _run_cli(
+            [
+                "plugin",
+                "install",
+                "alpha",
+                "--source",
+                source["id"],
+                "--trust-local",
+                "--expected-sha256",
+                sha256_hex(payload),
+            ],
+            capsys,
+        )
+
+        assert code == 1, (out, err)
+        assert "fetch_failed" in err, err
+        assert "Traceback" not in out + err
+        assert not (device / "plugins" / "alpha").exists()
+
+    def test_bytes_that_are_no_archive_are_answered_with_a_code_and_no_traceback(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The hash matches the garbage exactly, so only the archive reader can stop it."""
+        payload = b"these bytes are not an archive, and the hash below says so"
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(tmp_path / "market", [_v2_version("1.0.0", artifact, sha256_hex(payload))])
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        code, out, err = _run_cli(
+            [
+                "plugin",
+                "install",
+                "alpha",
+                "--source",
+                source["id"],
+                "--trust-local",
+                "--expected-sha256",
+                sha256_hex(payload),
+            ],
+            capsys,
+        )
+
+        assert code == 1, (out, err)
+        assert "unsafe_archive" in err, err
+        assert "not a zip archive" in err, err
+        assert "Traceback" not in out + err
+        assert not (device / "plugins" / "alpha").exists()
+
+    def test_the_install_report_survives_a_lifecycle_that_cannot_answer(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The state line is the one fact the report can lose; the four it owes it cannot.
+
+        A lifecycle that raises is a bundle whose state record is unreadable on this
+        machine. The install already happened, so the verb keeps printing version,
+        hash, key and source and leaves the switch line out.
+        """
+        from core.plugin_lifecycle import PluginLifecycle
+
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0"))
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(tmp_path / "market", [_v2_version("1.0.0", artifact, sha256_hex(payload))])
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        def unreadable(self, *_args, **_kwargs):
+            raise RuntimeError("the state record cannot be read")
+
+        monkeypatch.setattr(PluginLifecycle, "snapshot", unreadable)
+        code, out, err = _run_cli(
+            [
+                "plugin",
+                "install",
+                "alpha",
+                "--source",
+                source["id"],
+                "--trust-local",
+                "--expected-sha256",
+                sha256_hex(payload),
+            ],
+            capsys,
+        )
+
+        assert code == 0, (out, err)
+        assert "installed: alpha 1.0.0" in out, out
+        assert "  version  1.0.0" in out, out
+        assert f"  hash     sha256 {sha256_hex(payload)}" in out, out
+        assert "key      none" in out, out
+        assert "  source   local" in out, out
+        assert "state    " not in out, out
+
+    def test_a_catalog_pulled_between_the_plan_and_the_approval_is_a_refusal(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The second read is the one that installs, so a plan that changed is refused.
+
+        The approval arrives as a digest over the first plan. The catalog row going
+        away before the approved re-plan is the case the second read exists for.
+        """
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0", tool_families=["read"]))
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(
+            tmp_path / "market",
+            [_v2_version("1.0.0", artifact, sha256_hex(payload), tool_families=["read"])],
+        )
+        source = _local_source(tmp_path, monkeypatch, index)
+        digest = marketplace_planner.permission_delta(
+            None, {"tool_families": ["read"], "data_roots": []}
+        )["digest"]
+        real_plan = marketplace_planner.plan
+        calls = {"n": 0}
+
+        def plan_then_gone(*args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 2:
+                index.unlink()
+                shutil.rmtree(marketplace_sources.cache_dir(), ignore_errors=True)
+            return real_plan(*args, **kwargs)
+
+        monkeypatch.setattr(marketplace_planner, "plan", plan_then_gone)
+        code, out, err = _run_cli(
+            [
+                "plugin",
+                "install",
+                "alpha",
+                "--source",
+                source["id"],
+                "--trust-local",
+                "--expected-sha256",
+                sha256_hex(payload),
+                "--approve-permissions",
+                digest,
+            ],
+            capsys,
+        )
+
+        assert code == 1, (out, err)
+        assert calls["n"] == 2, out + err
+        assert "source_unavailable" in err, err
+        assert not (device / "plugins" / "alpha").exists()
+
+    def test_a_v1_listing_entry_with_a_verifiable_record_names_the_key(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The fallback the catalog cannot answer keeps the same honesty about its keys.
+
+        One entry, one url, one hash is all the v1 listing carries, so the signature
+        line is the only place a reader learns that a key answered for these bytes.
+        """
+        from core import plugin_listing
+
+        payload, record, public = _signed_tree(tmp_path / "src", "legacy-tool", "0.4.0")
+        _publish_user_key(device, public)
+        listing = tmp_path / "plugin-marketplace.json"
+        listing.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "plugins": [
+                        _listing_entry(
+                            "legacy-tool", "0.4.0", payload, trust="community", signature=record
+                        )
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(plugin_listing, "marketplace_path", lambda: listing)
+        monkeypatch.setattr(plugin_install, "_default_fetcher", lambda url: payload)
+
+        code, out, err = _run_cli(["plugin", "install", "legacy-tool"], capsys)
+
+        assert code == 0, (out, err)
+        assert "installed: legacy-tool (v0.4.0)" in out, out
+        assert "signature verified by the user key" in out, out
+        assert "(config:trusted-keys/publisher.pub.pem)" in out, out
+        assert f"sha256 {sha256_hex(payload)}" in out, out
+        assert (device / "plugins" / "legacy-tool" / "ephe-plugin.json").is_file()
+
+    def test_a_source_removed_between_the_plan_and_the_commit_is_a_refusal(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """The commit re-reads the source by itself, so a source withdrawn in between stops it.
+
+        Removing the source is an operator action on another terminal; the plan the
+        first read produced is stale the moment the registry no longer holds it.
+        """
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0"))
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(tmp_path / "market", [_v2_version("1.0.0", artifact, sha256_hex(payload))])
+        source = _local_source(tmp_path, monkeypatch, index)
+        registry = marketplace_sources.sources_path()
+        real_plan = marketplace_planner.plan
+
+        def plan_then_gone(*args, **kwargs):
+            result = real_plan(*args, **kwargs)
+            registry.unlink(missing_ok=True)
+            return result
+
+        monkeypatch.setattr(marketplace_planner, "plan", plan_then_gone)
+        code, out, err = _run_cli(
+            [
+                "plugin",
+                "install",
+                "alpha",
+                "--source",
+                source["id"],
+                "--trust-local",
+                "--expected-sha256",
+                sha256_hex(payload),
+            ],
+            capsys,
+        )
+
+        assert code == 1, (out, err)
+        assert "unknown_source" in err, err
+        assert "Traceback" not in out + err
+        assert not (device / "plugins" / "alpha").exists()
+
+    def test_an_installer_that_dies_is_answered_with_a_code_and_no_traceback(
+        self, device, tmp_path, monkeypatch, capsys
+    ) -> None:
+        """Nothing a staging crash throws may reach the terminal as a traceback.
+
+        The plan is ready and the bytes are on disk; the failure sits behind the
+        service, so the only thing the reader can get is a code and the name of the
+        exception class.
+        """
+        from core import plugin_market
+
+        payload = _zip_dir(_tree(tmp_path / "src", "alpha", "1.0.0"))
+        artifact = _write_artifact(tmp_path / "market" / "artifacts", "alpha", "1.0.0", payload)
+        index = _v2_index(tmp_path / "market", [_v2_version("1.0.0", artifact, sha256_hex(payload))])
+        source = _local_source(tmp_path, monkeypatch, index)
+
+        def dying(*_args, **_kwargs):
+            raise RuntimeError("staging caught fire")
+
+        monkeypatch.setattr(plugin_market, "install_from_marketplace", dying)
+        code, out, err = _run_cli(
+            [
+                "plugin",
+                "install",
+                "alpha",
+                "--source",
+                source["id"],
+                "--trust-local",
+                "--expected-sha256",
+                sha256_hex(payload),
+            ],
+            capsys,
+        )
+
+        assert code == 1, (out, err)
+        assert "install_failed (RuntimeError)" in err, err
+        assert "Traceback" not in out + err
+        assert not (device / "plugins" / "alpha").exists()
