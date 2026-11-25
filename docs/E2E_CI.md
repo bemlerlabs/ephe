@@ -199,8 +199,17 @@ before and after.
   today; only its contents and its serial barrier are described above.
 - WebKit and Firefox: the config has no such project, and the Python browser set skips four webkit cases
   (`Executable doesn't exist at …/ms-playwright/webkit-2336/pw_run.sh`). No coverage to claim.
-- `visual.spec.ts` needs `EPHE_VISUAL=1` (`playwright.config.ts:125-135`), and `dogfood`, `artifact-export`,
-  `setup-e2e` and `u6-focus` are ignored by the `chromium` project (`:102-110`). None ran.
+- `dogfood`, `artifact-export`, `setup-e2e` and `u6-focus` are ignored by the `chromium` project
+  (`:102-110`). None ran.
+- `visual.spec.ts` needs `EPHE_VISUAL=1` (`playwright.config.ts:125-135`). Run here on 2026-11-25 with
+  `--workers=1`: 18 of 18 red (rc=1, 20:25:37–20:29:19, Playwright 1.64.0 over `dist`). The reference set
+  is older than the screens it shoots — across the 16 comparable cases, 0 of 1213519 differing pixels
+  carry the colour the previous ground painted, and the large diffs move between the two warm tones the
+  references already hold, which is block geometry. Two cases had produced no image at all until the
+  reach fix (`936d9b3`): they waited on a test id the product no longer paints at 1280 px, and behind a
+  collapsed tier at 390 px. A re-take moves the reference set, so it waits on a decision from the owner.
+  Its provenance line prints `baseline provenance: unknown in this checkout` since the commit it named
+  stopped resolving here, and a capture puts a real one back.
 - `setup-e2e`'s remote-engine case has never run here. `EPHE_E2E_DGX_URL`
   (`setup-e2e/setup-e2e.spec.ts:34`) is unset on this machine, the case stops at `:46` with its own
   message, and the `test.setTimeout(CHAT_TIMEOUT + 60000)` at `:81` is a size someone chose after the
