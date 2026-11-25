@@ -201,6 +201,12 @@ before and after.
   (`Executable doesn't exist at …/ms-playwright/webkit-2336/pw_run.sh`). No coverage to claim.
 - `visual.spec.ts` needs `EPHE_VISUAL=1` (`playwright.config.ts:125-135`), and `dogfood`, `artifact-export`,
   `setup-e2e` and `u6-focus` are ignored by the `chromium` project (`:102-110`). None ran.
+- `setup-e2e`'s remote-engine case has never run here. `EPHE_E2E_DGX_URL`
+  (`setup-e2e/setup-e2e.spec.ts:34`) is unset on this machine, the case stops at `:46` with its own
+  message, and the `test.setTimeout(CHAT_TIMEOUT + 60000)` at `:81` is a size someone chose after the
+  leg hit the 60 s ceiling of `playwright.real.config.ts:33`. No run over a real endpoint has tested
+  what the case would show; the endpoint has to be named by whoever runs it, and no host is written
+  into the tree.
 - The W10-51 story in the old comment — four of the then-21 files left out, ten red assertions between
   them — has no home: `rg -n 'W10-51' app/tests/playwright/` is empty and `git log --all --grep='W10-51'`
   is empty. What the tree can show today is the guards those files now carry, listed above.
