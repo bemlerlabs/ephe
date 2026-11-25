@@ -15,7 +15,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
-    sys.path.insert(0, ROOT)
+    sys.path.insert(0, str(ROOT))
 
 from core.settings_schema import (  # noqa: E402
     normalize_field,
