@@ -49,6 +49,8 @@
     "appearanceFontScaleHint": "Scales the interface text in percent around the chosen base text size (80-150 percent); rem spacing stays. Applies right after saving.",
     "appearanceLanguage": "Language",
     "appearanceLanguageHint": "The language Ephe shows its own text in — the thinking box in the terminal reads its words from here. The model's answer follows the prompt.",
+    "appearanceLanguageOptionDe": "German",
+    "appearanceLanguageOptionEn": "English",
     "appearanceReadingWidth": "Reading width (px)",
     "appearanceReadingWidthHint": "Caps the conversation width between 480 and 1200 pixels; on narrow windows the available width stays the limit.",
     "appearanceShowTimestamps": "Show timestamps",

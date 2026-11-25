@@ -751,5 +751,7 @@ def test_the_writing_specs_are_enumerated() -> None:
     measured = {spec.name: non_get_lines(spec) for spec in writing_specs()}
     assert measured == {
         "artifact-export.spec.ts": [12, 44],
-        "setup-e2e.spec.ts": [183],
+        # 183 before the specs were type-checked (2026-11-25): the guards above the
+        # reset call grew by four lines, the call itself is unchanged.
+        "setup-e2e.spec.ts": [187],
     }, f"the non-GET set moved: {measured}"

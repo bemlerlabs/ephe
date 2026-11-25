@@ -231,6 +231,8 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # process's environment, where no other process and no later start could read it back.
     "appearance.language": {"type": "select", "default": "de",
                             "options": ["de", "en"],
+                            "optionLabels": {"de": ["Deutsch", "German"],
+                                             "en": ["Englisch", "English"]},
                             "label": "Language", "labelEn": "Language",
                             "labelKey": "settings.appearanceLanguage",
                             "hintKey": "settings.appearanceLanguageHint"},

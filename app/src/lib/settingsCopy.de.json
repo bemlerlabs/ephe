@@ -49,6 +49,8 @@
     "appearanceFontScaleHint": "Skaliert die Schrift der Oberfläche in Prozent um die gewählte Grundschrift (80-150 Prozent); die Abstände in rem bleiben. Wirkt direkt nach dem Speichern.",
     "appearanceLanguage": "Sprache",
     "appearanceLanguageHint": "In welcher Sprache Ephe seine eigenen Texte zeigt — den Denkkasten im Terminal füllt dieses Feld. Die Antwort des Modells folgt der Eingabe.",
+    "appearanceLanguageOptionDe": "Deutsch",
+    "appearanceLanguageOptionEn": "Englisch",
     "appearanceReadingWidth": "Lesebreite (px)",
     "appearanceReadingWidthHint": "Begrenzt die Breite des Gesprächs zwischen 480 und 1200 Pixeln; auf schmalen Fenstern bleibt die verfügbare Breite die Grenze.",
     "appearanceShowTimestamps": "Zeitstempel anzeigen",

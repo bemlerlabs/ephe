@@ -113,6 +113,14 @@ def _resolve_vars(token: str) -> str | None:
     return None
 
 
+def _is_package_coordinate(token: str) -> bool:
+    """An npm coordinate such as @tailwindcss/oxide-linux-x64-gnu@4.3.5.
+
+    Its slash names a registry scope; the token is never a file the script touches. install.sh carries one per
+    libc when it pulls the platform binding npm skipped (npm/cli#4828)."""
+    return token.startswith("@") and token.count("@") >= 2
+
+
 def _candidate_paths(text: str) -> list[str]:
     out: set[str] = set()
     quoted = re.compile(r'"[^"]*"|\'[^\']*\'')
@@ -137,6 +145,8 @@ def _candidate_paths(text: str) -> list[str]:
                 if not re.search(rf"\.{KNOWN_EXT}$", resolved):
                     continue
             if not all(len(seg) >= MIN_SEGMENT_LEN for seg in resolved.split("/")):
+                continue
+            if _is_package_coordinate(resolved):
                 continue
             out.add(resolved)
     return sorted(out)
