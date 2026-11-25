@@ -14,6 +14,7 @@ and the final state is what a gate can assert on.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import re
 import subprocess
 import sys
@@ -62,6 +63,25 @@ PROTECTED_PATHS = re.compile(
     r"|^(?:\./)?(?:\.architecture-baseline\.json|tests/home-isolation-baseline\.json"
     r"|scripts/language-baseline\.json)$"
 )
+
+#: Paths whose German is the sentence a person reads on the screen, named one by one. A settings
+#: row shows the text its `hintKey` names and the app locale does the same for every other label,
+#: so writing those in English would take the German away from a reader who has no English half to
+#: fall back on. This is the tree's only such list, and it is a path and nothing else: German in
+#: ordinary code stays a finding wherever it sits, and no file earns a place here by what it
+#: contains. The instrument's own legs read it differently on purpose — the line ratchet leaves
+#: these paths out, the surface leg reads them all the harder, because a string in a copy file that
+#: no reader is ever shown is developer prose in copy clothing.
+PRODUCT_TEXT_PATHS = (
+    "app/src/locales/*.json",
+    "app/src/lib/settingsCopy.de.json",
+)
+
+
+def carries_user_text(rel: str) -> bool:
+    """Whether `rel` is one of the named paths whose German the product shows its user."""
+    return any(fnmatch.fnmatchcase(rel, pattern) for pattern in PRODUCT_TEXT_PATHS)
+
 
 EXTS = {
     ".py", ".ts", ".tsx", ".rs", ".mjs", ".js", ".jsx", ".md", ".json",

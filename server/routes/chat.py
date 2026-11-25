@@ -1335,17 +1335,22 @@ def _emit_file_result_event(
         emit({"type": "activity", "cmd": f"{name} → {result[:40]}", "status": "done"})
 
 
+#: What a reader is shown is decided by `reason_code`: the bundle holds the sentence under
+#: `serverError.<code>` in the reader's own language. What sits here is the fallback for a
+#: client that has not read a bundle yet, so it is English — the one language a client
+#: without a bundle cannot be assumed to share. The German the chat panel shows lives in
+#: `serverError.silent_engine_turn` and `silent_after_tools_turn` of
+#: `app/src/locales/de.json`, byte for byte the sentences that stood here before
+#: (measured 2026-11-24, the last German product text in the server's chat path).
 SILENT_ENGINE_TURN = (
-    "Die Engine hat nichts zurückgegeben — kein Text, kein Werkzeuglauf, und "
-    "sie hat nicht verraten, warum. Versuch es noch einmal; wenn es bleibt, "
-    "sieh in den Einstellungen nach, welche Engine aktiv ist."
+    "The engine returned nothing — no text, no tool run, and it gave no reason. "
+    "Try again; if it stays, check which engine is active in Settings."
 )
 
 
 SILENT_AFTER_TOOLS_TURN = (
-    "Die Werkzeuge sind durchgelaufen, aber zum Schluss hat die Engine nichts "
-    "mehr gesagt. Was erzeugt wurde, liegt in der Werkbank — die Antwort selbst "
-    "ist ausgeblieben. Versuch es noch einmal."
+    "The tools ran, but the engine said nothing at the end. What was created is in the "
+    "workbench — the answer itself never arrived. Try again."
 )
 
 

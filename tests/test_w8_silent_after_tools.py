@@ -20,6 +20,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tests.support import shipped_copy  # noqa: E402
+
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
@@ -85,4 +87,9 @@ def test_given_tool_run_without_final_answer_then_the_honest_frame_names_it(clie
     assert response.status_code == 200, response.text
     errors = [e for e in _sse(response.text) if e.get("type") == "error"]
     assert errors, "a run without final words must not be a success"
-    assert "Werkzeug" in errors[0]["msg"] or "Werkbank" in errors[0]["msg"]
+    # The server names the frame by its `reason_code` and carries an English fallback for a client
+    # with no bundle; the sentence the reader sees is the leaf that code names in the German
+    # bundle, and that leaf is where the frame has to name the workbench the tools filled.
+    code = errors[0]["reason_code"]
+    leaf = shipped_copy.resolve("de", f"serverError.{code}")
+    assert "Werkzeug" in leaf or "Werkbank" in leaf, f"{code}: {leaf}"

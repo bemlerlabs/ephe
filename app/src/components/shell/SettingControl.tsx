@@ -73,12 +73,19 @@ export default function SettingControl({
   onCommit: (next: string | number | boolean) => void
 }) {
   const id = `setting-field-${field.key}`
-  const { i18n } = useTranslation()
-  const isDe = (i18n?.language || 'de').startsWith('de')
-  /** I6-3: value text from the register; without a label the identifier stays. */
-  const optionText = (opt: string) => {
-    const hit = field.optionLabels?.find((o) => o.value === opt)
-    return hit ? (isDe ? hit.label : hit.labelEn) : opt
+  const { i18n, t } = useTranslation()
+  const isDe = (i18n.language || 'de').startsWith('de')
+  const labels = field.optionLabels ?? []
+  const keys = field.optionKeys ?? []
+  /**
+   * I6-3: value text from the register; without a label the identifier stays. LS-2: options,
+   * `optionLabels` and `optionKeys` are built from one list in `deep_view()`, so the map index
+   * reads all three — `tests/test_settings_hints.py` pins that the three stay in step.
+   */
+  const optionText = (opt: string, i: number) => {
+    const text = (isDe ? labels[i]?.label : labels[i]?.labelEn) ?? opt
+    const key = keys[i]?.key
+    return key ? t(key, { defaultValue: text }) : text
   }
 
   if (field.type === 'bool') {
@@ -102,9 +109,9 @@ export default function SettingControl({
         data-testid={`setting-select-${field.key}`}
         className={`${CONTROL_CLASS} min-w-32 pr-8 max-lg:min-h-11`}
       >
-        {(field.options ?? []).map((opt) => (
+        {(field.options ?? []).map((opt, i) => (
           <option key={opt} value={opt}>
-            {optionText(opt)}
+            {optionText(opt, i)}
           </option>
         ))}
       </select>

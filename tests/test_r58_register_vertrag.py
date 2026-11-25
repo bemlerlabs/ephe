@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.settings_hints import HINTS  # noqa: E402
+from core.settings_hints import HINTS, hint_key  # noqa: E402
 from core.settings_schema import (  # noqa: E402
     SECTIONS,
     SCHEMA,
@@ -58,8 +58,8 @@ def test_every_field_is_read_by_an_accessor() -> None:
 
 def test_every_field_has_a_description_text() -> None:
     # Wave 2/B1: a multiline field is not a register row. Its card carries the copy
-    # from the locale files (both languages), because the German half of a HINTS pair
-    # may not grow any more. The keys below are that card's contract.
+    # from the locale files (both languages) and the register names only the keys,
+    # so no second sentence of it exists in Python. The keys below are that contract.
     cards = {"chat.custom_instructions": ("settings.customInstructionsTitle",
                                           "settings.customInstructionsHint"),
              "plugins.plugin_lifecycle_read_only": ("settings.pluginReadOnly",
@@ -151,7 +151,11 @@ def test_deep_view_delivers_bounds_texts_and_values(tmp_path, monkeypatch):
         entry = entries[key]
         assert entry["value"] == meta["default"], key
         if key in HINTS:
-            assert entry["hint"] == HINTS[key][0] and entry["hintEn"] == HINTS[key][1], key
+            # Wave L: the register carries one English sentence under both fields, and the
+            # German half is the bundle leaf that this derived key names. A field whose key
+            # drifted would hand the German reader the English fallback, silently.
+            assert entry["hint"] == entry["hintEn"] == HINTS[key], key
+            assert entry["hintKey"] == hint_key(key), key
         elif meta.get("hintKey"):
             # The copy lives in the locale files, so the register carries the key
             # instead of a second German/English pair.

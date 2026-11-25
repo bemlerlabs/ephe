@@ -30,7 +30,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from core.settings_hints import HINTS
+from core.settings_hints import HINTS, hint_key, label_key, option_key
 from core.engine_config import config_root
 
 SCHEMA_VERSION = 1
@@ -50,12 +50,14 @@ SCHEMA_VERSION = 1
 SCHEMA: dict[str, dict[str, Any]] = {
     # Chat / behaviour
     "chat.show_reasoning": {"type": "bool", "default": True,
-                            "label": "Denkprozess anzeigen", "labelEn": "Show reasoning"},
+                            "label": "Show reasoning", "labelEn": "Show reasoning",
+                            "labelKey": "settings.chatShowReasoning"},
     "chat.details_mode": {"type": "select", "default": "expanded",
                           "options": ["expanded", "collapsed"],
                           "optionLabels": {"expanded": ["Ausgeklappt", "Expanded"],
                                            "collapsed": ["Eingeklappt", "Collapsed"]},
-                          "label": "Antwortprozess", "labelEn": "Response process"},
+                          "label": "Response process", "labelEn": "Response process",
+                          "labelKey": "settings.chatDetailsMode"},
     # I6-3: the behaviour fields. Each is read where it shows, always by its full key
     # through the accessor wiring, otherwise tests/test_settings_surface_is_real.py turns
     # red: app/src/lib/stream.ts and app/src/lib/api/http.ts for the idle bound,
@@ -65,44 +67,54 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # app/src/components/dashboard/bubble/toolStreamRows.tsx for the four display switches.
     # None of them reaches the core.
     "chat.allow_input_while_streaming": {"type": "bool", "default": True,
-                                         "label": "Eingabe während der Antwort",
+                                         "label": "Typing during the answer",
+                                         "labelKey": "settings.chatAllowInputWhileStreaming",
                                          "labelEn": "Typing during the answer"},
     "chat.show_tool_count": {"type": "bool", "default": True,
-                             "label": "Anzahl der Werkzeug-Aufrufe",
+                             "label": "Tool-call count",
+                             "labelKey": "settings.chatShowToolCount",
                              "labelEn": "Tool-call count"},
     "chat.expand_tool_calls": {"type": "bool", "default": False,
-                               "label": "Werkzeug-Gruppen aufklappen",
+                               "label": "Expand tool groups",
+                               "labelKey": "settings.chatExpandToolCalls",
                                "labelEn": "Expand tool groups"},
     "chat.show_thinking_loader": {"type": "bool", "default": True,
-                                  "label": "Loader der Denkphase",
+                                  "label": "Thinking loader",
+                                  "labelKey": "settings.chatShowThinkingLoader",
                                   "labelEn": "Thinking loader"},
     "chat.stream_idle_seconds": {"type": "number", "default": 60, "min": 10, "max": 600,
-                                 "label": "Stream-Abbruch nach Stille (s)",
+                                 "label": "Abort stream after silence (s)",
+                                 "labelKey": "settings.chatStreamIdleSeconds",
                                  "labelEn": "Abort stream after silence (s)"},
     "chat.duration_format": {"type": "select", "default": "compact",
                              "options": ["compact", "clock"],
                              "optionLabels": {"compact": ["Knapp (4m 12s)", "Compact (4m 12s)"],
                                               "clock": ["Uhrzeit (04:12)", "Clock (04:12)"]},
-                             "label": "Dauer-Format", "labelEn": "Duration format"},
+                             "label": "Duration format", "labelEn": "Duration format",
+                             "labelKey": "settings.chatDurationFormat"},
     # I6-3: the two core fields that before this only existed as a constant. The readers
     # are core/chat_context.py for the cap and core/chat_tools.py for the attempts, which
     # core/chat_prompt.py passes into the prompt.
     "chat.tool_result_chars": {"type": "number", "default": 32000, "min": 2000, "max": 120000,
-                               "label": "Werkzeug-Ausgabe begrenzen (Zeichen)",
+                               "label": "Cap tool output (characters)",
+                               "labelKey": "settings.chatToolResultChars",
                                "labelEn": "Cap tool output (characters)"},
     "chat.continue_attempts": {"type": "number", "default": 2, "min": 0, "max": 5,
-                               "label": "Abgebrochene Pläne weiterführen (Versuche)",
+                               "label": "Continue aborted plans (attempts)",
+                               "labelKey": "settings.chatContinueAttempts",
                                "labelEn": "Continue aborted plans (attempts)"},
     # Wave 2 (B1): the user's own instruction layer. `core/chat_prompt.py` reads it as
     # a provenance-marked stage of its own; the editor stops at `max_chars`, and the
     # prompt marks a truncation if a stored value ever exceeds it.
     "chat.custom_instructions": {"type": "text", "default": "", "max_chars": 4000,
                                  "multiline": True,
-                                 "label": "Eigene Anweisungen",
+                                 "label": "Custom instructions",
+                                 "labelKey": "settings.chatCustomInstructions",
                                  "labelEn": "Custom instructions"},
     # Appearance
     "appearance.font_scale": {"type": "number", "default": 100, "min": 80, "max": 150,
-                              "label": "Schriftgröße (%)", "labelEn": "Font scale (%)"},
+                              "label": "Font scale (%)", "labelEn": "Font scale (%)",
+                              "labelKey": "settings.appearanceFontScale"},
     # G2: the base step under the percentage. Until this field the 15 px were a
     # constant, so the type scale was a build fact rather than a choice.
     "appearance.base_font_px": {"type": "select", "default": "15",
@@ -112,12 +124,15 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                     "14": ["Mittel (14 px)", "Medium (14 px)"],
                                     "15": ["Groß (15 px)", "Large (15 px)"],
                                 },
-                                "label": "Grundschrift (px)", "labelEn": "Base text size (px)"},
+                                "label": "Base text size (px)", "labelEn": "Base text size (px)",
+                                "labelKey": "settings.appearanceBaseFontPx"},
     "appearance.chat_font_scale": {"type": "number", "default": 100, "min": 80, "max": 150,
-                                   "label": "Schriftgröße im Gespräch (%)",
+                                   "label": "Chat font scale (%)",
+                                   "labelKey": "settings.appearanceChatFontScale",
                                    "labelEn": "Chat font scale (%)"},
     "appearance.reading_width": {"type": "number", "default": 768, "min": 480, "max": 1200,
-                                 "label": "Lesebreite (px)", "labelEn": "Reading width (px)"},
+                                 "label": "Reading width (px)", "labelEn": "Reading width (px)",
+                                 "labelKey": "settings.appearanceReadingWidth"},
     "appearance.accent": {"type": "select", "default": "ember",
                           "options": ["ember", "indigo", "plum", "mono"],
                           "optionLabels": {
@@ -126,13 +141,16 @@ SCHEMA: dict[str, dict[str, Any]] = {
                               "plum": ["Pflaume", "Plum"],
                               "mono": ["Monochrom", "Mono"],
                           },
-                          "label": "Akzent", "labelEn": "Accent"},
+                          "label": "Accent", "labelEn": "Accent",
+                          "labelKey": "settings.appearanceAccent"},
     "appearance.animations_enabled": {"type": "bool", "default": True,
-                                      "label": "Animationen aktiv", "labelEn": "Animations enabled"},
+                                      "label": "Animations enabled", "labelEn": "Animations enabled",
+                                      "labelKey": "settings.appearanceAnimationsEnabled"},
     # Desktop-only opt-in. The reader is the client bootstrap (app/src/main.tsx), which asks
     # the shell bridge to register the chord; a failed registration writes the value back off.
     "shortcuts.global_enabled": {"type": "bool", "default": False,
-                                 "label": "Globales Kürzel (Desktop)",
+                                 "label": "Global shortcut (desktop)",
+                                 "labelKey": "settings.shortcutsGlobalEnabled",
                                  "labelEn": "Global shortcut (desktop)"},
     # The companion (owner order 2026-10-17): the bee outlives the onboarding.
     # Every field is read by WorkspaceCompanion / WelcomeEmptyState / spiritAudio.
@@ -148,19 +166,21 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                       "release": ["Nur veröffentlichte Releases", "Released versions only"],
                                       "commit": ["Jeder Commit aus main", "Every commit from main"],
                                   },
-                                  "label": "Update-Kanal", "labelEn": "Update channel"},
+                                  "label": "Update channel", "labelEn": "Update channel",
+                                  "labelKey": "settings.appearanceUpdateChannel"},
     "appearance.companion_enabled": {"type": "bool", "default": False,
-                                     "label": "Begleiter (Pet) im Arbeitsbereich",
+                                     "label": "Workspace companion (pet)",
+                                     "labelKey": "settings.appearanceCompanionEnabled",
                                      "labelEn": "Workspace companion (pet)"},
     "appearance.companion_species": {"type": "select", "default": "paper_moth",
-                                     "options": ["paper_moth", "fire_bee", "ember_spark", "minimal"],
+                                     "options": ["paper_moth", "ember_spark", "minimal"],
                                      "optionLabels": {
                                          "paper_moth": ["Ephe Papier-Motte (3D)", "Ephe Paper Moth (3D)"],
-                                         "fire_bee": ["Ephe Feuergeist-Biene (3D)", "Ephe Fire-Spirit Bee (3D)"],
                                          "ember_spark": ["Goldener Feuerfunke", "Golden fire spark"],
                                          "minimal": ["Dezentes Symbol", "Minimal emblem"],
                                      },
-                                     "label": "Begleiter-Gestalt", "labelEn": "Companion form"},
+                                     "label": "Companion form", "labelEn": "Companion form",
+                                     "labelKey": "settings.appearanceCompanionSpecies"},
     "appearance.companion_behavior": {"type": "select", "default": "interactive",
                                       "options": ["interactive", "perch", "header", "welcome_only"],
                                       "optionLabels": {
@@ -169,9 +189,11 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                           "header": ["Ruhig in der Kopfzeile neben der Marke", "Calm in the header next to the mark"],
                                           "welcome_only": ["Nur auf dem Startbildschirm", "Welcome screen only"],
                                       },
-                                      "label": "Begleiter-Verhalten", "labelEn": "Companion behaviour"},
+                                      "label": "Companion behaviour", "labelEn": "Companion behaviour",
+                                      "labelKey": "settings.appearanceCompanionBehavior"},
     "appearance.companion_sound": {"type": "bool", "default": True,
-                                   "label": "Begleiter- & Funken-Klänge",
+                                   "label": "Companion & spark sounds",
+                                   "labelKey": "settings.appearanceCompanionSound",
                                    "labelEn": "Companion & spark sounds"},
     # QD-005: the co-pilot work mode. perch watches nothing, scout points,
     # copilot acts on safe targets after the visible countdown.
@@ -182,51 +204,58 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                       "scout": ["Zeigt Empfehlungen, klickt nie", "Points at targets, never clicks"],
                                       "copilot": ["Co-Pilot mit Rückfrage-Countdown", "Co-pilot with a visible countdown"],  # language-gate: ignore
                                   },
-                                  "label": "Begleiter-Modus", "labelEn": "Companion mode"},
+                                  "label": "Companion mode", "labelEn": "Companion mode",
+                                  "labelKey": "settings.appearanceCompanionMode"},
     "appearance.companion_scale": {"type": "number", "default": 100, "min": 70, "max": 140,
-                                   "label": "Begleiter-Größe (%)", "labelEn": "Companion size (%)"},
+                                   "label": "Companion size (%)", "labelEn": "Companion size (%)",
+                                   "labelKey": "settings.appearanceCompanionScale"},
     # QD-013: how long the co-pilot's proposal stays on screen before it acts. 0
     # means it acts at once — the reader who set it asked for exactly that.
     "appearance.companion_countdown_seconds": {"type": "number", "default": 2.5,
                                                "min": 0.0, "max": 10.0, "step": 0.5,
-                                               "label": "Rückfrage-Zeit (s)",
+                                               "label": "Countdown (s)",
+                                               "labelKey": "settings.appearanceCompanionCountdownSeconds",
                                                "labelEn": "Countdown (s)"},
     # I3-4: default True — the time always stood under the message. A
     # switch whose default invents the shipped behaviour would be a
     # regressive button (off = something disappears that nobody ever ordered).
     "appearance.show_timestamps": {"type": "bool", "default": True,
-                                   "label": "Zeitstempel anzeigen", "labelEn": "Show timestamps"},
+                                   "label": "Show timestamps", "labelEn": "Show timestamps",
+                                   "labelKey": "settings.appearanceShowTimestamps"},
     "appearance.update_check": {"type": "bool", "default": True,
-                                "label": "Nach Updates suchen (anonym)", "labelEn": "Check for updates (anonymous)"},
+                                "label": "Check for updates (anonymous)", "labelEn": "Check for updates (anonymous)",
+                                "labelKey": "settings.appearanceUpdateCheck"},
     # Advanced
     "advanced.api_timeout": {"type": "number", "default": 120, "min": 10, "max": 1800,
-                             "label": "API-Zeitüberschreitung (s)", "labelEn": "API timeout (s)"},
+                             "label": "API timeout (s)", "labelEn": "API timeout (s)",
+                             "labelKey": "settings.advancedApiTimeout"},
     "advanced.film_sfx_dir": {"type": "text", "default": "", "max_chars": 400,
-                              "label": "SFX folder", "labelEn": "SFX folder",
-                              "labelKey": "settings.filmSfxDir",
-                              "hintKey": "settings.filmSfxDirHint"},
+                              "label": "Film studio SFX folder", "labelEn": "Film studio SFX folder",
+                              "labelKey": "settings.advancedFilmSfxDir"},
     # The agent-team activator: the main agent delegates only while this is on.
     # Default on keeps the behaviour an installation that sets nothing already had.
     "advanced.agent_team_enabled": {
         "type": "bool",
         "default": True,
-        "label": "Agent team / delegation",
-        "labelEn": "Agent team / delegation",
+        "label": "Agent team & delegation",
+        "labelEn": "Agent team & delegation",
         "labelKey": "settings.agentTeamEnabled",
         "hintKey": "settings.agentTeamEnabledHint",
     },
     # Plugins (catalog policy)
     "plugins.plugin_autorun": {"type": "bool", "default": False,
-                               "label": "Plugins automatisch starten", "labelEn": "Autorun plugins"},
+                               "label": "Autorun plugins", "labelEn": "Autorun plugins",
+                               "labelKey": "settings.pluginsPluginAutorun"},
     "plugins.plugin_signature_check": {"type": "bool", "default": True,
-                                       "label": "Signaturprüfung erzwingen", "labelEn": "Enforce signature check"},
+                                       "label": "Enforce signature check", "labelEn": "Enforce signature check",
+                                       "labelKey": "settings.pluginsPluginSignatureCheck"},
     # O-10 (2026-10-21): the emergency brake on the switch surface. The label
     # text lives in the app locale under this key; the register carries no German.
     "plugins.plugin_lifecycle_read_only": {
         "type": "bool",
         "default": False,
-        "label": "Plugin switches read-only",
-        "labelEn": "Plugin switches read-only",
+        "label": "Plugin switches are read-only.",
+        "labelEn": "Plugin switches are read-only.",
         "labelKey": "settings.pluginReadOnly",
         "hintKey": "settings.pluginReadOnlyHint",
     },
@@ -235,19 +264,24 @@ SCHEMA: dict[str, dict[str, Any]] = {
     # engine.json (memory_max_entries) — a second one here would be a second number
     # for the same ceiling.
     "memory.capture_enabled": {"type": "bool", "default": True,
-                                "label": "Merksätze aus Gesprächen bilden",
+                                "label": "Learn from conversations",
+                                "labelKey": "settings.memoryCaptureEnabled",
                                 "labelEn": "Learn from conversations"},
     "memory.capture_min_answer_chars": {"type": "number", "default": 120, "min": 20, "max": 2000,
-                                        "label": "Antwort lang genug (Zeichen)",
+                                        "label": "Minimum answer length (chars)",
+                                        "labelKey": "settings.memoryCaptureMinAnswerChars",
                                         "labelEn": "Minimum answer length (chars)"},
     "memory.dedupe_score_threshold": {"type": "number", "default": 0.85, "min": 0.5, "max": 1.0,
-                                      "label": "Duplikat ab (Ahnlichkeit)",
+                                      "label": "Duplicate above (similarity)",
+                                      "labelKey": "settings.memoryDedupeScoreThreshold",
                                       "labelEn": "Duplicate above (similarity)"},
     "memory.inject_max_entries": {"type": "number", "default": 10, "min": 1, "max": 50,
-                                  "label": "Gedächtnis im Kontext (Einträge)",
+                                  "label": "Memory in context (entries)",
+                                  "labelKey": "settings.memoryInjectMaxEntries",
                                   "labelEn": "Memory in context (entries)"},
     "memory.inject_min_score": {"type": "number", "default": 0.3, "min": 0.0, "max": 1.0,
-                                "label": "Übernommen ab (Ähnlichkeit)",
+                                "label": "Injected above (similarity)",
+                                "labelKey": "settings.memoryInjectMinScore",
                                 "labelEn": "Injected above (similarity)"},
     # The two vectorizer fields (the readers are core/memory_embed.py for the
     # choice and core/memory_embed_gemma.py for the consent). EmbeddingGemma is the
@@ -259,61 +293,74 @@ SCHEMA: dict[str, dict[str, Any]] = {
                                                              "EmbeddingGemma 2 (recommended)"],
                                          "all-MiniLM-L6-v2": ["all-MiniLM-L6-v2 (klein, lokal)",
                                                              "all-MiniLM-L6-v2 (small, local)"]},
-                        "label": "Embedding-Modell", "labelEn": "Embedding model"},
+                        "label": "Embedding model", "labelEn": "Embedding model",
+                        "labelKey": "settings.memoryEmbedder"},
     "memory.embedder_allow_download": {"type": "bool", "default": False,
-                                       "label": "Embedding-Modell herunterladen erlauben",
+                                       "label": "Allow embedding-model download",
+                                       "labelKey": "settings.memoryEmbedderAllowDownload",
                                        "labelEn": "Allow embedding-model download"},
     # Schedule (I7-3 — own area. The readers are core/scheduler_config.py for the four bounds
     # and server/routes/schedule.py for the size of the history page.)
     "cron.misfire_grace_minutes": {"type": "number", "default": 60, "min": 0, "max": 1440,
-                                   "label": "Versäumten Lauf nachholen (Minuten)",
+                                   "label": "Catch up a missed run (minutes)",
+                                   "labelKey": "settings.cronMisfireGraceMinutes",
                                    "labelEn": "Catch up a missed run (minutes)"},
     "cron.history_keep": {"type": "number", "default": 50, "min": 10, "max": 500,
-                          "label": "Verlauf behalten (Läufe)",
+                          "label": "Runs to keep",
+                          "labelKey": "settings.cronHistoryKeep",
                           "labelEn": "Runs to keep"},
     "cron.history_rows": {"type": "number", "default": 20, "min": 5, "max": 100,
-                          "label": "Verlauf zeigen (Zeilen)",
+                          "label": "Runs to show",
+                          "labelKey": "settings.cronHistoryRows",
                           "labelEn": "Runs to show"},
     "cron.max_parallel_jobs": {"type": "number", "default": 1, "min": 1, "max": 10,
-                               "label": "Gleichzeitige Läufe je Job",
+                               "label": "Concurrent runs per job",
+                               "labelKey": "settings.cronMaxParallelJobs",
                                "labelEn": "Concurrent runs per job"},
     # Ephemerality (R1 — the area where the brand's promise is regulated. The readers are
     # core/ephemeral_cell.py for the idle limit and server/routes/session_mirror.py for the
     # delete switch, the path an app's delete travels; the cell itself leaves through
     # core/ephemeral_cell.forget(). A field without this wiring does not exist here.)
     "ephemera.idle_ttl_minutes": {"type": "number", "default": 30, "min": 5, "max": 240,
-                                  "label": "Ungenutzte Zelle aufgeben (Minuten)",
+                                  "label": "Discard an idle cell (minutes)",
+                                  "labelKey": "settings.ephemeraIdleTtlMinutes",
                                   "labelEn": "Discard an idle cell (minutes)"},
     # The one reader is server/routes/session_mirror.py — the app's delete, which
     # reaches a cell by the session key the surface ran under. The store's doors
     # (`remove_sessions`, `prune_store`) hold store ids and never name a cell, so
     # they leave it to the idle limit; the hint row says exactly that.
     "ephemera.evaporate_on_delete": {"type": "bool", "default": False,
-                                     "label": "Sitzung sofort verdunsten",
+                                     "label": "Evaporate session on delete",
+                                     "labelKey": "settings.ephemeraEvaporateOnDelete",
                                      "labelEn": "Evaporate session on delete"},
     # The reader is core/session_trash.py: purge_expired, called by the server's
     # daily sweep. The bounds here are the only place the window states its range.
     "ephemera.trash_retention_days": {"type": "number", "default": 30,
                                       "min": 0, "max": 365,
-                                      "label": "Papierkorb aufbewahren (Tage)",
+                                      "label": "Keep the trash (days)",
+                                      "labelKey": "settings.ephemeraTrashRetentionDays",
                                       "labelEn": "Keep the trash (days)"},
     # Public mobile pairing. The reader is server/routes/mobile.py, which hands the
     # window to the tunnel manager when the hop opens; the bounds here are the only
     # place the exposure states its range. It sits in `advanced` because the Mobile
     # tab is one of the app's read-only boards and cannot carry a register row.
     "advanced.public_tunnel_idle_minutes": {"type": "number", "default": 30, "min": 5, "max": 240,
-                                            "label": "Öffentlichen Tunnel aufgeben (Minuten)",  # language-gate: ignore (the German label of this register row)
+                                            "label": "Discard an idle public tunnel (minutes)",
+                                            "labelKey": "settings.advancedPublicTunnelIdleMinutes",
                                             "labelEn": "Discard an idle public tunnel (minutes)"},
     # Hooks (I6-4 — own area, the reader is core/user_hooks.py itself)
     "hooks.enabled": {"type": "bool", "default": True,
-                      "label": "Hooks ausführen", "labelEn": "Run hooks"},
+                      "label": "Run hooks", "labelEn": "Run hooks",
+                      "labelKey": "settings.hooksEnabled"},
     # Self-organised learning (SOL). Readers: core/sol/session.py for the switch,
     # core/sol/consolidator.py for the cap on active rules.
     "sol.enabled": {"type": "bool", "default": True,
-                    "label": "Aus Fehlern im Projekt lernen",
+                    "label": "Learn from failures in this project",
+                    "labelKey": "settings.solEnabled",
                     "labelEn": "Learn from failures in this project"},
     "sol.max_active_rules": {"type": "number", "default": 15, "min": 5, "max": 50,
-                             "label": "Aktive Projektregeln (Anzahl)",
+                             "label": "Active project rules (count)",
+                             "labelKey": "settings.solMaxActiveRules",
                              "labelEn": "Active project rules (count)"},
 }
 
@@ -460,16 +507,16 @@ def _merged_values() -> dict[str, dict[str, Any]]:
 def _require(key: str, kind: str) -> None:
     meta = SCHEMA.get(key)
     if meta is None:
-        raise KeyError(f"unbekanntes Deep-Feld: {key}")
+        raise KeyError(f"Unknown deep field: {key}")
     if meta["type"] != kind:
-        raise TypeError(f"{key} ist {meta['type']}, nicht {kind}")
+        raise TypeError(f"{key} is {meta['type']}, expected {kind}")
 
 
 def deep_value(key: str, default: Any = None) -> Any:
     """Set, clamped value; otherwise the register default (`default`
     overrides that one for the empty case)."""
     if key not in SCHEMA:
-        raise KeyError(f"unbekanntes Deep-Feld: {key}")
+        raise KeyError(f"Unknown deep field: {key}")
     section = key.split(".", 1)[0]
     value = _merged_values().get(section, {}).get(key)
     if value is None:
@@ -522,9 +569,10 @@ def deep_view() -> list[dict[str, Any]]:
                 entry["labelKey"] = meta["labelKey"]
             if "hintKey" in meta:
                 entry["hintKey"] = meta["hintKey"]
-            pair = HINTS.get(field_key)
-            if pair is not None:
-                entry["hint"], entry["hintEn"] = pair
+            hint = HINTS.get(field_key)
+            if hint is not None:
+                entry.setdefault("hintKey", hint_key(field_key))
+                entry["hint"] = entry["hintEn"] = hint
             if meta["type"] == "number":
                 entry["min"] = meta["min"]
                 entry["max"] = meta["max"]
@@ -548,6 +596,12 @@ def deep_view() -> list[dict[str, Any]]:
                     entry["optionLabels"] = [
                         {"value": v, "label": labels[v][0], "labelEn": labels[v][1]}
                         for v in meta["options"]
+                    ]
+                    # The leaf each option reads its text from, additive: `optionLabels` stays
+                    # for a client that has not read the key yet, exactly as `hint` stayed
+                    # beside `hintKey`. A client without the bundle leaf sees the label here.
+                    entry["optionKeys"] = [
+                        {"value": v, "key": option_key(field_key, v)} for v in meta["options"]
                     ]
             fields.append(entry)
         out.append({"key": sec_key, "fields": fields})

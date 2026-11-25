@@ -23,7 +23,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from core.engine_config import GENERATION_BOUNDS  # noqa: E402
+from core.settings_hints import GENERATION_HINTS, hint_key  # noqa: E402
 from core.settings_schema import SCHEMA, deep_view  # noqa: E402
+from tests.support import shipped_copy  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -48,6 +50,16 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
 # generation block: bounds from ENGINE, not from the TSX
 
+def _locale_leaf(lang: str, dotted: str) -> str:
+    """The page's own lookup over the two files it loads: an unknown key raises here.
+
+    The generation rows are register copy, which the client merges in from
+    `app/src/lib/settingsCopy.<lang>.json` when the register opens, so the boot bundle alone does
+    not hold their sentences.
+    """
+    return shipped_copy.resolve(lang, dotted)
+
+
 def test_generation_bounds_and_texts_ship_in_the_payload(client: TestClient) -> None:
     meta = client.get("/api/settings").json()["generation_meta"]
     assert set(meta) == set(GENERATION_BOUNDS), "different keys than the consumer"
@@ -55,10 +67,18 @@ def test_generation_bounds_and_texts_ship_in_the_payload(client: TestClient) -> 
         assert meta[key]["default"] == default, key
         assert meta[key]["min"] == low, key
         assert meta[key]["max"] == high, key
-        # I3-9: each slider explains itself — in both languages, and differently.
-        de, en = meta[key]["hint"], meta[key]["hintEn"]
-        assert 24 <= len(de) <= 240 and 24 <= len(en) <= 240, (key, len(de), len(en))
-        assert de != en, key
+        # I3-9: each slider explains itself — in both languages, and differently. Since wave L
+        # the route carries the English sentence under both fields, because the response shape
+        # predates the locale leaf; the German is the leaf its key names, so the difference
+        # that matters to a German reader is asserted there and not between two English strings.
+        english = meta[key]["hint"]
+        assert meta[key]["hintEn"] == english == GENERATION_HINTS[key], key
+        assert 24 <= len(english) <= 240, (key, len(english))
+        assert meta[key]["hintKey"] == hint_key(f"generation.{key}"), key
+        assert _locale_leaf("en", meta[key]["hintKey"]) == english, key
+        german = _locale_leaf("de", meta[key]["hintKey"])
+        assert 24 <= len(german) <= 240, (key, len(german))
+        assert german != english, f"{key}: the German slider would read the English fallback"
 
 
 def test_values_and_bounds_cover_the_same_keys(client: TestClient) -> None:

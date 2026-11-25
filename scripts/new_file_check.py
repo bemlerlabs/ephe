@@ -39,6 +39,10 @@ PREFIX = "new-file"
 PROSE_BASELINE = tells.BASELINE_DEFAULT
 LANGUAGE_BASELINE = language_gate.BASELINE_DEFAULT
 
+#: The one list of paths whose German is copy a reader is shown lives with the instrument, in
+#: `language_inventory.PRODUCT_TEXT_PATHS`; this gate reads it through `carries_user_text` below.
+carries_user_text = inventory.carries_user_text
+
 
 def run_git(root: Path, args: list[str]) -> list[str]:
     """One git call against `root`, split into lines."""
@@ -109,13 +113,31 @@ def violations(
         if rel in covered:
             continue
         tell = tells_by_path.get(rel, 0)
-        german = german_by_path.get(rel, 0)
+        german = 0 if carries_user_text(rel) else german_by_path.get(rel, 0)
         if tell or german:
             rows.append((rel, tell, german))
     return rows
 
 
-def report(rows: list[tuple[str, int, int]], judged: int, left: int) -> tuple[int, list[str]]:
+def user_text_rows(paths: list[str], german_by_path: dict[str, int]) -> list[tuple[str, int]]:
+    """The named product-text paths and the German lines measured in each of them.
+
+    The count stays in the open: an exception that prints nothing is a place to hide, and the
+    number here is the same one the ratchet instrument printed before the path was named.
+    """
+    return [
+        (rel, german_by_path[rel])
+        for rel in paths
+        if carries_user_text(rel) and german_by_path.get(rel)
+    ]
+
+
+def report(
+    rows: list[tuple[str, int, int]],
+    judged: int,
+    left: int,
+    excused: list[tuple[str, int]] = (),
+) -> tuple[int, list[str]]:
     """The operator's text, and the exit code: 1 on a finding, 0 otherwise."""
     lines: list[str] = []
     if rows:
@@ -131,6 +153,8 @@ def report(rows: list[tuple[str, int, int]], judged: int, left: int) -> tuple[in
             "a hand-written entry is a budget the tree never earned."
         )
         return 1, lines
+    for rel, german in excused:
+        lines.append(f"  product text: {rel} — {german} German line(s), named in the path list")
     lines.append(
         f"{PREFIX} gate: PASS — {judged} path(s) neither baseline covers are clean; "
         f"{left} path(s) a ratchet already scores stay with it"
@@ -183,6 +207,7 @@ def main(
         violations(paths, covered, tells_by_path, german_by_path),
         judged,
         len(paths) - judged,
+        user_text_rows(paths, german_by_path),
     )
     print("\n".join(lines))
     return code

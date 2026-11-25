@@ -18,11 +18,16 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import re
 from pathlib import Path
 from typing import Callable
 
 REPO = Path(__file__).resolve().parent.parent
-GATE_PATH = REPO / "scripts" / "language_gate.py"
+#: The gate under test. The seam exists for one thing: a wave that changes the gate proves its new
+#: case red against the previous copy and green against the new one, in one command, with the old
+#: copy kept outside the tree.
+GATE_PATH = Path(os.environ.get("EPHE_LANGUAGE_GATE_PATH", REPO / "scripts" / "language_gate.py"))
 
 
 def _load_gate():
@@ -607,18 +612,23 @@ class TestMessageLeg:
     def test_the_rule_reads_the_suite_and_nothing_else(self, tmp_path, capsys):
         """The claim is about the suite's voice, so the leg stays out of product code.
 
-        The same sentence in `core/` is the product's own surface or the line ratchet's business,
-        and the ratchet is satisfied here — its baseline was cut with this line in it, which is
-        exactly the tolerance this leg does not inherit.
+        The same sentence in `core/` is not this leg's business: the third leg, `surface_leg`,
+        owns a sentence product code addresses a person with, and it is the one that refuses here.
+        Asked directly, this leg passes the product file — which is the scope claim, kept honest by
+        asserting both halves.
         """
         path = baseline(tmp_path, {self.SUITE_FILE: 0, SOURCE: SPOKEN_LINES})
         files = {
             self.SUITE_FILE: suite_source(sentence="the counter did not advance"),
             SOURCE: suite_source(sentence=SPOKEN),
         }
-        code = run(tmp_path, path, files)
-        assert code == 0
-        assert "message language: PASS" in capsys.readouterr().out
+        list_files, read_text = injected(files)
+        code, _ = gate.message_leg([self.SUITE_FILE, SOURCE], read_text, tmp_path)
+        assert code == 0, "the message leg reads the suite and leaves product code alone"
+        assert run(tmp_path, path, files) == 1
+        out = capsys.readouterr().out
+        assert "message language: PASS" in out
+        assert "surface language: FAIL" in out, "the refusal here belongs to the leg that owns product sentences"
 
     def test_a_file_the_leg_cannot_parse_is_reported_not_skipped(self, tmp_path, capsys):
         """A leg that passes because it read nothing would be the failure this rule exists to stop."""
@@ -627,3 +637,402 @@ class TestMessageLeg:
         out = capsys.readouterr().out
         assert code == 1
         assert "unparsable" in out
+
+
+#: A German message assembled from the leg's own word lists: this file carries no German of its
+#: own, and the fixture cannot drift away from the detector it exercises.
+SURFACE_GERMAN = sorted(gate.SURFACE_HIGH)[0] + ": " + "{value!r}" + " (" + sorted(gate.SURFACE_HIGH)[1] + ")"
+#: The same shape in the language the rule asks for there.
+SURFACE_ENGLISH = "unknown field: " + "{value!r}" + " (allowed: 1, 2)"
+
+#: The sky chart's lines as they shipped before this wave, quoted verbatim from
+#: `core/ephemeris.py`. A human read seven German lines there; the instrument measured one, and the
+#: leg as first written measured the four sentences that merely printed. The case exists so that a
+#: vocabulary hole shows up as a red test, and so the file keeps the sentences it used to ship.
+PRE_WAVE_SKY = (
+    "◍ Ephe Ephemeris — die letzten {days} Tage",  # language-gate: ignore (quoted chart heading as it shipped, core/ephemeris.py:130)
+    "Bahnen, keine Inhalte — WANN Ephe lebendig war, nie WAS geschah.",  # language-gate: ignore (quoted chart line as it shipped, core/ephemeris.py:131)
+    "Der Himmel wartet.",  # language-gate: ignore (quoted chart line as it shipped, core/ephemeris.py:134)
+    "Sichtweite {days} Tage · {total_n} Bahnen",  # language-gate: ignore (quoted chart footer as it shipped, core/ephemeris.py:149)
+)
+
+
+def product_source(*, message: str, kind: str = "raise", marker: str = "") -> str:
+    """A product module that says `message` to a person on line 2 of one function."""
+    pragma = f"  # {marker}" if marker else ""
+    statement = f'raise ValueError(f"{message}")' if kind == "raise" else f'print(f"{message}")'
+    return f"def run(value):\n    {statement}{pragma}\n    return value\n"
+
+
+def sky_source() -> str:
+    """The four pre-wave chart lines in the shape they shipped in: a list, an append, a footer."""
+    heading, subtitle, waiting, footer = PRE_WAVE_SKY
+    return (
+        "def chart(events, days, total_n):\n"
+        "    lines = [\n"
+        '        f"' + heading + '",\n'
+        '        "' + subtitle + '",\n'
+        "    ]\n"
+        "    if not events:\n"
+        '        lines.append("' + waiting + '")\n'
+        '    foot = f"' + footer + '"\n'
+        '    lines.append(f"({foot})")\n'
+        '    return "\\n".join(lines)\n'
+    )
+
+
+class TestSurfaceLeg:
+    """The third leg, and the hole it exists for.
+
+    The ratchet scores lines and compares a count, so a German `ValueError` in a file the baseline
+    already tolerates is free — and `core/voice_config.py` scored zero lines with three of them in
+    it, because the words it uses (`Unbekannte`, `erlaubt`) are in neither of the instrument's two
+    lists. The message leg stops at `tests/`. This leg reads the sentences product code addresses a
+    person with, carries its own word lists, and keeps no baseline.
+    """
+
+    def test_a_german_raise_message_fails_the_gate_and_is_named(self, tmp_path, capsys):
+        """GIVEN a file the baseline never mentions WHEN its one message is German THEN the gate is red by file and line."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {SOURCE: product_source(message=SURFACE_GERMAN)})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "language gate: PASS" in out, "the ratchet is clean here; only the new leg refuses"
+        assert "surface language: FAIL" in out
+        assert f"{SOURCE}:2" in out
+        assert "raise" in out
+
+    def test_planted_german_in_a_plain_product_file_is_red_with_file_and_delta(self, tmp_path, capsys):
+        """GIVEN untouched product code WHEN German prose and a German message arrive THEN the report names file, delta and line."""
+        path = baseline(tmp_path, {})
+        files = {SOURCE: german_lines(3, gate.inventory.MARKERS) + "\n" + product_source(message=SURFACE_GERMAN)}
+        code = run(tmp_path, path, files)
+        out = capsys.readouterr().out
+        assert code == 1
+        assert f"{SOURCE}: 0 -> 3 (+3)" in out
+        assert "surface language: FAIL" in out
+        assert f"{SOURCE}:5" in out
+
+    def test_the_line_ratchet_scores_that_same_message_as_clean(self):
+        """The disagreement in one assertion: the number sees nothing, the node sees the sentence."""
+        list_files, read_text = injected({SOURCE: product_source(message=SURFACE_GERMAN)})
+        assert gate.measure(Path("."), list_files=list_files, read_text=read_text) == {}
+        findings = gate.surface_findings(SOURCE, product_source(message=SURFACE_GERMAN))
+        assert [f.kind for f in findings] == ["raise"]
+
+    def test_an_english_message_passes_all_three_legs(self, tmp_path, capsys):
+        """The English twin of the planted sentence passes all three legs."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {SOURCE: product_source(message=SURFACE_ENGLISH)})
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "surface language: PASS" in out
+
+    def test_a_printed_line_is_read_the_way_a_raised_one_is(self, tmp_path, capsys):
+        """`print` is as user-facing as `raise`, so the leg cannot stop at exceptions."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {SOURCE: product_source(message=SURFACE_GERMAN, kind="print")})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "output" in out
+
+    def test_the_sky_chart_lines_are_all_findings(self):
+        """The seven lines a human read in the chart, including the four that only ever printed."""
+        findings = gate.surface_findings(SOURCE, sky_source())
+        assert len(findings) == len(PRE_WAVE_SKY), [f.quote for f in findings]
+        assert {f.kind for f in findings} == {"assembled text"}
+        assert len({f.line for f in findings}) == len(PRE_WAVE_SKY), "one finding per shipped line, not one per file"
+
+    def test_a_defused_marker_list_leaves_this_leg_red(self, tmp_path, capsys, monkeypatch):
+        """The leg exists because of a hole in the instrument's list, so widening that hole cannot silence it."""
+        monkeypatch.setattr(gate.inventory, "MARKERS", [])
+        monkeypatch.setattr(gate.inventory, "WORD", re.compile("(?!a)a"))
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {SOURCE: product_source(message=SURFACE_GERMAN)})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "language gate: PASS" in out
+        assert "surface language: FAIL" in out
+        assert f"{SOURCE}:2" in out
+
+    def test_a_marked_product_message_with_a_reason_is_not_a_finding(self, tmp_path, capsys):
+        """German a program shows its user is the product's own surface, and the marker carries it."""
+        path = baseline(tmp_path, {})
+        files = {
+            SOURCE: product_source(
+                message=SURFACE_GERMAN,
+                marker=f"{gate.messages.MESSAGE_PRAGMA} (the refusal the settings panel shows)",
+            )
+        }
+        assert run(tmp_path, path, files) == 0
+        assert "surface language: PASS" in capsys.readouterr().out
+
+    def test_a_marker_without_a_reason_is_reported(self, tmp_path, capsys):
+        """An exemption nobody can read is overlooked next quarter, so the reason is required."""
+        path = baseline(tmp_path, {})
+        files = {SOURCE: product_source(message=SURFACE_GERMAN, marker=gate.messages.MESSAGE_PRAGMA)}
+        code = run(tmp_path, path, files)
+        assert code == 1
+        assert "unexplained exemption" in capsys.readouterr().out
+
+    def test_the_suites_own_voice_stays_the_other_legs_business(self, tmp_path):
+        """Same sentence, other directory: this leg reads product code and leaves `tests/` alone."""
+        code, lines = gate.surface_leg(
+            [TestMessageLeg.SUITE_FILE], lambda rel: product_source(message=SURFACE_GERMAN), tmp_path
+        )
+        assert code == 0
+        assert "surface language: PASS" in lines[0]
+
+    def test_a_product_path_is_never_read_by_this_leg(self):
+        """The bundles are the German surface; the scope function is what keeps them out."""
+        assert gate.in_surface_scope("app/src/locales/de.json") is False
+        assert gate.in_surface_scope("skills/survival/tool.py") is False
+        assert gate.in_surface_scope("core/voice_config.py") is True
+
+    def test_an_unparsable_product_file_is_reported_not_skipped(self, tmp_path, capsys):
+        """A leg that reads nothing would report the quiet pass this rule was written against."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {SOURCE: "def run(:\n"})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "unparsable" in out
+
+
+#: Written from code points on purpose: a test that plants these characters would
+#: otherwise trip the leg it tests, and the suite is one of the files the leg reads.
+HAN = chr(0x4E2D) + chr(0x6587)
+HIRAGANA = chr(0x306B) + chr(0x308C)
+HANGUL = chr(0xD55C) + chr(0xAD55)
+FULLWIDTH_BAR = chr(0xFF5C)
+
+JSON_SOURCE = "marketplace/example.json"
+
+
+def run_cjk(files: dict[str, str], exceptions: dict[str, str] | None = None):
+    """The fourth leg over an injected tree, with the named exceptions swapped for the test's."""
+    keep = gate.CJK_EXCEPTIONS
+    if exceptions is not None:
+        gate.CJK_EXCEPTIONS = exceptions
+    try:
+        return gate.cjk_leg(list(files), lambda rel: files[rel], REPO)
+    finally:
+        gate.CJK_EXCEPTIONS = keep
+
+
+class TestCjkLeg:
+    """The tree is written in Han-free English: one character outside a named file is the finding."""
+
+    def test_a_han_character_in_a_product_module_is_a_finding(self):
+        """Given a Python module with one planted character, When the leg reads it, Then the file and line are named."""
+        files = {SOURCE: f"def run():\n    return 1  # {HAN}\n"}
+        code, lines = run_cjk(files, {})
+        assert code == 1
+        assert any(f"{SOURCE}:2" in line for line in lines)
+        assert any("Han" in line for line in lines)
+
+    def test_a_han_character_in_a_json_file_is_a_finding(self):
+        """Given a registry-shaped JSON file, When the leg reads it, Then it is reported like any other file."""
+        files = {JSON_SOURCE: '{{"name": "{0}"}}\n'.format(HAN)}
+        code, lines = run_cjk(files, {})
+        assert code == 1
+        assert any(JSON_SOURCE in line and "Han" in line for line in lines)
+
+    def test_each_script_is_named_by_its_own_class(self):
+        """Given three scripts in three files, When the leg reads them, Then each names the class it belongs to."""
+        files = {
+            "core/a.py": f"# {HAN}\n",
+            "core/b.py": f"# {HIRAGANA}\n",
+            "core/c.py": f"# {HANGUL}\n",
+        }
+        code, lines = run_cjk(files, {})
+        assert code == 1
+        joined = "\n".join(lines)
+        for script in ("Han", "Hiragana", "Hangul"):
+            assert script in joined
+
+    def test_fullwidth_punctuation_counts_as_script(self):
+        """Given a fullwidth bar from a model token, When the leg reads it, Then the file is reported."""
+        files = {"core/token.py": f'LABEL = "{FULLWIDTH_BAR}tool"\n'}
+        code, lines = run_cjk(files, {})
+        assert code == 1
+        assert any("CJK punctuation" in line for line in lines)
+
+    def test_a_named_file_may_carry_its_own_script(self):
+        """Given a file named with its reason, When the leg reads it, Then it passes and says how many are named."""
+        files = {"README.zh-CN.md": f"# {HAN}\n"}
+        code, lines = run_cjk(files, {"README.zh-CN.md": "the Chinese README, product copy"})
+        assert code == 0
+        assert "PASS" in lines[0]
+
+    def test_a_sibling_of_a_named_file_stays_read(self):
+        """Given one named file in a directory, When the leg reads its neighbour, Then the neighbour is still reported."""
+        files = {"docs/zh/README.md": f"# {HAN}\n", "docs/zh/notes.md": f"# {HAN}\n"}
+        code, lines = run_cjk(files, {"docs/zh/README.md": "a translated page"})
+        assert code == 1
+        assert any("docs/zh/notes.md" in line for line in lines)
+        assert not any("docs/zh/README.md" in line for line in lines)
+
+    def test_an_exception_naming_a_clean_file_is_a_finding(self):
+        """Given an exception whose file no longer carries the script, When the leg runs, Then the stale entry is reported."""
+        files = {"docs/zh/README.md": "# English only\n"}
+        code, lines = run_cjk(files, {"docs/zh/README.md": "a translated page"})
+        assert code == 1
+        assert any("carries no such character" in line for line in lines)
+
+    def test_an_exception_without_a_reason_is_a_finding(self):
+        """Given an exception with an empty reason, When the leg runs, Then the missing reason is reported."""
+        files = {"docs/zh/README.md": f"# {HAN}\n"}
+        code, lines = run_cjk(files, {"docs/zh/README.md": "   "})
+        assert code == 1
+        assert any("without a reason" in line for line in lines)
+
+    def test_a_line_pragma_does_not_exempt_a_character(self):
+        """Given the pragma that exempts a German line, When the leg reads the same line, Then the character still reports."""
+        files = {SOURCE: f"# language-gate: ignore (a German line) {HAN}\n"}
+        code, lines = run_cjk(files, {})
+        assert code == 1
+        assert "Han" in "\n".join(lines)
+
+    def test_the_committed_exceptions_cover_the_tree(self):
+        """Given this checkout as it stands, When the leg reads every tracked file, Then nothing is reported."""
+        tracked = gate.tracked_files(REPO)()
+        code, lines = gate.cjk_leg(tracked, None, REPO)
+        assert code == 0, lines
+        assert f"{len(gate.CJK_EXCEPTIONS)} named file(s)" in lines[0]
+
+
+#: The register's lazy copy asset and its English twin, as they sit in the tree.
+COPY_ASSET = "app/src/lib/settingsCopy.de.json"
+COPY_TWIN = "app/src/lib/settingsCopy.en.json"
+
+
+def copy_json(leaves: int, *, plant: dict[str, str] | None = None) -> str:
+    """The asset's shape: one `settings` object of leaf sentences, plus any field a test plants."""
+    markers = gate.inventory.MARKERS
+    settings = {
+        f"row{index}Hint": " ".join(markers[(index + offset) % len(markers)] for offset in range(3))
+        for index in range(leaves)
+    }
+    return json.dumps({"settings": {**settings, **(plant or {})}}, ensure_ascii=False, indent=1)
+
+
+def english_copy_json(leaves: int) -> str:
+    """The same shape in the tree's own language."""
+    settings = {f"row{index}Hint": f"Sets how the {index} row behaves." for index in range(leaves)}
+    return json.dumps({"settings": settings}, ensure_ascii=False, indent=1)
+
+
+def developer_german() -> str:
+    """A German sentence the surface leg's own word lists recognise."""
+    high = sorted(gate.SURFACE_HIGH)
+    return f"{high[0]} {high[1]} {high[2]}"
+
+
+class TestNamedProductCopy:
+    """The one named class of paths whose German a reader is shown, and what that costs.
+
+    `language_inventory.PRODUCT_TEXT_PATHS` is the tree's only list of them, and the two legs treat
+    it differently on purpose: the ratchet leaves those paths out, because it measures developer
+    prose and a translation of the product is not a regression — and the surface leg reads them all
+    the harder, because a string in a copy file that nobody is ever shown is developer prose in
+    copy's clothes. Every case below pins one direction of that bargain.
+    """
+
+    def test_the_named_asset_never_moves_the_ratchet_and_is_printed_by_the_surface_leg(
+        self, tmp_path, capsys
+    ):
+        """GIVEN fifty-six German lines in the named asset WHEN the gate runs THEN the ratchet stays at zero and the surface leg reports the file with its count."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_ASSET: copy_json(56)})
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "language gate: PASS" in out
+        assert "total 0 lines over 0 files" in out, "the copy is not developer prose, so the ratchet must not see it"
+        assert f"product copy: {COPY_ASSET} — 56 German line(s) read, 0 outside what a reader is shown" in out
+
+    def test_the_english_twin_stays_quiet(self, tmp_path, capsys):
+        """GIVEN the English half of the same asset WHEN the gate runs THEN no leg prints it."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_TWIN: english_copy_json(56)})
+        out = capsys.readouterr().out
+        assert code == 0
+        assert COPY_TWIN not in out, "English is the tree's own language; it needs no name and no line"
+
+    def test_the_same_file_without_its_name_is_red_with_its_line_count(self, tmp_path, capsys, monkeypatch):
+        """GIVEN byte-identical copy text whose path is no longer named WHEN the gate runs THEN the ratchet reports all of it."""
+        monkeypatch.setattr(gate.inventory, "PRODUCT_TEXT_PATHS", ("app/src/locales/*.json",))
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_ASSET: copy_json(56)})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert f"{COPY_ASSET}: 0 -> 56 (+56)" in out
+        assert "product copy:" not in out, "an un-named path is an ordinary file, and the ratchet counts it"
+
+    def test_a_file_beside_the_named_one_is_red(self, tmp_path, capsys):
+        """GIVEN the same German under a path one character away from a named one WHEN the gate runs THEN it fails."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_ASSET: copy_json(56), f"{COPY_ASSET}.copy.json": copy_json(7)})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert f"{COPY_ASSET}.copy.json: 0 -> 7 (+7)" in out, "the list does not leak to its neighbours"
+
+    def test_german_developer_prose_in_code_is_still_red(self, tmp_path, capsys):
+        """GIVEN the named copy exists in the tree WHEN a module gains German prose THEN the ratchet still fails by name."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_ASSET: copy_json(56), SOURCE: german_lines(3, gate.inventory.MARKERS)})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert f"{SOURCE}: 0 -> 3 (+3)" in out
+
+    def test_german_nobody_is_shown_fails_through_the_surface_leg(self, tmp_path, capsys):
+        """GIVEN a German note inside the named asset that no reader is ever shown WHEN the gate runs THEN the surface leg reports it, though the ratchet exempts the file."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_ASSET: copy_json(20, plant={"_devNote": developer_german()})})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "language gate: PASS" in out, "the ratchet is exempt here; only this leg can catch it"
+        assert "surface language: FAIL" in out
+        assert "not user copy" in out
+        assert "_devNote" in out
+
+    def test_a_copy_file_that_stops_being_a_copy_file_is_measured_again(self, tmp_path, capsys):
+        """GIVEN the named path holding text that is no one JSON object WHEN the gate runs THEN its German is counted like any other file's."""
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_ASSET: german_lines(9, gate.inventory.MARKERS)})
+        out = capsys.readouterr().out
+        assert code == 1
+        assert f"{COPY_ASSET}: 0 -> 9 (+9)" in out
+        assert "not a JSON object, measured as an ordinary file" in out
+
+    def test_neither_gate_keeps_a_second_list(self):
+        """GIVEN both gates read the instrument WHEN their modules are loaded THEN neither holds its own tuple of paths."""
+        assert not hasattr(gate, "PRODUCT_TEXT_PATHS")
+        assert gate.inventory.PRODUCT_TEXT_PATHS == __import__("language_inventory").PRODUCT_TEXT_PATHS
+
+
+class TestStagedPassHonoursTheName:
+    """The hook's own path, where the tree arrives as index blobs.
+
+    The commit that introduced the copy asset was refused here and nowhere else — the whole-tree run
+    passed, `--staged` measured the same bytes through a second code path that had never heard of the
+    named class. Both paths now go through `measure`, and these two cases keep them together.
+    """
+
+    def test_the_hook_measures_a_staged_copy_file_and_passes(self, tmp_path, capsys):
+        """GIVEN the named asset staged with its German WHEN the hook runs the gate THEN it passes."""
+        path = baseline(tmp_path, {})
+        code = run(
+            tmp_path, path, {COPY_ASSET: copy_json(56), SOURCE: clean_lines(3)}, "--staged"
+        )
+        out = capsys.readouterr().out
+        assert code == 0
+        assert f"product copy: {COPY_ASSET} — 56 German line(s) read, 0 outside what a reader is shown" in out
+
+    def test_a_staged_file_without_its_name_is_refused_by_the_hook(self, tmp_path, capsys, monkeypatch):
+        """GIVEN the same staged bytes and no name on the list WHEN the hook runs the gate THEN the commit is refused with its line count."""
+        monkeypatch.setattr(gate.inventory, "PRODUCT_TEXT_PATHS", ("app/src/locales/*.json",))
+        path = baseline(tmp_path, {})
+        code = run(tmp_path, path, {COPY_ASSET: copy_json(56)}, "--staged")
+        out = capsys.readouterr().out
+        assert code == 1
+        assert f"{COPY_ASSET}: 0 -> 56 (+56)" in out

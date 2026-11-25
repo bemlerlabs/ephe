@@ -171,14 +171,17 @@ def _generation_meta_dict() -> dict:
     'no upper bound' — passed through exactly like that.
     """
     from core.engine_config import GENERATION_BOUNDS
-    from core.settings_hints import GENERATION_HINTS
+    from core.settings_hints import GENERATION_HINTS, hint_key
 
     meta: dict[str, dict] = {}
     for key, (default, low, high) in GENERATION_BOUNDS.items():
         hint = GENERATION_HINTS.get(key)
         meta[key] = {"default": default, "min": low, "max": high}
         if hint is not None:
-            meta[key]["hint"], meta[key]["hintEn"] = hint
+            # Both fields stay strings because the page reads one per language; the German is a
+            # locale leaf now, so a client that does not know hintKey reads the English in both.
+            meta[key]["hintKey"] = hint_key(f"generation.{key}")
+            meta[key]["hint"] = meta[key]["hintEn"] = hint
     return meta
 
 

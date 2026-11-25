@@ -9,10 +9,17 @@ The frame convention is M's, from `f5d88653`: `reason_code` and `reason_params` 
 sentence, and only when a code is known — `tool_done` adds neither key for an uncoded result, and the
 error frame here is held to the same rule. The sentence itself is pinned byte-for-byte, because a
 channel is a promise to leave the text alone until the surface asks for something else.
+
+2026-11-24, the day the surface asked: both bundles already carried `serverError.silent_engine_turn`
+and `silent_after_tools_turn`, so the two sentences in `server/routes/chat.py` became English
+fallbacks and the German the chat panel shows is the bundle's. The pin moved along to the pair that
+has to agree now — the English leaf and the server's sentence.
 """
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 
 from server.routes.chat import (
     SILENT_AFTER_TOOLS_TURN,
@@ -111,3 +118,38 @@ def test_the_adoption_refusal_names_its_setting_in_one_language():
     assert _gerkish(NO_DESTINATION_HINT) == []
     assert "output_dir" in NO_DESTINATION_HINT, "the hint has to name the field the setting writes"
 
+
+
+# The two silent-turn sentences, after the surface asked for its own text
+
+def _bundle(language: str) -> dict[str, str]:
+    """The `serverError` half of one locale bundle, as the client reads it."""
+    path = Path(__file__).resolve().parents[1] / "app" / "src" / "locales" / f"{language}.json"
+    return json.loads(path.read_text(encoding="utf-8"))["serverError"]
+
+
+def test_the_fallback_a_client_reads_is_english():
+    """The sentence beside the code is what an untranslated client shows, so it is English.
+
+    Measured 2026-11-24: these two were the last German sentences in the server's chat path,
+    and both bundles already carried the code, so the fallback could become what AGENTS.md
+    asks for without a reader losing their text.
+    """
+    for sentence in (SILENT_ENGINE_TURN, SILENT_AFTER_TOOLS_TURN):
+        assert _gerkish(sentence) == [], sentence
+        assert len(sentence) > 40, "a fallback has to say something to a reader"
+
+
+def test_both_bundles_hold_the_sentence_the_code_names():
+    """Given the two codes, When both bundles are read, Then each reader's sentence is there and agrees with the fallback.
+
+    The English leaf is the server's sentence byte for byte — one fact, one home — and the
+    German leaf differs from it, which is the whole of what the German surface shows. The
+    German lives here and nowhere in the server, which is what let the fallback turn English.
+    """
+    de, en = _bundle("de"), _bundle("en")
+    for code, fallback in CODED_SENTENCES.items():
+        assert en.get(code) == fallback, f"serverError.{code} in en drifted from the server's sentence"
+        assert de.get(code) and de[code].strip(), f"serverError.{code} missing from de"
+        assert de[code] != en[code], f"serverError.{code}: the German surface shows the English sentence"
+        assert len(de[code]) > 40, f"serverError.{code} in de is not a sentence"

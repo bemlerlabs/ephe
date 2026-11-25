@@ -326,3 +326,83 @@ class TestDiffMode:
         code = run({FRESH: german_block(2)}, tmp_path, paths_injected=False)
         assert code == 1
         assert FRESH in capsys.readouterr().out
+
+
+#: The register's German copy, and the locale bundle it joined on 2026-11-24: the two paths
+#: the gate names as text a person reads, in the shape the product ships them.
+ASSET = "app/src/lib/settingsCopy.de.json"
+LOCALE = "app/src/locales/de.json"
+
+
+def german_json(count: int) -> str:
+    """`count` settings rows whose German the instrument scores, one leaf per line."""
+    return json.dumps(
+        {
+            "settings": {
+                f"row{i}": f"{MARKERS[i % len(MARKERS)]} {MARKERS[(i + 1) % len(MARKERS)]}"
+                for i in range(count)
+            }
+        },
+        ensure_ascii=False,
+        indent=1,
+    )
+
+
+def english_json(count: int) -> str:
+    """`count` settings rows in the tree's own language, for the twin that needs no naming."""
+    return json.dumps(
+        {"settings": {f"row{i}": f"stage {i} of the pipeline" for i in range(count)}},
+        ensure_ascii=False,
+        indent=1,
+    )
+
+
+class TestProductTextIsNamedNotSilenced:
+    """A path is exempt because it is named, never because of what it holds."""
+
+    def test_a_named_path_keeps_its_german_and_prints_the_count(self, tmp_path, capsys):
+        """GIVEN the named asset with German user text, beside a locale bundle, WHEN the gate runs THEN it passes and prints the count it excused."""
+        code = run({ASSET: german_json(12), LOCALE: german_json(9)}, tmp_path)
+        out = capsys.readouterr().out
+        assert code == 0
+        assert f"product text: {ASSET} — 12 German line(s)" in out
+
+    def test_a_path_beside_the_named_one_still_fails(self, tmp_path, capsys):
+        """GIVEN German in a file the list does not name, beside one it does WHEN the gate runs THEN only the unnamed path fails."""
+        tree = {ASSET: german_json(12), "app/src/lib/settingsCopy.de.copy.json": german_json(4)}
+        code = run(tree, tmp_path)
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "app/src/lib/settingsCopy.de.copy.json: 0 tell(s), 4 German line(s)" in out
+        assert f"{ASSET}: " not in out
+
+    def test_removing_the_name_from_the_list_turns_the_same_file_red(self, tmp_path, capsys, monkeypatch):
+        """GIVEN the asset without its name on the instrument's list WHEN the gate runs THEN its German fails, byte-identical text."""
+        # The instrument owns the list and this gate reads it through the instrument, so there is
+        # exactly one place a name can be added or withdrawn. A second list here would keep the
+        # file passing after the name is gone, which is the failure this case exists to catch.
+        assert not hasattr(check, "PRODUCT_TEXT_PATHS")
+        monkeypatch.setattr(check.inventory, "PRODUCT_TEXT_PATHS", ("app/src/locales/*.json",))
+        code = run({ASSET: german_json(12)}, tmp_path)
+        out = capsys.readouterr().out
+        assert code == 1
+        assert f"{ASSET}: 0 tell(s), 12 German line(s)" in out
+
+    def test_german_in_ordinary_code_earns_nothing_by_looking_like_user_text(self, tmp_path, capsys):
+        """GIVEN a Python file full of German sentences a user could imagine reading WHEN the gate runs THEN it fails."""
+        code = run({"core/order.py": german_block(6)}, tmp_path)
+        out = capsys.readouterr().out
+        assert code == 1
+        assert "core/order.py: 0 tell(s), 6 German line(s)" in out
+
+    def test_the_english_twin_needs_no_name_and_prints_no_count(self, tmp_path, capsys):
+        """GIVEN the English half of the same asset WHEN the gate runs THEN it passes without appearing as product text."""
+        code = run({"app/src/lib/settingsCopy.en.json": english_json(12)}, tmp_path)
+        out = capsys.readouterr().out
+        assert code == 0
+        assert "product text:" not in out
+
+    def test_a_named_path_still_carries_its_prose_tells(self):
+        """GIVEN the named asset with a tell and German lines WHEN the verdict is built THEN the tell survives the exemption."""
+        rows = check.violations([ASSET], set(), {ASSET: 3}, {ASSET: 56})
+        assert rows == [(ASSET, 3, 0)]

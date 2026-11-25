@@ -101,13 +101,13 @@ def test_a_generic_password_assignment_fails(tmp_path: Path) -> None:
 
 
 def test_a_css_custom_property_name_is_not_a_finding(tmp_path: Path) -> None:
-    """A palette entry is `token="--color-figure-plate"`, and the keyword rule saw a secret.
+    """A palette entry is `token="--color-figure-paper"`, and the keyword rule saw a secret.
 
     The value is a name: a credential does not start with two hyphens and does not read
     as a word, which is the check this pins.
     """
     target = tmp_path / "brand_palette.py"
-    target.write_text('token="--color-figure-plate",\n', encoding="utf-8")
+    target.write_text('token="--color-figure-paper",\n', encoding="utf-8")
     result = run(["--files", str(target)])
     assert result.returncode == 0, result.stdout
 

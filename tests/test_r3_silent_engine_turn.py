@@ -17,6 +17,7 @@ Contract (W8 reversed point 2):
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -47,10 +48,29 @@ def test_tool_run_without_answer_uses_the_other_sentence():
     assert silent_turn_message("", tools) != SILENT_ENGINE_TURN
 
 
-def test_both_messages_offer_a_next_step_without_a_cause():
-    for text in (SILENT_ENGINE_TURN, SILENT_AFTER_TOOLS_TURN):
-        assert "noch einmal" in text or "Versuch es" in text
-        for erfundene_ursache in ("429", "Drossel", "Rate limit", "gehängt", "Timeout"):
+def _server_error_leaves() -> list[str]:
+    """The two German sentences the chat panel shows, read from the bundle that carries them.
+
+    They stood in `server/routes/chat.py` until 2026-11-24; the reader's text is the bundle's
+    now, so the checks below run over both halves of what a reader can actually be shown.
+    """
+    root = Path(__file__).resolve().parents[1] / "app" / "src" / "locales"
+    bundle = json.loads((root / "de.json").read_text(encoding="utf-8"))["serverError"]
+    return [bundle["silent_engine_turn"], bundle["silent_after_tools_turn"]]
+
+
+def test_every_silent_turn_text_offers_a_next_step_without_a_cause():
+    """Both fallbacks and both German sentences, checked as one set.
+
+    A reader reaches one of the four depending on their language and how far the client got,
+    so the promise — a next step, no invented cause — has to hold on all of them.
+    """
+    texts = [SILENT_ENGINE_TURN, SILENT_AFTER_TOOLS_TURN, *_server_error_leaves()]
+    for text in texts:
+        assert "noch einmal" in text or "Try again" in text, text
+        for erfundene_ursache in ("429", "Drossel", "Rate limit", "geh\u00e4ngt", "Timeout"):
             assert erfundene_ursache not in text, erfundene_ursache
-    assert "Werkbank" in SILENT_AFTER_TOOLS_TURN
-    assert "Einstellungen" in SILENT_ENGINE_TURN
+    assert "Werkbank" in _server_error_leaves()[1]
+    assert "workbench" in SILENT_AFTER_TOOLS_TURN
+    assert "Einstellungen" in _server_error_leaves()[0]
+    assert "Settings" in SILENT_ENGINE_TURN

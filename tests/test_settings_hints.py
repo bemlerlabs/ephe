@@ -9,7 +9,6 @@ key.
 """
 from __future__ import annotations
 
-import json
 import re
 import sys
 from pathlib import Path
@@ -20,8 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.settings_hints import HINTS  # noqa: E402
+from core.settings_hints import HINTS, hint_key, label_key, option_key  # noqa: E402
 from core.settings_schema import SCHEMA, deep_view  # noqa: E402
+from tests.support import shipped_copy  # noqa: E402
 from tests.test_settings_surface_is_real import _read_keys  # noqa: E402
 
 MIN_LEN = 24
@@ -30,6 +30,32 @@ MAX_LEN = 240
 
 def _normal(text: str) -> str:
     return " ".join(text.strip().lower().split()).rstrip(".!?")
+
+
+def _german_hint(key: str) -> str:
+    """The German half of a register text, read where it now lives: the German bundle."""
+    de, _ = _both_bundles()
+    return _leaf(de, hint_key(key))
+
+
+def _row_title(key: str) -> tuple[str, str]:
+    """The row title as the German surface shows it and as the register carries it.
+
+    Since wave L the title is a leaf in both bundles and `label` holds the English the
+    panel falls back to, so the German half has exactly one place to be read from.
+    """
+    de, _ = _both_bundles()
+    return _leaf(de, SCHEMA[key].get("labelKey") or label_key(key)), SCHEMA[key]["label"]
+
+
+def both_halves(key: str) -> list[str]:
+    """The one sentence a row shows, in both of the two places its languages live.
+
+    Since wave L the register carries the English fallback and the German is a leaf in
+    `app/src/locales/de.json` under `hint_key(key)`. A rule about these texts holds for
+    both halves or it holds for the German reader by accident.
+    """
+    return [HINTS[key], _german_hint(key)]
 
 
 # Both directions of the duty
@@ -72,21 +98,20 @@ def test_no_hint_for_a_field_the_register_lacks() -> None:
 
 @pytest.mark.parametrize("key", sorted(HINTS))
 def test_each_hint_has_both_languages_in_good_form(key: str) -> None:
-    pair = HINTS[key]
-    assert isinstance(pair, tuple) and len(pair) == 2, key
-    de, en = pair
+    de, en = _german_hint(key), HINTS[key]
     for text in (de, en):
         assert MIN_LEN <= len(text) <= MAX_LEN, f"{key}: {len(text)} Zeichen"
     assert de != en, f"{key}: de and en are identical"
-    # An echo of the label explains nothing.
+    # An echo of the title explains nothing.
     meta = SCHEMA[key]
-    assert _normal(de) != _normal(meta["label"]), f"{key}: de only repeats the label"
+    german_title, _ = _row_title(key)
+    assert _normal(de) != _normal(german_title), f"{key}: de only repeats the row title"
     assert _normal(en) != _normal(meta["labelEn"]), f"{key}: en only repeats the label"
 
 
 @pytest.mark.parametrize("key", sorted(HINTS))
 def test_no_hint_is_a_placeholder(key: str) -> None:
-    for text in HINTS[key]:
+    for text in both_halves(key):
         for word in ("TODO", "tbd", "XXX", "lorem"):
             assert word.lower() not in text.lower(), f"{key}: Platzhalter {word!r}"
 
@@ -94,12 +119,19 @@ def test_no_hint_is_a_placeholder(key: str) -> None:
 # The channel up into the API view
 
 def test_deep_view_passes_both_languages_through(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The register hands the page one key and one English fallback, both halves intact.
+
+    The German reaches the reader through `hintKey` and the bundle, never through this
+    table, so the case asserts the key is the derived one and the two strings are the
+    fallback rather than half a pair each.
+    """
     monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
     entries = {f["key"]: f for s in deep_view() for f in s["fields"]}
     wired = _read_keys()
-    for key, (de, en) in HINTS.items():
-        assert entries[key]["hint"] == de
-        assert entries[key]["hintEn"] == en
+    for key in HINTS:
+        assert entries[key]["hint"] == HINTS[key]
+        assert entries[key]["hintEn"] == HINTS[key]
+        assert entries[key]["hintKey"] == hint_key(key)
     for key in entries:
         if key not in wired:
             assert "hint" not in entries[key], f"{key}: a field without a reader carries text"
@@ -137,11 +169,11 @@ def test_a_hint_names_only_numbers_the_register_itself_decides() -> None:
     `src/lib/deepSettings.test.ts`, and the panel kept offering the old figure. A hint may
     name a number the register decides from its own data, which for a select is its options.
     """
-    for language in (0, 1):
-        assert " px" not in HINTS["appearance.font_scale"][language]
+    for text in both_halves("appearance.font_scale"):
+        assert " px" not in text
 
     base = "appearance.base_font_px"
-    named = {digit for text in HINTS[base] for digit in re.findall(r"\d+", text)}
+    named = {digit for text in both_halves(base) for digit in re.findall(r"\d+", text)}
     assert named == set(SCHEMA[base]["options"])
 
 
@@ -180,7 +212,7 @@ def test_a_dial_with_a_span_tells_that_span(key: str) -> None:
     not were filled in with the figure this file already decides.
     """
     spec = SCHEMA[key]
-    for text in HINTS[key]:
+    for text in both_halves(key):
         for bound in (spec["min"], spec["max"]):
             assert any(form in text for form in _spellings(bound)), (key, bound, text)
 
@@ -200,17 +232,13 @@ def test_a_hint_that_quotes_another_bound_is_pinned_to_its_owner() -> None:
     from core import auto_memory, model_provider
 
     read_seconds = model_provider.OpenAICompatibleAsyncClient.STREAM_TIMEOUT.read
-    for text in HINTS["advanced.api_timeout"]:
+    for text in both_halves("advanced.api_timeout"):
         assert str(int(read_seconds)) in text, text
 
     question_floor = auto_memory._MIN_QUESTION_CHARS
-    for text in HINTS["memory.capture_min_answer_chars"]:
+    for text in both_halves("memory.capture_min_answer_chars"):
         assert str(question_floor) in text, text
 
-
-# The second home of register copy: the locale bundles
-
-LOCALES = ROOT / "app" / "src" / "locales"
 
 # A label that is legitimately the same word in both languages: a name, an
 # acronym, a model tag. Every entry states why the German surface shows that word.
@@ -227,11 +255,24 @@ def _leaf(bundle: dict, dotted: str) -> str:
     return node
 
 
+def _boot_bundles() -> tuple[dict, dict]:
+    # Read once per run: every parametrized hint case asks for both halves, and the
+    # bundles are 190 kB each.
+    global _BUNDLES
+    if "_BUNDLES" not in globals():
+        _BUNDLES = (shipped_copy.boot("de"), shipped_copy.boot("en"))
+    return _BUNDLES  # type: ignore[return-value]
+
+
 def _both_bundles() -> tuple[dict, dict]:
-    return tuple(  # type: ignore[return-value]
-        json.loads((LOCALES / f"{lang}.json").read_text(encoding="utf-8"))
-        for lang in ("de", "en")
-    )
+    """What a reader's client can resolve: the boot bundle plus the register copy it loads on demand.
+
+    A row asks i18next for one dotted leaf and does not care which of the two files carried it —
+    `addResourceBundle` merges the register copy into the same namespace before the panel paints.
+    `test_a_leaf_sits_in_exactly_one_of_the_two_halves` pins which half holds which leaf, so the
+    merge here cannot hide a leaf that drifted back into the boot bundle.
+    """
+    return shipped_copy.shipped("de"), shipped_copy.shipped("en")
 
 
 def _keyed_fields(channel: str) -> list[tuple[str, str]]:
@@ -300,14 +341,148 @@ def test_the_memory_texts_quote_the_numbers_other_modules_decide() -> None:
     """
     from core import auto_memory, memory_embed_gemma, memory_embed_onnx
 
-    for text in HINTS["memory.embedder"]:
+    for text in both_halves("memory.embedder"):
         for figure in (memory_embed_gemma.NATIVE_DIM, memory_embed_gemma.EMBED_DIM,
                        memory_embed_onnx.EMBED_DIM):
             assert str(figure) in text, text
 
-    for text in HINTS["memory.embedder_allow_download"]:
+    for text in both_halves("memory.embedder_allow_download"):
         assert str(memory_embed_gemma.MODEL_SIZE_MB) in text, text
 
-    for text in HINTS["memory.dedupe_score_threshold"]:
+    for text in both_halves("memory.dedupe_score_threshold"):
         for figure in (auto_memory._TWIN_TOPK, auto_memory._DEDUPE_QUERY_CHARS):
             assert str(figure) in text, text
+
+
+def test_the_german_sentence_arrives_from_the_bundle_not_from_python(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The half the German reader sees is a bundle leaf; comparing the two Python strings proves nothing.
+
+    `deepFields.tsx` answers `field.hintKey ? t(field.hintKey) : …`, so the row's German is
+    whatever `de.json` holds under the key the register sent. This walks the seam end to end:
+    the key out of `deep_view`, the leaf out of the German bundle, and the assertion that the
+    register's own two strings are the English fallback — a field whose German had been
+    "translated away" into the fallback would fail here rather than read English to a German.
+    """
+    monkeypatch.setenv("EPHE_CONFIG_DIR", str(tmp_path))
+    de, en = _both_bundles()
+    entries = {f["key"]: f for s in deep_view() for f in s["fields"]}
+
+    for key in sorted(HINTS):
+        entry = entries[key]
+        german = _leaf(de, entry["hintKey"])
+        assert german == _german_hint(key), f"{key}: the view's key and the tested leaf disagree"
+        assert german != entry["hint"], f"{key}: the German row would show the fallback"
+        assert german != entry["hintEn"], f"{key}: hintEn carries the German, the pairs collapsed"
+        assert _leaf(en, entry["hintKey"]) == entry["hint"], f"{key}: the English leaf and the fallback differ"
+
+
+# The row titles: the second half of what a German reader reads on a row
+
+# The three cards are not register rows; they name their leaf by hand (r58 holds that list).
+CARD_FIELDS = {"chat.custom_instructions", "plugins.plugin_lifecycle_read_only",
+               "advanced.agent_team_enabled"}
+
+
+def test_no_register_row_keeps_a_german_title_in_code() -> None:
+    """A row title is product text: the code holds the key and the English, never the German.
+
+    Before wave L, 49 of the 52 rows carried their German title as a Python string, which
+    meant a German reader's title was written in a file the language gate reads as
+    developer prose. `label` is the fallback the panel shows when it does not know the key.
+    """
+    german = sorted(k for k, meta in SCHEMA.items() if meta["label"] != meta["labelEn"])
+    assert not german, f"rows whose German title still sits in the code: {german}"
+
+
+@pytest.mark.parametrize("key", sorted(SCHEMA))
+def test_every_row_title_resolves_in_both_bundles(key: str) -> None:
+    meta = SCHEMA[key]
+    dotted = meta.get("labelKey")
+    assert dotted, f"{key}: a row without a title key and without a language of its own"
+    if key not in CARD_FIELDS:
+        assert dotted == label_key(key), f"{key}: the leaf and the rule disagree"
+    de, en = _both_bundles()
+    german, english = _leaf(de, dotted), _leaf(en, dotted)
+    assert german.strip() and english.strip(), key
+    assert english == meta["labelEn"], f"{key}: the English leaf and the register differ"
+    if key not in SAME_BY_DESIGN:
+        assert german != english, f"{key}: the German surface shows the English title"
+
+
+def _register_copy() -> dict[str, dict[str, str]]:
+    """The two halves of the lazy register copy, keyed by the dotted leaf a client asks for.
+
+    The asset holds one object per language nested under `settings`, which is the shape
+    i18next merges into its `translation` namespace; flattening it here gives the same
+    spelling `optionKeys` and `hintKey` carry.
+    """
+    return {language: shipped_copy.register_leaves(language) for language in ("de", "en")}
+
+
+def test_every_option_carries_its_leaf_and_keeps_its_label() -> None:
+    """Given a select in the register, When its view is built, Then the leaf arrived and the label stayed.
+
+    `optionKeys` came in additive, the way `hintKey` did: a client that has not read the
+    register copy still paints `optionLabels`. Both halves are asserted here because the
+    label text now lives twice — in the register for that client and in the copy for the
+    leaf — and a copy that is allowed to differ is a second truth.
+    """
+    entries = {field["key"]: field for section in deep_view() for field in section["fields"]}
+    leaves = _register_copy()
+    with_keys = [k for k, entry in entries.items() if entry.get("optionKeys")]
+    with_labels = [k for k, entry in entries.items() if entry.get("optionLabels")]
+    assert with_keys == with_labels, "an option list arrived without its keys, or the reverse"
+    assert with_keys, "the register carries no labelled option any more"
+    for key in with_keys:
+        entry = entries[key]
+        assert [o["value"] for o in entry["optionKeys"]] == [o["value"] for o in entry["optionLabels"]]
+        # `SettingControl` reads option, label and key by the map index, so the three lists
+        # are one list here — a value that moved in one of them and not the others is the bug.
+        assert [o["value"] for o in entry["optionLabels"]] == entry["options"], (
+            f"{key}: options, optionLabels and optionKeys went out of step"
+        )
+        for label, keyed in zip(entry["optionLabels"], entry["optionKeys"]):
+            assert keyed["key"] == option_key(key, keyed["value"]), f"{key}/{keyed['value']}"
+            for language, text in (("de", label["label"]), ("en", label["labelEn"])):
+                assert leaves[language].get(keyed["key"]) == text, (
+                    f"{keyed['key']}: the {language} copy and the register differ"
+                )
+
+
+def test_an_option_key_moves_with_its_value() -> None:
+    """Given two values of one field, When their leaves are named, Then each value is part of its leaf."""
+    assert option_key("appearance.base_font_px", "13") != option_key("appearance.base_font_px", "14")
+    assert option_key("appearance.companion_species", "paper_moth").endswith("OptionPaperMoth")
+    assert option_key("appearance.base_font_px", "13").startswith("settings.appearanceBaseFontPxOption")
+
+
+# Which half holds which leaf, now that the register copy is a file of its own
+
+#: Rows whose title and hint stayed in the boot bundle: three cards the panel writes by hand,
+#: two of which carry keys at all. Everything the register itself sends reads the asset.
+CATALOG_HELD_ROWS = {"advanced.agent_team_enabled", "plugins.plugin_lifecycle_read_only"}
+
+
+def test_a_leaf_sits_in_exactly_one_of_the_two_halves() -> None:
+    """Given the split of 2026-11-24, When both halves are read, Then no leaf stands in both and each row's copy sits where its reader finds it.
+
+    A leaf present twice would mean the boot bundle ships register text again — the bytes the
+    split took out of the first paint, back on it. A leaf in neither half would paint a key path
+    in the panel. The partition is asserted per row, so a leaf that walks from one file to the
+    other fails by name.
+    """
+    copy = _register_copy()
+    for language, boot in zip(("de", "en"), _boot_bundles()):
+        both = sorted(set(boot.get("settings", {})) & {k.split(".", 1)[1] for k in copy[language]})
+        assert not both, f"{language}: {both[:3]} stands in the boot bundle and in the register copy"
+    entries = {field["key"]: field for section in deep_view() for field in section["fields"]}
+    for key in sorted(SCHEMA):
+        in_asset = key not in CATALOG_HELD_ROWS
+        for channel in ("labelKey", "hintKey"):
+            dotted = entries[key].get(channel) or SCHEMA[key].get(channel)
+            if not dotted:
+                continue
+            assert (dotted in copy["de"]) == in_asset, f"{key}.{channel}: wrong half ({dotted})"
+            assert (dotted in copy["en"]) == in_asset, f"{key}.{channel}: the halves disagree ({dotted})"

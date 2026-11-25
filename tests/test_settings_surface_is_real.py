@@ -34,6 +34,8 @@ from pathlib import Path
 
 from core.settings_schema import SCHEMA
 
+from tests.support import shipped_copy
+
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = ("core", "server", "app/src")
 SOURCE_FILES = ("ephe_cli.py", "ephe.py")
@@ -145,10 +147,12 @@ def test_a_sentence_about_a_switched_off_field_names_the_control_by_its_label() 
     bundles is the allowed exception in tests/AGENTS.md: a locale is data the product loads,
     the way the plist and the bundle are read elsewhere.
     """
-    import json
-
-    for bundle, field in (("de", "label"), ("en", "labelEn")):
-        path = ROOT / "app" / "src" / "locales" / f"{bundle}.json"
-        leaf = json.loads(path.read_text(encoding="utf-8"))["update"]["disabledHint"]
-        label = SCHEMA["appearance.update_check"][field]
-        assert label in leaf, f"{bundle}: the hint does not name the control ({label!r}): {leaf}"
+    title_key = SCHEMA["appearance.update_check"]["labelKey"]
+    for bundle in ("de", "en"):
+        text = shipped_copy.shipped(bundle)
+        leaf = text["update"]["disabledHint"]
+        # The sentence has to name the control the reader sees in this language, and that
+        # title is the same leaf the panel resolves — a copy of it in the update namespace
+        # would be a second source that can go stale against the one it claims to name.
+        title = shipped_copy.resolve(bundle, title_key)
+        assert title in leaf, f"{bundle}: the hint does not name the control ({title!r}): {leaf}"

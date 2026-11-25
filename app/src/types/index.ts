@@ -431,6 +431,10 @@ export interface DeepField {
    *  identifier (validation, persistence); the text comes from the register, so
    *  the German interface shows no English word — and the reverse holds too. */
   optionLabels?: { value: string; label: string; labelEn: string }[]
+  /** LS-2: the leaf each option reads its text from, derived server-side from the option's
+   *  value. Additive in the same shape `hintKey` came in beside `hint`: a client that has
+   *  not read the leaf still paints `optionLabels`, and a register row never shows a key. */
+  optionKeys?: { value: string; key: string }[]
 }
 
 /** Wave 6: one section of the deep settings register. */
