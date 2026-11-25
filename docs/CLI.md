@@ -157,7 +157,7 @@ Manage the local sessions under `~/.ephe/sessions/`. The action is positional an
 new `--title` as well. Id and title are flags only — there is no positional form, and the usage
 error for a missing one shows the flags rather than a bare argument.
 
-## `ephe plugin list [--json] | enable <id> | disable <id> | install <id> | remove <id> [--yes] [--keep-data] [--dry-run]`
+## `ephe plugin list [--json] | enable <id> | disable <id> | install <id> [--version <v>] [--source <src>] [--expected-sha256 <hex>] [--approve-permissions <digest>] [--trust-local] [--json] | remove <id> [--yes] [--keep-data] [--dry-run]`
 `list` prints the installed bundles first — name, version, switch state and the tools they
 contribute — then the catalogue with an `installed` column. A bundle Creator Mode made on
 this machine is an installed row even when the catalogue has no line for it. `--json`
