@@ -107,6 +107,21 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   `total_count: 0`, and GitHub refuses the required-reviewer rule on this plan. The page says so,
   names the dry run a first upload must pass, and holds the revocation order (`7875447`).
 
+- install: an artifact is signed before it is trusted. `core/plugin_signing.py` verifies a detached
+  record against keys under `~/.ephe/trusted-keys/`, `core/plugin_install.py` quarantines what fails,
+  and a permission delta that changed against the installed state stops the install until its digest
+  is named back with `--approve-permissions`. A local unsigned folder installs only under
+  `--trust-local`, which says in the answer that no key spoke for it (`03791b1`).
+- settings: a row names its copy instead of carrying it. `core/settings_schema.py` emits `labelKey`
+  and `optionKeys`, `core/settings_hints.py` holds the key table in English, and the German and English
+  leaves travel in `app/src/lib/settingsCopy.{de,en}.json` — 131 each, loaded lazily, one leaf per key,
+  so a hint that exists nowhere is a failing register test rather than a blank line under a control
+  (`6bdb3f0`).
+- brand: the thinking state has a mark of its own. `ThinkingMark.tsx` turns the `E` at
+  `--ephe-think-cycle: calc(var(--ephe-scene-beat) * 6)`, and under `prefers-reduced-motion` or
+  `html.no-motion` it is painted still — asserted against `getComputedStyle().animationName`, not
+  against a class name (`b5e95e3`).
+
 ### Fixed
 
 - A bundle's identity no longer follows the interpreter's bytecode cache: importing a plugin
@@ -263,6 +278,22 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   `.venv/bin/python scripts/record_demo.py --help` prints the usage and exits 0, and an unknown
   case prints it on stderr and exits 2, both measured on this machine (`f2e0366`).
 
+- security: the glib `VariantStrIter` UB is answered with a patched copy instead of an ignore.
+  `app/src-tauri/vendor/glib-0.18.5/` carries the one-line upstream fix (`variant_iter.rs:120` starts
+  the iterator pointer at null) behind a `[patch.crates-io]` row, `scripts/lockfile_check.py` refuses a
+  patched crate outside its allowlist, and `.github/advisories-ignore.txt` holds exactly one line:
+  `GHSA-wrw7-89jp-8q8g` with the document that justifies it, its sha256, both owner rulings and a
+  recheck date. Built and measured in Docker on both arches: `Checking glib v0.18.5
+  (/tree/app/src-tauri/vendor/glib-0.18.5)` then `Finished dev profile` in 17.80 s and 51.58 s,
+  rc=0 (`94f9f3c`).
+- chat: a tool round answers to one name whichever renderer drew it. `tool-stream-rows` existed only in
+  the expanded bubble, so the calm renderer's rounds were invisible to every reader of that name and
+  QG2 counted two rows where three belong. The wrapper now appears with the round that carries a call,
+  and a thought-only round stays unwrapped, which is the other half of the same rule (`a79d16b`).
+- gates: `language_gate.py --staged` measured through the inventory instead of `measure()`, so a commit
+  adding German developer prose passed the hook while the tree run flagged the identical lines. Both
+  passes go through one `measure()` now, with cases naming the difference (`6bdb3f0`).
+
 ### Changed
 
 - ci: the workflow auditor moved from 1.30.1 to 1.33.1 on a measured parity. The job's own invocation
@@ -307,6 +338,22 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   numbers this engine produced, with the older series kept beside them, and
   `docs/SANDBOX_EXECUTION.md` holds the table.
 
+- chat: the thinking state says `ephe grübelt` in German and `ephe is flying` in English — the owner's
+  own wording for the English surface, not a translation of the German, and no trailing ellipsis
+  (`dada84e`).
+- settings: `fire_bee` is no longer offered as a companion form. The three that remain are the folded
+  paper moth, the golden spark with ghost eyes and a calm emblem. A stored `fire_bee` normalises to
+  `paper_moth` on read; nothing on disk is rewritten (`6bdb3f0`).
+- docs: `ephe plugin install` is documented with the flags its parser defines, including what each one
+  refuses, and `docs/PLUGIN_EXPORT.md` now names the two plugin commands this build does not have
+  instead of printing them beside the ones it has (`ef3abdf`, `7db99ba`, `00e0311`).
+- tests: walkthrough captures are run output. The specs and `walkthrough-out.ts` no longer describe a
+  dated set under `docs/media/` as tracked evidence, and every run writes to the scratch root unless
+  `EPHE_WALKTHROUGH_OUT` names another (`b5e95e3`).
+- gates: both copy ratchets moved down to what the tree measures — 723 German lines to 715, 379 prose
+  tells to 368 — written by the instruments' own lowering pass, verified against the copies taken
+  before it: no entry raised, none added (`00819f3`).
+
 ### Removed
 
 - docs: the media tree carries only what is current for the brand, by owner decision. Twelve
@@ -318,6 +365,15 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   deleted name (`f2e0366`). The bytes are out of the working tree, not out of the repository's
   history: a clone still carries them until the history is rewritten, which is an owner decision
   and has not been done.
+
+- onboarding: the companion no one can choose is gone. Fourteen `bee-3d-*` files, the three
+  fire-spirit SVGs, `FireSpirit.tsx`, `BeeEyelids.tsx` and `TypingIndicator.tsx` leave the tree;
+  `app/public/onboarding` goes from 27 files and 19 266 939 bytes to 13 files and 970 523 bytes,
+  and the guide figure is the paper moth (`b5e95e3`).
+- brand: fourteen figure roles fell with the body they named — soot, fur, mou, ember, shine, the two
+  head tones, two honey tones, an iris, a plate whose own comment said what it painted, and three
+  glass-wing stops. Six remain, and each of those names the file that carries it (`b5e95e3`).
+- scripts: the two sprite generators no caller had (`c1a6db4`).
 
 ## [0.1.0] - prepared 2026-11-21, not published
 
