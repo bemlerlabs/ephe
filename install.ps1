@@ -305,6 +305,38 @@ if (-not $Cli) {
     }
     Push-Location (Join-Path $PSScriptRoot "app")
     try {
+      # The packageManager pin in package.json is the tree's only package-manager
+      # truth (tests/test_r46_pnpm_single_source.py). Try the pinned pnpm through
+      # npx before npm's resolver: npm silently skips @tailwindcss/oxide's platform
+      # binding when its engines exclude the running node, and the build then dies
+      # at vite's config load (https://github.com/npm/cli/issues/4828; measured
+      # 2026-11-25 in ubuntu:noble containers on the Bash side, same dependency
+      # tree here). This Windows path is the mirrored contract, not yet measured on
+      # a Windows host — the Bash installer carries the measurements.
+      $pnpmPin = $null
+      try {
+        $pmRaw = Get-Content -LiteralPath "package.json" -Raw
+        $pmMatch = [regex]::Match($pmRaw, '"packageManager"\s*:\s*"pnpm@([^"]+)"')
+        if ($pmMatch.Success) { $pnpmPin = $pmMatch.Groups[1].Value }
+      } catch { $pnpmPin = $null }
+      $pnpmOk = $false
+      if ($pnpmPin -and (Get-Command npx -ErrorAction SilentlyContinue)) {
+        npx --yes "pnpm@$pnpmPin" --dir . --version 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+          $pnpmOk = $true
+          Ok "pnpm $pnpmPin fetched through npx (pinned by package.json)"
+        }
+      }
+      if ($pnpmOk) {
+        Info "Dependencies (app): pinned pnpm through npx"
+        npx --yes "pnpm@$pnpmPin" --dir . install --frozen-lockfile
+        if ($LASTEXITCODE -ne 0) {
+          Info "Dependencies (app): relaxed lockfile"
+          npx --yes "pnpm@$pnpmPin" --dir . install
+          if ($LASTEXITCODE -ne 0) { throw "pnpm install failed (exit $LASTEXITCODE)." }
+        }
+        Run "npx pnpm run build" { npx --yes "pnpm@$pnpmPin" --dir . run build }
+      } else {
       # `npm install --no-package-lock`, not `npm ci`: a fresh clone has no
       # package-lock.json and `npm ci` refuses that state with EUSAGE. Bare
       # `npm install` would write app/package-lock.json, the second lockfile that
@@ -314,9 +346,23 @@ if (-not $Cli) {
       # dies inside its own resolver on this peer tree, and the peers the app needs are
       # declared in package.json (see the comment in install.sh, build_pwa()).
       Run "npm install --no-package-lock --legacy-peer-deps" { npm install --no-package-lock --legacy-peer-deps }
+      if (Test-Path -LiteralPath "node_modules/@tailwindcss/oxide") {
+        # Pull the platform binding npm may have skipped (npm/cli#4828), --no-save
+        # so package.json and pnpm-lock.yaml stay untouched. Candidates, not a
+        # guess: npm answers rc=0 for a wrong one, oxide's loader picks its libc.
+        $oxideVer = (node -p "require('./node_modules/@tailwindcss/oxide/package.json').version") 2>$null
+        $oxideTag = (node -p "process.platform + '-' + process.arch") 2>$null
+        if ($oxideVer -and $oxideTag) {
+          foreach ($oxideLibc in @("msvc", "gnu", "musl")) {
+            npm install --no-save --no-package-lock --ignore-scripts "@tailwindcss/oxide-${oxideTag}-${oxideLibc}@${oxideVer}" 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) { Ok "oxide binding @tailwindcss/oxide-${oxideTag}-${oxideLibc}@${oxideVer} present (--no-save)" }
+          }
+        }
+      }
       Run "npm run build" { npm run build }
+      }
       if (-not (Test-Path -LiteralPath "dist/index.html")) {
-        Fail "PWA build failed: dist/index.html does not exist."
+        Fail "PWA build failed: dist/index.html does not exist. If the lines above name @tailwindcss/oxide, the platform binding is the cause (https://github.com/npm/cli/issues/4828). Next step: pnpm (https://pnpm.io) or node >= 20, then run this installer again."
       }
       Ok "PWA built -> app/dist"
     } finally {

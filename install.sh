@@ -41,6 +41,11 @@ REF="${EPHE_REF:-}"
 # this script deliberately has no Ollama download/hash anymore.
 UV_INSTALL_SHA256="${EPHE_UV_INSTALL_SHA256:-283cbef4bdaca819bd896b0dacb8a085c4c05dbc880642aa5001d97bc4db74ba}"
 
+# The loop below shifts every flag away; the clone path re-enters this script
+# from the checkout and must replay the caller's flags — without this, --no-start
+# and --cli died silently at the re-exec and the second half started the server.
+ORIG_ARGS=("$@")
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-start) NO_START=1; shift ;;
@@ -352,7 +357,7 @@ if ! is_project_root; then
     fi
     cd "$INSTALL_DIR"
   fi
-  exec bash ./install.sh "$@"
+  exec bash ./install.sh ${ORIG_ARGS[@]+"${ORIG_ARGS[@]}"}
 fi
 
 PROJECT_DIR="$(pwd)"
@@ -566,8 +571,8 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
     # …/corepack/v1/pnpm/12.11.2/bin/pnpm.cjs", while the same command from app/
     # worked. So probe pnpm by RUNNING it — the way find_python() already probes an
     # interpreter — in the directory the build runs in and with the `--dir` the
-    # build uses. A pnpm that does not run counts as absent, which is what it is,
-    # and the npm branch below is the path that works there.
+    # build uses. A pnpm that does not run counts as absent, which is what it is;
+    # what comes next is the pinned pnpm through npx, and only after that npm.
     pnpm_ok=0
     if [[ "$DRY_RUN" == "1" ]]; then
       # A dry run executes no tool, so presence is all it can ask for.
@@ -575,12 +580,34 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
     elif pnpm --dir "$PROJECT_DIR/app" --version >/dev/null 2>&1; then
       pnpm_ok=1
     elif command -v pnpm >/dev/null 2>&1; then
-      warn "pnpm is installed but does not run here (its corepack shim cannot resolve the pinned version) — building with npm instead."
+      warn "pnpm is installed but does not run here (its corepack shim cannot resolve the pinned version) — trying the pinned pnpm through npx, then npm."
+    fi
+    # pnpm absent or a dead shim does not release this tree from its package
+    # manager: the packageManager pin in app/package.json is the only package-
+    # manager truth (tests/test_r46_pnpm_single_source.py — the pnpm lock stays,
+    # no package-lock.json on disk). Before handing the build to npm's resolver,
+    # fetch exactly that pinned pnpm through npx, the same version a working pnpm
+    # would have resolved. The order matters: npm 9 silently skips
+    # @tailwindcss/oxide's platform binding when the binding's engines (node>=20)
+    # exclude the running node, so a bare npm build dies at vite's config load —
+    # measured 2026-11-25 on ubuntu:noble ×{arm64,amd64} with apt node 18.19.1
+    # and npm 9.2.0: npm install rc=0, then "Cannot find native binding"
+    # (npm/cli#4828) and app/dist stays missing.
+    pnpm_pin=""
+    if [[ "$pnpm_ok" == "0" && "$DRY_RUN" != "1" ]] && command -v npx >/dev/null 2>&1; then
+      pnpm_pin=$(sed -n 's/.*"packageManager"[[:space:]]*:[[:space:]]*"pnpm@\([^"]*\)".*/\1/p' "$PROJECT_DIR/app/package.json" 2>/dev/null | head -1)
+      if [[ -n "$pnpm_pin" ]] && npx --yes "pnpm@$pnpm_pin" --dir "$PROJECT_DIR/app" --version >/dev/null 2>&1; then
+        ok "pnpm ${pnpm_pin} fetched through npx (pinned by app/package.json)"
+      else
+        pnpm_pin=""
+      fi
     fi
     if [[ ! -f "$PROJECT_DIR/app/pnpm-lock.yaml" ]]; then
       info "install is running (without the lockfile)"
       if [[ "$pnpm_ok" == "1" ]]; then
         run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install
+      elif [[ -n "$pnpm_pin" ]]; then
+        run_quiet "Dependencies installed (app)" npx --yes "pnpm@$pnpm_pin" --dir "$PROJECT_DIR/app" install
       else
         run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock --legacy-peer-deps \
           || fail "npm could not resolve the dependencies in app/ — the package manifest and the pnpm lock disagree (see the lines above). Install pnpm (https://pnpm.io) and run the installer again, or fix the conflict npm names and retry."
@@ -588,6 +615,14 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
     elif [[ "$pnpm_ok" == "1" ]]; then
       run_quiet "Dependencies installed (app)" pnpm --dir "$PROJECT_DIR/app" install --frozen-lockfile || run_quiet "Dependencies installed (app, relaxed lockfile)" pnpm --dir "$PROJECT_DIR/app" install
       run_quiet "Frontend built" pnpm --dir "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
+    elif [[ -n "$pnpm_pin" ]]; then
+      # The pinned pnpm, fetched — the same two install calls and the same build
+      # the pnpm branch makes, through npx. Nothing lands on disk that the pnpm
+      # branch would not produce (npx caches under the user's npm cache, not app/).
+      info "pnpm is not installed — building with pnpm ${pnpm_pin} through npx"
+      run_quiet "Dependencies installed (app)" npx --yes "pnpm@$pnpm_pin" --dir "$PROJECT_DIR/app" install --frozen-lockfile \
+        || run_quiet "Dependencies installed (app, relaxed lockfile)" npx --yes "pnpm@$pnpm_pin" --dir "$PROJECT_DIR/app" install
+      run_quiet "Frontend built" npx --yes "pnpm@$pnpm_pin" --dir "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
     else
       # npm, and `install --no-package-lock` rather than `ci`: a fresh clone has no
       # package-lock.json, and `npm ci` refuses that state outright — measured on
@@ -609,10 +644,30 @@ if [[ "$INSTALL_MODE" != "cli" ]]; then
       info "pnpm is not usable here — building with npm (no package-lock.json will be written)"
       run_quiet "Dependencies installed (app)" npm --prefix "$PROJECT_DIR/app" install --no-package-lock --legacy-peer-deps \
         || fail "npm could not resolve the dependencies in app/ — the package manifest and the pnpm lock disagree (see the lines above). Install pnpm (https://pnpm.io) and run the installer again, or fix the conflict npm names and retry."
-      run_quiet "Frontend built" npm --prefix "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above."
+      # npm skips optionalDependencies whose engines exclude the running node —
+      # @tailwindcss/oxide declares node>=20, so on apt node 18 its platform
+      # binding is silently absent and vite dies at config load (npm/cli#4828;
+      # measured 2026-11-25 on ubuntu:noble). Pull the binding for this machine
+      # by name, --no-save so app/package.json and pnpm-lock.yaml stay untouched.
+      # Both libc candidates are attempted because npm answers rc=0 for a wrong
+      # one too; oxide's own loader then picks the binding its libc reports.
+      oxide_pkg="$PROJECT_DIR/app/node_modules/@tailwindcss/oxide"
+      if [[ "$DRY_RUN" != "1" && -d "$oxide_pkg" ]]; then
+        oxide_ver=$(node -p "require('$oxide_pkg/package.json').version" 2>/dev/null || true)
+        oxide_tag=$(node -p "process.platform + '-' + process.arch" 2>/dev/null || true)
+        if [[ -n "$oxide_ver" && -n "$oxide_tag" ]]; then
+          for oxide_libc in gnu musl; do
+            if npm --prefix "$PROJECT_DIR/app" install --no-save --no-package-lock --ignore-scripts \
+                 "@tailwindcss/oxide-${oxide_tag}-${oxide_libc}@${oxide_ver}" >/dev/null 2>&1; then
+              ok "oxide binding @tailwindcss/oxide-${oxide_tag}-${oxide_libc}@${oxide_ver} present (--no-save)"
+            fi
+          done
+        fi
+      fi
+      run_quiet "Frontend built" npm --prefix "$PROJECT_DIR/app" run build || fail "PWA build failed — see the lines above. If they name @tailwindcss/oxide, the platform binding npm skipped is the cause (see the check below this branch)."
     fi
     if [[ "$DRY_RUN" != "1" && ! -f "$PROJECT_DIR/app/dist/index.html" ]]; then
-      fail "PWA build failed: app/dist/index.html does not exist."
+      fail "PWA build failed: app/dist/index.html does not exist. If the lines above name @tailwindcss/oxide, see https://github.com/npm/cli/issues/4828 — next step: pnpm (https://pnpm.io) or node >= 20, then run this installer again."
     fi
     # A dry run builds nothing, so it may not report a build. "PWA built → app/dist"
     # was printed there while app/dist stayed absent (issue #198): the line a person
