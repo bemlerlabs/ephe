@@ -1,0 +1,4 @@
+# Generated baseline data is not a formatting target: a ratchet reads the numbers, the
+# layout belongs to whoever generated the file, and a re-indent moves a file nobody edits.
+# The instrument that owns this one: tests/playwright/theme-parity.spec.ts.
+tests/playwright/theme-parity.baseline.json

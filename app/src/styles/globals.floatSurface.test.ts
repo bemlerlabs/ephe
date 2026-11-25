@@ -14,10 +14,27 @@ import { join } from 'node:path'
 
 const css = readFileSync('src/styles/globals.css', 'utf8')
 const code = css.replace(/\/\*[\s\S]*?\*\//g, '')
+/**
+ * The quote style of an attribute value is presentation: the formatter writes
+ * `[data-float='3']` where the sheet was authored with `[data-float="3"]`, and
+ * the value `3` is the same either way. Whitespace is folded for the same
+ * reason — a rule broken across lines is still that rule. The digit and the
+ * attribute name stay compared, so a renamed or dropped step is still caught.
+ */
+function selectorForm(src: string): string {
+  return src
+    .replace(
+      /\[\s*([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')\s*\]/g,
+      (_all, name: string, double: string, single: string) => `[${name}=${double ?? single}]`,
+    )
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+const sheet = selectorForm(code)
 // the primitive's own rule (the shared group rule also names the selector)
-const rules = [...code.matchAll(/\.float-surface\s*\{([^}]*)\}/g)].map((m) => m[1] ?? '')
+const rules = [...sheet.matchAll(/\.float-surface\s*\{([^}]*)\}/g)].map((m) => m[1] ?? '')
 const rule = rules.find((r) => r.includes('--glass-float-fill')) ?? ''
-const level3 = /\.float-surface\[data-float="3"\]\s*\{([^}]*)\}/.exec(code)?.[1] ?? ''
+const level3 = /\.float-surface\[data-float=3\]\s*\{([^}]*)\}/.exec(sheet)?.[1] ?? ''
 
 const EXTS = ['.ts', '.tsx']
 function walk(dir: string): string[] {
@@ -51,9 +68,9 @@ describe('floating surface — one primitive', () => {
     expect(rule).toContain('--glass-float-fill')
   })
 
-  it('leaves exactly one elevation axis, and it reads a sheet token', () => {
+  it('leaves exactly one elevation axis, and it reads a sheet token, quote style aside', () => {
     expect(level3, 'the dialog step is gone').toContain('var(--shadow-elevation-3)')
-    expect(code.match(/\.float-surface\[data-float=/g) ?? []).toHaveLength(1)
+    expect(sheet.match(/\.float-surface\[data-float=/g) ?? []).toHaveLength(1)
   })
 
   it('has call sites that do not re-derive material, radius or elevation', () => {

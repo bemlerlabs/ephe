@@ -25,6 +25,25 @@ function block(re: RegExp): string {
   return code.slice(open + 1)
 }
 
+/**
+ * A selector's presentation is not its meaning: the formatter may quote an
+ * attribute value either way and break one rule's selector list across lines,
+ * so the two cases below read the sheet with attribute quotes removed and
+ * whitespace collapsed. Class and attribute names keep their case — in CSS
+ * that difference does mean something.
+ */
+function selectorForm(src: string): string {
+  return src
+    .replace(
+      /\[\s*([\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')\s*\]/g,
+      (_all, name: string, double: string, single: string) => `[${name}=${double ?? single}]`,
+    )
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+const sheet = selectorForm(code)
+
 describe('run state — one vocabulary, the scene’s own clock', () => {
   it('takes its durations from the scene tokens, not from a second budget', () => {
     expect(code).toContain('--ephe-run-enter-duration: var(--ephe-condense-duration)')
@@ -42,26 +61,26 @@ describe('run state — one vocabulary, the scene’s own clock', () => {
     }
   })
 
-  it('names the four states and the two chrome surfaces', () => {
+  it('names the four states and the two chrome surfaces, quote style aside', () => {
     for (const state of ['ready', 'working', 'waiting', 'done']) {
-      expect(code).toContain(`.ephe-run[data-state="${state}"]`)
+      expect(sheet).toContain(`.ephe-run[data-state=${state}]`)
     }
-    expect(code).toContain('.workbench-bar')
-    expect(code).toContain('.ephe-run-progress')
-    expect(code).toContain('.ephe-rail-mark[data-step="active"]')
-    expect(code).toContain('.ephe-rail-mark[data-step="failed"]')
+    expect(sheet).toContain('.workbench-bar')
+    expect(sheet).toContain('.ephe-run-progress')
+    expect(sheet).toContain('.ephe-rail-mark[data-step=active]')
+    expect(sheet).toContain('.ephe-rail-mark[data-step=failed]')
   })
 
-  it('lands every state on the still under both switches', () => {
+  it('lands every state on the still under both switches, line breaks aside', () => {
     // The operating system's switch and the user's carry the same selectors.
     for (const prefix of ['', 'html.no-motion ']) {
-      expect(code).toContain(`${prefix}.ephe-run[data-state="working"] .ephe-run-mark`)
-      expect(code).toContain(`${prefix}.ephe-rail-mark[data-step="active"]`)
+      expect(sheet).toContain(`${prefix}.ephe-run[data-state=working] .ephe-run-mark`)
+      expect(sheet).toContain(`${prefix}.ephe-rail-mark[data-step=active]`)
     }
-    expect(code).toContain(
-      'html.no-motion .ephe-run[data-state="working"] .ephe-run-mark,\nhtml.no-motion .ephe-rail-mark[data-step="active"]',
+    expect(sheet).toContain(
+      'html.no-motion .ephe-run[data-state=working] .ephe-run-mark, html.no-motion .ephe-rail-mark[data-step=active]',
     )
     // The still keeps the live tone, so a stopped state is still readable.
-    expect(code).toContain('opacity: 1 !important;')
+    expect(sheet).toContain('opacity: 1 !important;')
   })
 })

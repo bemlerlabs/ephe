@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* S1: UI type scale — 7 steps, coupled to the Appearance setting
@@ -11,26 +11,29 @@
      removes the 10 px step without re-tuning the dense layout.
      Each px on a step below is its value at the shipped 15 px base; the base step is a
      choice (13, 14 or 15 px) and every step moves with it. */
-  --ui-font-size: 15px;   /* 2026-10-17: the shipped default, one step up from 14 */
-  --text-ui-xl: calc(var(--ui-font-size) + 4px);        /* 19 */
+  --ui-font-size: 15px; /* 2026-10-17: the shipped default, one step up from 14 */
+  --text-ui-xl: calc(var(--ui-font-size) + 4px); /* 19 */
   --text-ui-xl--line-height: 22.5px;
-  --text-ui-lg: calc(var(--ui-font-size) + 2px);        /* 17 */
+  --text-ui-lg: calc(var(--ui-font-size) + 2px); /* 17 */
   --text-ui-lg--line-height: 20px;
-  --text-ui-base: var(--ui-font-size);                   /* 15 */
+  --text-ui-base: var(--ui-font-size); /* 15 */
   --text-ui-base--line-height: 17.5px;
-  --text-ui-caption: calc(var(--ui-font-size) - 1px);   /* 14 */
+  --text-ui-caption: calc(var(--ui-font-size) - 1px); /* 14 */
   --text-ui-caption--line-height: 16.25px;
   /* The floor is part of every step that can reach it: at a 13 px base the
      plain calc would render sm/xs at 11 px, which is the size the owner
      directive forbids. */
-  --text-ui-sm: max(12px, calc(var(--ui-font-size) - 2px));   /* 13 */
+  --text-ui-sm: max(12px, calc(var(--ui-font-size) - 2px)); /* 13 */
   --text-ui-sm--line-height: 15px;
-  --text-ui-xs: max(12px, calc(var(--ui-font-size) - 2px));   /* 13; the floor binds at a 13 px base */
+  --text-ui-xs: max(
+    12px,
+    calc(var(--ui-font-size) - 2px)
+  ); /* 13; the floor binds at a 13 px base */
   --text-ui-xs--line-height: 15px;
   /* A1 (owner directive, QD-014): no text run below 12 px anywhere. The step
      keeps its name (215 call sites), but the floor is now part of the value, so
      even a user who scales the base to 13 px cannot pull it under the floor. */
-  --text-ui-2xs: max(12px, calc(var(--ui-font-size) - 3px));   /* 12 — the floor */
+  --text-ui-2xs: max(12px, calc(var(--ui-font-size) - 3px)); /* 12 — the floor */
   --text-ui-2xs--line-height: 15px;
   /* S2: iOS compatibility token — fixed 16px/20px, it does NOT scale with
      --ui-font-size (viewport focus-zoom threshold of the WebView inputs). */
@@ -48,11 +51,11 @@
      the ONE type lever: at its 14px base these land on the sizes the direction
      measures. Leading follows the mockups (1.22 / 1.42 / 1.45), rounded onto the
      same 0.25px raster the S1 steps sit on. */
-  --text-scale-title: calc(var(--ui-font-size) + 3px);   /* 18 */
+  --text-scale-title: calc(var(--ui-font-size) + 3px); /* 18 */
   --text-scale-title--line-height: 20.75px;
-  --text-scale-ui: calc(var(--ui-font-size) - 1px);      /* 14 */
+  --text-scale-ui: calc(var(--ui-font-size) - 1px); /* 14 */
   --text-scale-ui--line-height: 18.5px;
-  --text-scale-data: calc(var(--ui-font-size) - 3px);    /* 12 */
+  --text-scale-data: calc(var(--ui-font-size) - 3px); /* 12 */
   --text-scale-data--line-height: 16px;
 
   /* WAVE-1: the one right edge every number shares — the direction's fixed
@@ -126,9 +129,11 @@
   --color-status-info: hsl(0 0% 88%);
 
   /* R17 F-17: the font-mono utility now uses the bundled JetBrains Mono */
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   /* FONT-01: one source for the sans scale (utility .font-sans + body). */
-  --font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans:
+    'Inter', ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
   /*  EPHEMORA COLOR SYSTEM — paper & ink (WP1)     */
 
   /* Role layer (the only source of the new values, and the only ground the
@@ -142,24 +147,30 @@
      card-foreground, muted, muted-foreground, secondary, secondary-foreground,
      stone, mist, firefly, firefly-glow) therefore stand in the dark block as
      a literal with "=" + reference — they must stay in sync with the role literal. */
-  --color-brand: hsl(7.46 78.6% 57.8%);         /* #E8543F — Ephemora red, lifted on the ink
+  --color-brand: hsl(
+    7.46 78.6% 57.8%
+  ); /* #E8543F — Ephemora red, lifted on the ink
      ground to sit at 5.1:1 (measured, not guessed) */
-  --color-brand-deep: var(--color-brand);/* text/link red: on ink the brand red itself
+  --color-brand-deep: var(
+    --color-brand
+  ); /* text/link red: on ink the brand red itself
      clears AA (5.1:1) — firefly hangs off this */
-  --color-brand-glow: hsl(7 84% 66%);    /* hover/glow step of the brand red */
-  --color-brand-tint: hsl(5.45 69.3% 50.2% / 0.18); /* resting brand surface (18% Ephemora red, rgba(216,56,40,.18)) */
-  --color-canvas: hsl(30 16.7% 7.06%);        /* #15120F — ink ground (warm, not dead black) */
-  --color-surface: hsl(20 11.5% 10.2%);      /* #1D1917 — cards, rows (P6/A6: bg-surface) */
-  --color-ink: hsl(42 27.8% 92.9%);          /* #F2EFE8 — text */
-  --color-ink-soft: hsl(30 9% 66%);      /* secondary text (mist) */
-  --color-ink-faint: hsl(30 8% 53%);     /* muted text (mist-dim / muted-foreground) */
-  --color-hairline: hsl(22.5 9.5% 16.5%);     /* #2E2926 — 1-px rules instead of shadows */
+  --color-brand-glow: hsl(7 84% 66%); /* hover/glow step of the brand red */
+  --color-brand-tint: hsl(
+    5.45 69.3% 50.2% / 0.18
+  ); /* resting brand surface (18% Ephemora red, rgba(216,56,40,.18)) */
+  --color-canvas: hsl(30 16.7% 7.06%); /* #15120F — ink ground (warm, not dead black) */
+  --color-surface: hsl(20 11.5% 10.2%); /* #1D1917 — cards, rows (P6/A6: bg-surface) */
+  --color-ink: hsl(42 27.8% 92.9%); /* #F2EFE8 — text */
+  --color-ink-soft: hsl(30 9% 66%); /* secondary text (mist) */
+  --color-ink-faint: hsl(30 8% 53%); /* muted text (mist-dim / muted-foreground) */
+  --color-hairline: hsl(22.5 9.5% 16.5%); /* #2E2926 — 1-px rules instead of shadows */
   /* The ten constitution tokens the palette called by another name. Aliases, so
      nothing on screen moves; the names exist so a surface can ask for a role
      instead of a hue. */
-  --color-elevated: #25201D;                 /* active card, hover surface, input */
-  --color-ok: var(--color-signal-ok);        /* #5BAE90 */
-  --color-warn: var(--color-signal-warn);    /* #F6A328 */
+  --color-elevated: #25201d; /* active card, hover surface, input */
+  --color-ok: var(--color-signal-ok); /* #5BAE90 */
+  --color-warn: var(--color-signal-warn); /* #F6A328 */
   --color-error: var(--color-signal-danger); /* #F63B1E */
   /* Louder hairline = the control boundary. Raised from 24% (1.72:1 on this canvas,
      1.29:1 on the interactive tint) to the WCAG 1.4.11 floor: 3:1 or better against
@@ -171,16 +182,20 @@
      ink reads as a step, and one utility has to carry that step on its own. */
   --color-surface-raised: hsl(0 0% 100% / 0.04);
   --color-surface-interactive: hsl(0 0% 100% / 0.08);
-  --color-signal-ok: hsl(158 34% 52%);   /* success — stepped back: desaturated (64→34),
+  --color-signal-ok: hsl(
+    158 34% 52%
+  ); /* success — stepped back: desaturated (64→34),
      never a brand color again; lightness stays because it needs AA on ink */
-  --color-signal-danger: hsl(8 92% 54%); /* danger — own axis: hue 8, S 92, darker
+  --color-signal-danger: hsl(
+    8 92% 54%
+  ); /* danger — own axis: hue 8, S 92, darker
      than brand (ΔE≈20, AA 4.9:1 ink / 4.7:1 card). The planned dark value (88% S, 58% L)
      lay only ΔE 8 from the computed brand red — separation too weak, corrected here
      by measurement; the brand is precisely what must never smell of danger. */
-  --color-signal-warn: hsl(36 92% 56%);  /* warning — amber axis unchanged */
+  --color-signal-warn: hsl(36 92% 56%); /* warning — amber axis unchanged */
 
   /* Backgrounds — light, matte surfaces (alias of the role layer) */
-  --color-black-forest: var(--surface-base);   /* main background */
+  --color-black-forest: var(--surface-base); /* main background */
   --color-black-midnight: var(--surface-card); /* second level */
 
   /* Neutral steps (formerly moss) — section separators / cards */
@@ -198,33 +213,33 @@
      answer what the being is made of, so they stand once here and hold on paper
      as well: the drawing reads the same on either ground, and only the glass wing
      and the brand roles above bend with the theme. */
-  --color-figure-paper: #EFE6D2;     /* the moth's sheet */
-  --color-figure-paper-lit: #FBF5E6; /* the lit face of a fold */
-  --color-figure-paper-shade: #D8C9AC; /* the shade side of a fold */
-  --color-figure-paper-body: #C8B591; /* the rolled body slip */
-  --color-figure-cream: #F7F0E0;     /* the scene fire's hot core (.ephe-scene-core) */
-  --color-figure-head-shadow: #120F0E; /* the app-icon square under the rendered hero */
+  --color-figure-paper: #efe6d2; /* the moth's sheet */
+  --color-figure-paper-lit: #fbf5e6; /* the lit face of a fold */
+  --color-figure-paper-shade: #d8c9ac; /* the shade side of a fold */
+  --color-figure-paper-body: #c8b591; /* the rolled body slip */
+  --color-figure-cream: #f7f0e0; /* the scene fire's hot core (.ephe-scene-core) */
+  --color-figure-head-shadow: #120f0e; /* the app-icon square under the rendered hero */
 
   /* Amber — warning accent (formerly lichen) */
   --color-lichen: var(--color-signal-warn);
 
   /* Mist — text brightness (secondary) */
-  --color-mist: hsl(30 9% 66%);          /* = --color-ink-soft (guardian pair) */
+  --color-mist: hsl(30 9% 66%); /* = --color-ink-soft (guardian pair) */
 
   /* Stone — primary text */
-  --color-stone: hsl(42 27.8% 92.9%);        /* = --color-ink (guardian pair) */
-  --color-mist-dim: var(--text-role-muted);  /* faint text step (mist-dim) */
+  --color-stone: hsl(42 27.8% 92.9%); /* = --color-ink (guardian pair) */
+  --color-mist-dim: var(--text-role-muted); /* faint text step (mist-dim) */
 
   /* Semantic aliases. Literals stand only where test_sprint2_f2/test_r48
      compute them raw (guardians, see above); everything else is a var()
      alias of the role layer. */
-  --color-background: hsl(30 16.7% 7.06%);    /* = --color-canvas (guardian literal) */
-  --color-foreground: hsl(42 27.8% 92.9%);   /* = --color-ink (guardian literal) */
-  --color-card: hsl(20 11.5% 10.2%);         /* = --color-surface (guardian literal) */
+  --color-background: hsl(30 16.7% 7.06%); /* = --color-canvas (guardian literal) */
+  --color-foreground: hsl(42 27.8% 92.9%); /* = --color-ink (guardian literal) */
+  --color-card: hsl(20 11.5% 10.2%); /* = --color-surface (guardian literal) */
   --color-card-foreground: hsl(42 27.8% 92.9%); /* = --color-ink (guardian literal) */
-  --color-secondary: hsl(20 10% 14%);    /* intermediate step card→view */
+  --color-secondary: hsl(20 10% 14%); /* intermediate step card→view */
   --color-secondary-foreground: hsl(42 27.8% 92.9%); /* = --color-ink (guardian literal) */
-  --color-muted: hsl(20 10% 14%);        /* = secondary step (guardian literal) */
+  --color-muted: hsl(20 10% 14%); /* = secondary step (guardian literal) */
   --color-muted-foreground: hsl(30 8% 53%); /* = --color-ink-faint (guardian literal) */
   /* Destructive surface carries signal-danger — NEVER brand. */
   --color-destructive: var(--color-signal-danger);
@@ -245,10 +260,10 @@
 
   /* P6/A1: trajectory role colors — 5 role tone steps
      blue/teal/violet/amber/cyan, docked onto the moss system. */
-  --color-trajectory-user: hsl(221 83% 53%);        /* #2563eb equivalent */
-  --color-trajectory-assistant: hsl(174 72% 33%);   /* #0f766e equivalent */
-  --color-trajectory-reasoning: hsl(262 83% 58%);   /* #7c3aed equivalent */
-  --color-trajectory-tool-call: hsl(38 92% 50%);    /* #d97706 equivalent */
+  --color-trajectory-user: hsl(221 83% 53%); /* #2563eb equivalent */
+  --color-trajectory-assistant: hsl(174 72% 33%); /* #0f766e equivalent */
+  --color-trajectory-reasoning: hsl(262 83% 58%); /* #7c3aed equivalent */
+  --color-trajectory-tool-call: hsl(38 92% 50%); /* #d97706 equivalent */
   --color-trajectory-tool-result: hsl(199 89% 48%); /* #0284c7 equivalent */
   /* P6/A1: wf label tracking (tiny-caps look for labels). */
   --tracking-wf-label: 0.09em;
@@ -267,14 +282,14 @@
      Names in this layer stay out of Tailwind's own namespaces: --text-* is the
      font-size namespace in v4, so a role that must not emit a size utility
      carries the -role- infix. */
-  --surface-base: var(--color-canvas);                 /* the page ground */
-  --surface-card: var(--color-surface);                /* cards, rows, panels */
-  --surface-lift: var(--color-surface-raised);         /* the in-card lift (W10-23 pair) */
-  --surface-active: var(--color-surface-interactive);  /* hover / selection tint */
+  --surface-base: var(--color-canvas); /* the page ground */
+  --surface-card: var(--color-surface); /* cards, rows, panels */
+  --surface-lift: var(--color-surface-raised); /* the in-card lift (W10-23 pair) */
+  --surface-active: var(--color-surface-interactive); /* hover / selection tint */
   --text-role-primary: var(--color-ink);
   --text-role-secondary: var(--color-ink-soft);
   --text-role-muted: var(--color-ink-faint);
-  --border-decorative: var(--color-hairline);          /* 1-px rules; not a boundary */
+  --border-decorative: var(--color-hairline); /* 1-px rules; not a boundary */
   /* The one boundary a control needs when the border is its only edge. WCAG 2.2
      SC 1.4.11 asks 3:1 of exactly that, and the decorative steps sit at
      1.21-1.42:1 — the measured defect was six interactive elements carrying the
@@ -300,8 +315,8 @@
   --elevation-raised: var(--shadow-elevation-1);
   --elevation-overlay: var(--shadow-elevation-2);
   --elevation-elevated: var(--shadow-elevation-3);
-  
- /* S6 (R48): radius nesting convention + spacing raster
+
+  /* S6 (R48): radius nesting convention + spacing raster
      Radius: 5 steps, 4px raster (sm 4 / md 8 / lg 12 / xl 16 / 2xl 20;
      2xl for dialogs only).
      Convention: child radius = parent radius − the parent's border width
@@ -348,7 +363,6 @@ html[data-accent='mono'] {
   --color-brand-glow: hsl(35 16% 80%);
   --color-brand-tint: hsl(35 10% 60% / 0.18);
 }
-
 
 /* Glass material (ink register): the pane, its four properties and the two rules that
    decide where it may rest. */
@@ -397,14 +411,14 @@ html[data-accent='mono'] {
    5.06 / 5.00 / 5.42:1 for reading / control / float. */
 :root {
   --glass-reading-fill: hsla(32 22% 11% / 0.48);
-  --glass-reading-border: hsla(34 24% 68% / 0.20);
+  --glass-reading-border: hsla(34 24% 68% / 0.2);
   --glass-reading-inner: hsla(28 58% 84% / 0.12);
   --glass-control-fill: hsla(30 20% 13% / 0.42);
   --glass-control-border: hsla(34 24% 70% / 0.48);
   --glass-control-inner: hsla(28 58% 84% / 0.14);
   --glass-float-fill: hsla(24 18% 6% / 0.86);
   --glass-float-border: hsla(34 22% 68% / 0.5);
-  --glass-float-inner: hsla(28 58% 84% / 0.10);
+  --glass-float-inner: hsla(28 58% 84% / 0.1);
   --glass-grad-edge: hsla(34 26% 74% / 0.34);
   --glass-grad-mid: hsla(30 20% 46% / 0.12);
   --glass-blur-reading: 20px;
@@ -418,7 +432,9 @@ html[data-accent='mono'] {
 /*  BASE STYLES */
 
 html {
-  background-color: var(--surface-base); /* layer 2 names the ground; same value as --color-background */
+  background-color: var(
+    --surface-base
+  ); /* layer 2 names the ground; same value as --color-background */
   /* R36 A6: dark-only BY DESIGN (Black Forest Edition). The earlier
      "dark light" + M7 light mapping was dead code: body/html hardcode the
      dark colors and the components use primitive tokens, so the media query
@@ -486,163 +502,174 @@ svg.lucide {
    (regression-safe since the G7 mobile finding: the sidebar reserved 288px
    in the flow). */
 @layer components {
-.glass-reading,
-.glass-control,
-.glass-float,
-.float-surface {
-  position: relative;
-  overflow: hidden;
-}
+  .glass-reading,
+  .glass-control,
+  .glass-float,
+  .float-surface {
+    position: relative;
+    overflow: hidden;
+  }
 
-/* The rim: one lighting model for all three layers, drawn inside the border. */
-.glass-reading::before,
-.glass-control::before,
-.glass-float::before,
-.float-surface::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.4px;
-  background: linear-gradient(
-    180deg,
-    var(--glass-grad-edge) 0%,
-    var(--glass-grad-mid) 20%,
-    transparent 40%,
-    transparent 60%,
-    var(--glass-grad-mid) 80%,
-    var(--glass-grad-edge) 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
+  /* The rim: one lighting model for all three layers, drawn inside the border. */
+  .glass-reading::before,
+  .glass-control::before,
+  .glass-float::before,
+  .float-surface::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.4px;
+    background: linear-gradient(
+      180deg,
+      var(--glass-grad-edge) 0%,
+      var(--glass-grad-mid) 20%,
+      transparent 40%,
+      transparent 60%,
+      var(--glass-grad-mid) 80%,
+      var(--glass-grad-edge) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
 
-.glass-reading {
-  background: var(--glass-reading-fill);
-  backdrop-filter: blur(var(--glass-blur-reading));
-  border: 1px solid var(--glass-reading-border);
-  box-shadow:
-    var(--elevation-raised),
-    inset 0 1px 0 var(--glass-reading-inner);
-}
+  .glass-reading {
+    background: var(--glass-reading-fill);
+    backdrop-filter: blur(var(--glass-blur-reading));
+    border: 1px solid var(--glass-reading-border);
+    box-shadow:
+      var(--elevation-raised),
+      inset 0 1px 0 var(--glass-reading-inner);
+  }
 
-.glass-control {
-  background: var(--glass-control-fill);
-  backdrop-filter: blur(var(--glass-blur-control));
-  border: 1px solid var(--glass-control-border);
-  box-shadow:
-    var(--elevation-raised),
-    inset 0 1px 0 var(--glass-control-inner);
-}
+  .glass-control {
+    background: var(--glass-control-fill);
+    backdrop-filter: blur(var(--glass-blur-control));
+    border: 1px solid var(--glass-control-border);
+    box-shadow:
+      var(--elevation-raised),
+      inset 0 1px 0 var(--glass-control-inner);
+  }
 
-.glass-float {
-  background: var(--glass-float-fill);
-  backdrop-filter: blur(var(--glass-blur-float));
-  border: 1px solid var(--glass-float-border);
-  box-shadow:
-    var(--elevation-overlay),
-    inset 0 1px 0 var(--glass-float-inner);
-}
+  .glass-float {
+    background: var(--glass-float-fill);
+    backdrop-filter: blur(var(--glass-blur-float));
+    border: 1px solid var(--glass-float-border);
+    box-shadow:
+      var(--elevation-overlay),
+      inset 0 1px 0 var(--glass-float-inner);
+  }
 
-/* W10-23: the floating surface — ONE primitive. The role split had forked: a
+  /* W10-23: the floating surface — ONE primitive. The role split had forked: a
    `glass-float rounded-2xl shadow-elevation-3` recipe against a hand-rolled
    `bg-background/95 backdrop-blur-md rounded-xl shadow-elevation-2` one. Material,
    radius and elevation live here now, so a call site cannot drift them apart; an
    inline radius there is the round action button's own shape. */
-.float-surface {
-  background: var(--glass-float-fill);
-  border: 1px solid var(--glass-float-border);
-  backdrop-filter: blur(var(--glass-blur-float));
-  border-radius: var(--radius-xl);
-  box-shadow:
-    var(--shadow-elevation-2),
-    inset 0 1px 0 var(--glass-float-inner);
-}
+  .float-surface {
+    background: var(--glass-float-fill);
+    border: 1px solid var(--glass-float-border);
+    backdrop-filter: blur(var(--glass-blur-float));
+    border-radius: var(--radius-xl);
+    box-shadow:
+      var(--shadow-elevation-2),
+      inset 0 1px 0 var(--glass-float-inner);
+  }
 
-/* The one axis the primitive leaves open: how far the surface floats. Level 3 is
+  /* The one axis the primitive leaves open: how far the surface floats. Level 3 is
    the sheet's dialog/toast step (S3), level 2 the menu step; the call site names
    the step, it never restates the shadow. */
-.float-surface[data-float="3"] {
-  box-shadow:
-    var(--shadow-elevation-3),
-    inset 0 1px 0 var(--glass-float-inner);
-}
+  .float-surface[data-float='3'] {
+    box-shadow:
+      var(--shadow-elevation-3),
+      inset 0 1px 0 var(--glass-float-inner);
+  }
 
-/*  TEXT GRADIENT — Ephemora red (brand axis) */
+  /*  TEXT GRADIENT — Ephemora red (brand axis) */
 
-.text-gradient {
-  /* WCAG 2.1 AA (sprint2-F2): every gradient stop >= 4.5:1 on
+  .text-gradient {
+    /* WCAG 2.1 AA (sprint2-F2): every gradient stop >= 4.5:1 on
      background (hsl(30 17% 7%)) — on the brand axis (hue 7, not the old
      danger red hue 0): 5.1:1. Regression test:
      tests/test_sprint2_f2_pwa_hygiene.py::test_no_low_contrast_gradient_text */
-  background: linear-gradient(135deg, hsl(7.46 78.6% 57.8%) 0%, hsl(7.46 72% 58%) 50%, hsl(7.46 64% 58%) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+    background: linear-gradient(
+      135deg,
+      hsl(7.46 78.6% 57.8%) 0%,
+      hsl(7.46 72% 58%) 50%,
+      hsl(7.46 64% 58%) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
 
-/*  FOREST GLOW EFFECTS */
+  /*  FOREST GLOW EFFECTS */
 
-/* forest-glow: defined as a top-level @utility (see below, DS-03) — gives the
+  /* forest-glow: defined as a top-level @utility (see below, DS-03) — gives the
    base class + hover:/focus- variants from one source. */
-/* R36 A-4: one focus ring for inputs/buttons (replaces the divergent
+  /* R36 A-4: one focus ring for inputs/buttons (replaces the divergent
    focus:border-* / focus:ring-* combinations in the components). */
-.focus-ring {
-  outline: none;
-}
-/* S2: iOS focus zoom — WebKit zooms the viewport on focus when the input
+  .focus-ring {
+    outline: none;
+  }
+  /* S2: iOS focus zoom — WebKit zooms the viewport on focus when the input
    font is below 16px. .ios-input holds the threshold fixed. */
-.ios-input {
-  font-size: 16px;
-}
-.focus-ring:focus-visible {
-  /* The focus follows the same tone as selection and activity (--color-ring =
+  .ios-input {
+    font-size: 16px;
+  }
+  .focus-ring:focus-visible {
+    /* The focus follows the same tone as selection and activity (--color-ring =
      brand). The old justification ("a focus is not branding") demanded green
      while the selection had long been red — two answers to one question are
      the real contradiction. Not the danger tone. */
-  outline: 2px solid var(--color-ring);
-  outline-offset: 2px;
-  border-color: var(--color-moss-light);
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-ring) 20%, transparent), 0 0 16px var(--color-forest-glow);
-}
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-color: var(--color-moss-light);
+    box-shadow:
+      0 0 0 2px color-mix(in oklab, var(--color-ring) 20%, transparent),
+      0 0 16px var(--color-forest-glow);
+  }
 
-.forest-glow-subtle {
-  box-shadow: 0 0 20px color-mix(in oklab, var(--color-brand) 12%, transparent);
-}
+  .forest-glow-subtle {
+    box-shadow: 0 0 20px color-mix(in oklab, var(--color-brand) 12%, transparent);
+  }
 
-.forest-glow-strong {
-  box-shadow: 0 0 60px color-mix(in oklab, var(--color-brand) 20%, transparent);
-}
+  .forest-glow-strong {
+    box-shadow: 0 0 60px color-mix(in oklab, var(--color-brand) 20%, transparent);
+  }
 
-/*  GRADIENT BORDER */
+  /*  GRADIENT BORDER */
 
-.gradient-border {
-  position: relative;
-  background: linear-gradient(135deg, var(--glass-grad-mid) 0%, transparent 100%);
-}
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(135deg, var(--glass-grad-mid) 0%, transparent 100%);
+  }
 
-.gradient-border::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(
-    180deg,
-    var(--glass-grad-edge) 0%,
-    var(--glass-grad-mid) 20%,
-    transparent 40%,
-    transparent 60%,
-    var(--glass-grad-mid) 80%,
-    var(--glass-grad-edge) 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      180deg,
+      var(--glass-grad-edge) 0%,
+      var(--glass-grad-mid) 20%,
+      transparent 40%,
+      transparent 60%,
+      var(--glass-grad-mid) 80%,
+      var(--glass-grad-edge) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
 } /* end @layer components (liquid glass/text gradient/forest glow/gradient border) */
 
 /* DS-03: @utility (top-level, not nested) provides the hover:/focus- variants
@@ -657,9 +684,9 @@ svg.lucide {
   .noise-overlay {
     position: relative;
   }
-  
+
   .noise-overlay::after {
-    content: "";
+    content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -673,7 +700,8 @@ svg.lucide {
 /*  NIGHT GLOW ANIMATION (breathing brand aura)   */
 
 @keyframes night-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 30px color-mix(in oklab, var(--color-brand) 4%, transparent);
   }
   50% {
@@ -682,31 +710,29 @@ svg.lucide {
 }
 
 @layer components {
-.animate-night-glow {
-  animation: night-glow 30s ease-in-out infinite;
-}
+  .animate-night-glow {
+    animation: night-glow 30s ease-in-out infinite;
+  }
 
-/*  OBISIDIAN GLASS (premium card effect) */
+  /*  OBISIDIAN GLASS (premium card effect) */
 
+  /*  TYPOGRAPHY — Instrument Serif (Brand) */
 
+  .font-display {
+    font-family: 'Space Grotesk', 'Instrument Serif', serif;
+    letter-spacing: -0.02em;
+  }
 
-/*  TYPOGRAPHY — Instrument Serif (Brand) */
+  .font-mono-code {
+    font-family: 'JetBrains Mono', monospace;
+  }
 
-.font-display {
-  font-family: "Space Grotesk", "Instrument Serif", serif;
-  letter-spacing: -0.02em;
-}
-
-.font-mono-code {
-  font-family: "JetBrains Mono", monospace;
-}
-
-/* A2: every number that updates in place — token counts, durations, iteration
+  /* A2: every number that updates in place — token counts, durations, iteration
    labels, digests — sits in a fixed-width column, so it cannot nudge its
    neighbours on the next frame. */
-.tabular {
-  font-variant-numeric: tabular-nums;
-}
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 } /* end @layer components (night glow/obsidian/typography) */
 
 /*  FOCUS STYLES (accessibility) */
@@ -753,7 +779,8 @@ html {
 /*  is already switched off globally for reduced-motion.             */
 
 @keyframes frost-pulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 0 1px 0 hsla(0 0% 100% / 0.04),
       0 0 0 color-mix(in oklab, var(--color-brand) 0%, transparent);
@@ -761,7 +788,7 @@ html {
   }
   50% {
     box-shadow:
-      inset 0 1px 0 hsla(0 0% 100% / 0.10),
+      inset 0 1px 0 hsla(0 0% 100% / 0.1),
       0 0 24px color-mix(in oklab, var(--color-brand) 6%, transparent),
       0 0 2px color-mix(in oklab, var(--color-brand) 14%, transparent);
     border-color: color-mix(in oklab, var(--color-brand) 20%, transparent);
@@ -780,13 +807,15 @@ html {
 /* Micro-Interactions */
 
 /* Send button: inviting glow as soon as there is text (enabled) */
-button[aria-label="Senden"]:not(:disabled),
-button[aria-label="Send"]:not(:disabled) {
+button[aria-label='Senden']:not(:disabled),
+button[aria-label='Send']:not(:disabled) {
   box-shadow: 0 0 14px color-mix(in oklab, var(--color-brand) 25%, transparent);
-  transition: box-shadow 0.25s ease, transform 0.15s ease;
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.15s ease;
 }
-button[aria-label="Senden"]:not(:disabled):hover,
-button[aria-label="Send"]:not(:disabled):hover {
+button[aria-label='Senden']:not(:disabled):hover,
+button[aria-label='Send']:not(:disabled):hover {
   box-shadow: 0 0 22px color-mix(in oklab, var(--color-brand) 45%, transparent);
   transform: translateY(-1px);
 }
@@ -800,7 +829,13 @@ button[aria-label="Send"]:not(:disabled):hover {
 .hero-frost {
   /* 2026 light sweep: was mint green/ice blue (the 142 legacy) — now warm
      paper white with an Ephemora red edge, theme-dependent via tokens. */
-  background: linear-gradient(100deg, var(--hero-a) 20%, var(--hero-b) 40%, var(--hero-c) 55%, var(--hero-a) 75%);
+  background: linear-gradient(
+    100deg,
+    var(--hero-a) 20%,
+    var(--hero-b) 40%,
+    var(--hero-c) 55%,
+    var(--hero-a) 75%
+  );
   background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
@@ -818,19 +853,29 @@ button[aria-label="Send"]:not(:disabled):hover {
   position: absolute;
   inset: -2px;
   pointer-events: none;
-  background: linear-gradient(100deg, transparent 42%, color-mix(in oklab, var(--color-brand) 20%, transparent) 50%, transparent 58%);
+  background: linear-gradient(
+    100deg,
+    transparent 42%,
+    color-mix(in oklab, var(--color-brand) 20%, transparent) 50%,
+    transparent 58%
+  );
   transform: translateX(-120%) skewX(-12deg);
   animation: hero-shimmer-sweep 8s ease-in-out 2;
   mix-blend-mode: screen;
 }
 @keyframes hero-shimmer-sweep {
-  to { transform: translateX(120%) skewX(-12deg); }
+  to {
+    transform: translateX(120%) skewX(-12deg);
+  }
 }
 
 /* Suggestion cards: frost border on hover */
 .group\\:hover .frost-hover,
 .frost-hover {
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.2s ease;
 }
 .frost-hover:hover {
   border-color: color-mix(in oklab, var(--color-brand) 28%, transparent);
@@ -839,8 +884,13 @@ button[aria-label="Send"]:not(:disabled):hover {
 
 /* Round 8: subtle frost on finished assistant bubbles (border only, cheap to paint) */
 @keyframes frost-subtle {
-  0%, 100% { border-color: color-mix(in oklab, var(--color-brand) 6%, transparent); }
-  50% { border-color: color-mix(in oklab, var(--color-brand) 14%, transparent); }
+  0%,
+  100% {
+    border-color: color-mix(in oklab, var(--color-brand) 6%, transparent);
+  }
+  50% {
+    border-color: color-mix(in oklab, var(--color-brand) 14%, transparent);
+  }
 }
 .frost-subtle {
   animation: frost-subtle 9s ease-in-out infinite;
@@ -868,24 +918,49 @@ button[aria-label="Send"]:not(:disabled):hover {
   margin-top: 1.25em;
   margin-bottom: 0.5em;
 }
-.prose-invert h1 { font-size: 1.35rem; }
-.prose-invert h2 { font-size: 1.15rem; }
-.prose-invert h3 { font-size: 1rem; }
-.prose-invert h4 { font-size: 0.925rem; color: var(--color-mist); }
+.prose-invert h1 {
+  font-size: 1.35rem;
+}
+.prose-invert h2 {
+  font-size: 1.15rem;
+}
+.prose-invert h3 {
+  font-size: 1rem;
+}
+.prose-invert h4 {
+  font-size: 0.925rem;
+  color: var(--color-mist);
+}
 .prose-invert h1:first-child,
 .prose-invert h2:first-child,
-.prose-invert h3:first-child { margin-top: 0; }
-.prose-invert p { margin-bottom: 0.625em; }
-.prose-invert p:last-child { margin-bottom: 0; }
+.prose-invert h3:first-child {
+  margin-top: 0;
+}
+.prose-invert p {
+  margin-bottom: 0.625em;
+}
+.prose-invert p:last-child {
+  margin-bottom: 0;
+}
 .prose-invert ul,
 .prose-invert ol {
   margin: 0.5em 0 0.75em;
   padding-left: 1.375em;
 }
-.prose-invert ul { list-style: disc; }
-.prose-invert ol { list-style: decimal; }
-.prose-invert li { margin-bottom: 0.3em; padding-left: 0.25em; }
-.prose-invert li::marker { color: var(--color-firefly); opacity: 0.65; }
+.prose-invert ul {
+  list-style: disc;
+}
+.prose-invert ol {
+  list-style: decimal;
+}
+.prose-invert li {
+  margin-bottom: 0.3em;
+  padding-left: 0.25em;
+}
+.prose-invert li::marker {
+  color: var(--color-firefly);
+  opacity: 0.65;
+}
 .prose-invert blockquote {
   border-left: 2px solid var(--color-firefly);
   border-left-color: color-mix(in oklab, var(--color-firefly) 40%, transparent);
@@ -904,7 +979,9 @@ button[aria-label="Send"]:not(:disabled):hover {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-.prose-invert a:hover { color: color-mix(in oklab, var(--color-firefly) 80%, var(--color-foreground)); }
+.prose-invert a:hover {
+  color: color-mix(in oklab, var(--color-firefly) 80%, var(--color-foreground));
+}
 .prose-invert table {
   width: 100%;
   border-collapse: collapse;
@@ -941,7 +1018,10 @@ button[aria-label="Send"]:not(:disabled):hover {
   }
   /* AP: the stagger is purely decorative — without a keyframe animation the
      delay does nothing; the elements stand statically in their end state. */
-  .stagger-1, .stagger-2, .stagger-3, .stagger-4 {
+  .stagger-1,
+  .stagger-2,
+  .stagger-3,
+  .stagger-4 {
     animation-delay: 0ms !important;
   }
   /* animation:none on .hero-frost does not reach its ::after sweep — hide it
@@ -1011,12 +1091,24 @@ html.no-motion .hero-frost::after {
 /* AP-5: organic keyframes — springy landing (overshoot) instead of a
    hard ease. Uses the --ease-organic / --ease-settle tokens. */
 @keyframes ap-rise {
-  from { opacity: 0; transform: translateY(6px) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 @keyframes ap-sketch-in {
-  from { opacity: 0; transform: translateY(4px) rotate(-0.6deg); }
-  to   { opacity: 1; transform: translateY(0) rotate(0deg); }
+  from {
+    opacity: 0;
+    transform: translateY(4px) rotate(-0.6deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
 }
 .ap-rise {
   animation: ap-rise var(--motion-slow) var(--ease-organic) both;
@@ -1027,10 +1119,18 @@ html.no-motion .hero-frost::after {
 
 /* AP-3: stagger cadence — offset entrances imitate the hand's writing
    rhythm. Only in combination with .ap-rise / .ap-sketch-in. */
-.stagger-1 { animation-delay: calc(var(--stagger-step) * 1); }
-.stagger-2 { animation-delay: calc(var(--stagger-step) * 2); }
-.stagger-3 { animation-delay: calc(var(--stagger-step) * 3); }
-.stagger-4 { animation-delay: calc(var(--stagger-step) * 4); }
+.stagger-1 {
+  animation-delay: calc(var(--stagger-step) * 1);
+}
+.stagger-2 {
+  animation-delay: calc(var(--stagger-step) * 2);
+}
+.stagger-3 {
+  animation-delay: calc(var(--stagger-step) * 3);
+}
+.stagger-4 {
+  animation-delay: calc(var(--stagger-step) * 4);
+}
 
 /* AP-6: hand-drawn wobble on hover — 1-2° rotation, as if the line were
    retraced with a pen. Only on interactive surfaces. */
@@ -1051,9 +1151,11 @@ html.no-motion .hero-frost::after {
    still state keeps a lit glyph plus a ring at half opacity — the signal stays
    visible, only its movement goes (the still-state rule of
    .ephe-mark[data-state="work"]). */
-.update-signal { position: relative; }
+.update-signal {
+  position: relative;
+}
 .update-signal::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 1px;
   border-radius: var(--radius-md);
@@ -1066,12 +1168,24 @@ html.no-motion .hero-frost::after {
   animation: update-signal-glow 3.2s var(--ease-settle) infinite;
 }
 @keyframes update-signal-halo {
-  0% { opacity: 0.55; transform: scale(1); }
-  70%, 100% { opacity: 0; transform: scale(1.34); }
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.34);
+  }
 }
 @keyframes update-signal-glow {
-  0%, 100% { filter: drop-shadow(0 0 1px color-mix(in oklab, var(--color-brand-glow) 40%, transparent)); }
-  50% { filter: drop-shadow(0 0 5px color-mix(in oklab, var(--color-brand-glow) 75%, transparent)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 1px color-mix(in oklab, var(--color-brand-glow) 40%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 5px color-mix(in oklab, var(--color-brand-glow) 75%, transparent));
+  }
 }
 
 /* U-2: update progress — the determinate fill is only ever the reported number.
@@ -1085,15 +1199,25 @@ html.no-motion .hero-frost::after {
   animation: update-progress-sweep 1.4s linear infinite;
 }
 @keyframes update-progress-sweep {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(250%); }
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
 }
 .update-confirm {
   animation: update-confirm var(--motion-slow) var(--ease-organic) both;
 }
 @keyframes update-confirm {
-  from { opacity: 0; transform: scale(0.6); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1104,14 +1228,17 @@ html.no-motion .hero-frost::after {
   }
   .update-signal svg {
     animation: none !important;
-    filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand-glow) 60%, transparent)) brightness(1.12) !important;
+    filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand-glow) 60%, transparent))
+      brightness(1.12) !important;
   }
   .update-progress-sweep {
     animation: none !important;
     width: 100%;
     opacity: 0.35;
   }
-  .update-confirm { animation: none !important; }
+  .update-confirm {
+    animation: none !important;
+  }
 }
 html.no-motion .update-signal::after {
   animation: none !important;
@@ -1120,14 +1247,17 @@ html.no-motion .update-signal::after {
 }
 html.no-motion .update-signal svg {
   animation: none !important;
-  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand-glow) 60%, transparent)) brightness(1.12) !important;
+  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand-glow) 60%, transparent))
+    brightness(1.12) !important;
 }
 html.no-motion .update-progress-sweep {
   animation: none !important;
   width: 100%;
   opacity: 0.35;
 }
-html.no-motion .update-confirm { animation: none !important; }
+html.no-motion .update-confirm {
+  animation: none !important;
+}
 
 /* U-5: the update stage — the version transition, an ember that breathes while
    the bundle is written, and a card that tilts a few degrees during the
@@ -1147,7 +1277,7 @@ html.no-motion .update-confirm { animation: none !important; }
     border-color var(--motion-base) var(--ease-settle);
 }
 .update-stage::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: -60% -20%;
   background: radial-gradient(
@@ -1272,20 +1402,38 @@ html.no-motion .update-stage.is-running .update-orb {
   animation: update-details-reveal var(--motion-base) var(--ease-out-soft) both;
 }
 @keyframes update-details-reveal {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .update-caret { transition: none !important; }
-  .update-details[open] .update-details-body { animation: none !important; }
+  .update-caret {
+    transition: none !important;
+  }
+  .update-details[open] .update-details-body {
+    animation: none !important;
+  }
   .update-signal:hover::after,
-  .update-signal:focus-visible::after { animation: none !important; }
+  .update-signal:focus-visible::after {
+    animation: none !important;
+  }
   .update-signal:hover svg,
-  .update-signal:focus-visible svg { animation: none !important; }
+  .update-signal:focus-visible svg {
+    animation: none !important;
+  }
 }
-html.no-motion .update-caret { transition: none !important; }
-html.no-motion .update-details[open] .update-details-body { animation: none !important; }
+html.no-motion .update-caret {
+  transition: none !important;
+}
+html.no-motion .update-details[open] .update-details-body {
+  animation: none !important;
+}
 
 /*
    EPH-PRIMITIVES — redesign 2026-10-04, plan §4.4 + §5
@@ -1303,7 +1451,7 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
    becomes interpolatable and the mask stops recompute every frame — decay is
    a mask, not an opacity fade (§5 principle: "nothing goes by fade"). */
 @property --ephe-decay-edge {
-  syntax: "<percentage>";
+  syntax: '<percentage>';
   inherits: false;
   initial-value: 130%;
 }
@@ -1311,8 +1459,8 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
 :root {
   /* Cadence §5.1: list/stream in sequence, 20–30 ms offset. */
   --ephe-stagger-step: 24ms;
-  --ephe-condense-duration: 220ms;   /* §5.1 Fenster 180–260 ms */
-  --ephe-decay-duration: 380ms;      /* §5.2 Fenster 320–420 ms */
+  --ephe-condense-duration: 220ms; /* §5.1 Fenster 180–260 ms */
+  --ephe-decay-duration: 380ms; /* §5.2 Fenster 320–420 ms */
   --ephe-mark-condense-duration: 240ms;
   --ephe-mark-work-period: 2.4s;
   /* One beat of the first-run arc. The arc is ten beats long, so the scene clock is
@@ -1339,81 +1487,133 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
       transparent var(--ephe-decay-edge),
       transparent 100%
     ),
-    linear-gradient(to right, var(--color-ink) 0%, color-mix(in oklab, var(--color-ink) 72%, transparent) 100%);
+    linear-gradient(
+      to right,
+      var(--color-ink) 0%,
+      color-mix(in oklab, var(--color-ink) 72%, transparent) 100%
+    );
 }
 
 /* §5.1 condensation: slight blur + scale 0.96 -> 1, 220 ms, ease-out.
    The opacity is only a by-product of the edge (45% = opaque); the path is
    blur + scale. */
 @keyframes ephe-condense {
-  from { opacity: 0; filter: blur(5px); transform: scale(0.96); }
-  45%  { opacity: 1; }
-  to   { opacity: 1; filter: blur(0); transform: scale(1); }
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: scale(0.96);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
 }
 
 /* §5.2 decay: only the front moves. No opacity keyframe. */
 @keyframes ephe-decay {
-  from { --ephe-decay-edge: 130%; transform: translateX(0) scaleX(1); filter: blur(0); }
-  to   { --ephe-decay-edge: -34%; transform: translateX(6%) scaleX(0.985); filter: blur(1.2px); }
+  from {
+    --ephe-decay-edge: 130%;
+    transform: translateX(0) scaleX(1);
+    filter: blur(0);
+  }
+  to {
+    --ephe-decay-edge: -34%;
+    transform: translateX(6%) scaleX(0.985);
+    filter: blur(1.2px);
+  }
 }
 
 /* §4.4 condense: the crossbar stands, the strokes push out of it. */
 @keyframes ephe-mark-part {
-  from { transform: scaleX(0.3); filter: blur(2px); }
-  to   { transform: scaleX(1); filter: blur(0); }
+  from {
+    transform: scaleX(0.3);
+    filter: blur(2px);
+  }
+  to {
+    transform: scaleX(1);
+    filter: blur(0);
+  }
 }
 
 /* §4.4 work: a restrained pulse wave on the actuant (2px halo, +14% light),
    the remaining parts stay put. */
 @keyframes ephe-mark-work {
-  0%, 100% { filter: none; }
+  0%,
+  100% {
+    filter: none;
+  }
   50% {
-    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent)) brightness(1.14);
+    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent))
+      brightness(1.14);
   }
 }
 /* work without the accent hook: then the halo carries the activity. */
 @keyframes ephe-mark-halo {
-  0%, 100% { filter: none; }
-  50% { filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand) 40%, transparent)); }
+  0%,
+  100% {
+    filter: none;
+  }
+  50% {
+    filter: drop-shadow(0 0 3px color-mix(in oklab, var(--color-brand) 40%, transparent));
+  }
 }
 
 @layer components {
-
-/* 1 + 4. Entrance: condensation, with a stagger cascade
+  /* 1 + 4. Entrance: condensation, with a stagger cascade
    The index comes EITHER from the container (.ephe-stagger -> position) OR per
    --ephe-stagger-index from the caller. No per-item class, no per-item
    keyframes. Items beyond 8 share the start — for longer lists the
    row sets --ephe-stagger-index itself. */
-.ephe-condense {
-  animation: ephe-condense var(--ephe-condense-duration) var(--ease-out-soft) both;
-  animation-delay: calc(var(--ephe-stagger-index, 0) * var(--ephe-stagger-step));
-}
+  .ephe-condense {
+    animation: ephe-condense var(--ephe-condense-duration) var(--ease-out-soft) both;
+    animation-delay: calc(var(--ephe-stagger-index, 0) * var(--ephe-stagger-step));
+  }
 
-.ephe-stagger { --ephe-stagger-step: 24ms; }
-.ephe-stagger > :nth-child(2) { --ephe-stagger-index: 1; }
-.ephe-stagger > :nth-child(3) { --ephe-stagger-index: 2; }
-.ephe-stagger > :nth-child(4) { --ephe-stagger-index: 3; }
-.ephe-stagger > :nth-child(5) { --ephe-stagger-index: 4; }
-.ephe-stagger > :nth-child(6) { --ephe-stagger-index: 5; }
-.ephe-stagger > :nth-child(7) { --ephe-stagger-index: 6; }
-.ephe-stagger > :nth-child(8) { --ephe-stagger-index: 7; }
+  .ephe-stagger {
+    --ephe-stagger-step: 24ms;
+  }
+  .ephe-stagger > :nth-child(2) {
+    --ephe-stagger-index: 1;
+  }
+  .ephe-stagger > :nth-child(3) {
+    --ephe-stagger-index: 2;
+  }
+  .ephe-stagger > :nth-child(4) {
+    --ephe-stagger-index: 3;
+  }
+  .ephe-stagger > :nth-child(5) {
+    --ephe-stagger-index: 4;
+  }
+  .ephe-stagger > :nth-child(6) {
+    --ephe-stagger-index: 5;
+  }
+  .ephe-stagger > :nth-child(7) {
+    --ephe-stagger-index: 6;
+  }
+  .ephe-stagger > :nth-child(8) {
+    --ephe-stagger-index: 7;
+  }
 
-/* 2. Exit: decay (destructive / finished states)
+  /* 2. Exit: decay (destructive / finished states)
    Destruction and the mark use the same motion — the same keyframe, the same
    mask (plan §5.2: "mark and product promise are the same image"). The exit
    stays undelayed: a departure is a single event. */
-.ephe-decay,
-.ephe-mark[data-state="dissolve"] {
-  --ephe-decay-edge: 130%;
-  transform-origin: 100% 50%;   /* the edge sits at the right border */
-  -webkit-mask-image: var(--ephe-decay-mask);
-  mask-image: var(--ephe-decay-mask);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
-  animation: ephe-decay var(--ephe-decay-duration) var(--ephe-ease-decay) both;
-}
+  .ephe-decay,
+  .ephe-mark[data-state='dissolve'] {
+    --ephe-decay-edge: 130%;
+    transform-origin: 100% 50%; /* the edge sits at the right border */
+    -webkit-mask-image: var(--ephe-decay-mask);
+    mask-image: var(--ephe-decay-mask);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+    animation: ephe-decay var(--ephe-decay-duration) var(--ephe-ease-decay) both;
+  }
 
-/* 3. The mark: the creature that is ephemeral (§4.4)
+  /* 3. The mark: the creature that is ephemeral (§4.4)
    Hooks for the TSX side (the container addresses everything, the SVG parts
    need to know nothing):
      .ephe-mark[data-state="condense|settle|work|dissolve"]
@@ -1423,186 +1623,292 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
    Size via --ephe-mark-size. The host colour stays the ink role: the brand red
    fills the body, and a red creature on it would be no creature at all. The eyes
    are knockouts in the head path, so they need no role and no second colour. */
-.ephe-mark {
-  --ephe-mark-size: 1.5rem;
-  position: relative;
-  display: inline-flex;
-  flex: none;
-  inline-size: var(--ephe-mark-size);
-  block-size: var(--ephe-mark-size);
-  color: var(--color-ink);
-  isolation: isolate;
-}
-.ephe-mark > svg {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  overflow: visible;
-}
-/* settle: one white light streak on the top edge — and nothing else. */
-.ephe-mark::before {
-  content: "";
-  position: absolute;
-  inset-block-start: -1px;
-  inset-inline: 8%;
-  block-size: 1px;
-  background: linear-gradient(to right, transparent, var(--color-ink) 24% 76%, transparent);
-  opacity: 0;
-  pointer-events: none;
-}
-.ephe-mark:not([data-state])::before,
-.ephe-mark[data-state="settle"]::before,
-.ephe-mark[data-state="work"]::before { opacity: 1; }
-.ephe-mark[data-size="compact"]::before { display: none; }
+  .ephe-mark {
+    --ephe-mark-size: 1.5rem;
+    position: relative;
+    display: inline-flex;
+    flex: none;
+    inline-size: var(--ephe-mark-size);
+    block-size: var(--ephe-mark-size);
+    color: var(--color-ink);
+    isolation: isolate;
+  }
+  .ephe-mark > svg {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    overflow: visible;
+  }
+  /* settle: one white light streak on the top edge — and nothing else. */
+  .ephe-mark::before {
+    content: '';
+    position: absolute;
+    inset-block-start: -1px;
+    inset-inline: 8%;
+    block-size: 1px;
+    background: linear-gradient(to right, transparent, var(--color-ink) 24% 76%, transparent);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ephe-mark:not([data-state])::before,
+  .ephe-mark[data-state='settle']::before,
+  .ephe-mark[data-state='work']::before {
+    opacity: 1;
+  }
+  .ephe-mark[data-size='compact']::before {
+    display: none;
+  }
 
-.ephe-mark[data-state="condense"] {
-  animation: ephe-condense var(--ephe-mark-condense-duration) var(--ease-out-soft) both;
-}
-.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]) {
-  transform-box: fill-box;
-  transform-origin: 0 50%;
-  animation: ephe-mark-part var(--ephe-mark-condense-duration) var(--ease-out-soft) both;
-  animation-delay: calc(var(--ephe-stagger-index, 0) * var(--ephe-stagger-step));
-}
-.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(2) { --ephe-stagger-index: 1; }
-.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(3) { --ephe-stagger-index: 2; }
-.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(4) { --ephe-stagger-index: 3; }
-.ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]):nth-child(5) { --ephe-stagger-index: 4; }
+  .ephe-mark[data-state='condense'] {
+    animation: ephe-condense var(--ephe-mark-condense-duration) var(--ease-out-soft) both;
+  }
+  .ephe-mark[data-state='condense'] :is(svg > *, [data-ephe-part]) {
+    transform-box: fill-box;
+    transform-origin: 0 50%;
+    animation: ephe-mark-part var(--ephe-mark-condense-duration) var(--ease-out-soft) both;
+    animation-delay: calc(var(--ephe-stagger-index, 0) * var(--ephe-stagger-step));
+  }
+  .ephe-mark[data-state='condense'] :is(svg > *, [data-ephe-part]):nth-child(2) {
+    --ephe-stagger-index: 1;
+  }
+  .ephe-mark[data-state='condense'] :is(svg > *, [data-ephe-part]):nth-child(3) {
+    --ephe-stagger-index: 2;
+  }
+  .ephe-mark[data-state='condense'] :is(svg > *, [data-ephe-part]):nth-child(4) {
+    --ephe-stagger-index: 3;
+  }
+  .ephe-mark[data-state='condense'] :is(svg > *, [data-ephe-part]):nth-child(5) {
+    --ephe-stagger-index: 4;
+  }
 
-/* work: ONLY the actuant pulses. */
-.ephe-mark[data-state="work"] :is(.ephe-mark-accent, [data-ephe-part="accent"]) {
-  animation: ephe-mark-work var(--ephe-mark-work-period) ease-in-out infinite;
-}
-.ephe-mark[data-state="work"]:not(:has(:is(.ephe-mark-accent, [data-ephe-part="accent"]))) {
-  animation: ephe-mark-halo var(--ephe-mark-work-period) ease-in-out infinite;
-}
-/* settle = stillness: no breath, no halo (§5.3 "rest"). */
-.ephe-mark[data-state="settle"] { animation: none; }
+  /* work: ONLY the actuant pulses. */
+  .ephe-mark[data-state='work'] :is(.ephe-mark-accent, [data-ephe-part='accent']) {
+    animation: ephe-mark-work var(--ephe-mark-work-period) ease-in-out infinite;
+  }
+  .ephe-mark[data-state='work']:not(:has(:is(.ephe-mark-accent, [data-ephe-part='accent']))) {
+    animation: ephe-mark-halo var(--ephe-mark-work-period) ease-in-out infinite;
+  }
+  /* settle = stillness: no breath, no halo (§5.3 "rest"). */
+  .ephe-mark[data-state='settle'] {
+    animation: none;
+  }
 
-/* 6. The first-run arc: eight beats on one 600 ms unit
+  /* 6. The first-run arc: eight beats on one 600 ms unit
    Threat is scale and ground glow, never a face (the scene study's own reading):
    the wall spreads across the ground over beats 1-3, lifts at the surge, and falls
    as the being lands on beat 4. The being arrives in its fierce read, holds, turns
    to the calm read on beat 7, leans in and leaves to the right on beat 9 — the same
    direction the overlay's own decay wipe travels. One animation per layer, its beat
    as the delay; only transform, opacity and filter move. */
-.ephe-scene-ground {
-  position: absolute;
-  z-index: -1;
-  inset-inline: -12%;
-  inset-block-end: 0;
-  block-size: 26%;
-  pointer-events: none;
-  background: linear-gradient(to top,
-    color-mix(in oklab, var(--color-firefly-glow) 92%, transparent) 0%,
-    color-mix(in oklab, var(--color-firefly) 72%, transparent) 38%,
-    transparent 100%);
-  filter: blur(16px);
-  opacity: 0;
-  transform-origin: 50% 100%;
-  animation: ephe-scene-wall calc(var(--ephe-scene-beat) * 4) var(--ease-out-soft) both;
-}
-@keyframes ephe-scene-wall {
-  0%   { opacity: 0;   transform: scaleX(0.1)  scaleY(0.3); }
-  25%  { opacity: 0.8; transform: scaleX(1)    scaleY(0.7); }
-  70%  { opacity: 1;   transform: scaleX(1.04) scaleY(1); }
-  92%  { opacity: 1;   transform: scaleX(1.06) scaleY(1.02); }
-  100% { opacity: 0;   transform: scaleX(1.1)  scaleY(0.06); }
-}
+  .ephe-scene-ground {
+    position: absolute;
+    z-index: -1;
+    inset-inline: -12%;
+    inset-block-end: 0;
+    block-size: 26%;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      color-mix(in oklab, var(--color-firefly-glow) 92%, transparent) 0%,
+      color-mix(in oklab, var(--color-firefly) 72%, transparent) 38%,
+      transparent 100%
+    );
+    filter: blur(16px);
+    opacity: 0;
+    transform-origin: 50% 100%;
+    animation: ephe-scene-wall calc(var(--ephe-scene-beat) * 4) var(--ease-out-soft) both;
+  }
+  @keyframes ephe-scene-wall {
+    0% {
+      opacity: 0;
+      transform: scaleX(0.1) scaleY(0.3);
+    }
+    25% {
+      opacity: 0.8;
+      transform: scaleX(1) scaleY(0.7);
+    }
+    70% {
+      opacity: 1;
+      transform: scaleX(1.04) scaleY(1);
+    }
+    92% {
+      opacity: 1;
+      transform: scaleX(1.06) scaleY(1.02);
+    }
+    100% {
+      opacity: 0;
+      transform: scaleX(1.1) scaleY(0.06);
+    }
+  }
 
-/* The hot seam at the foot of the wall, and the coals it leaves once the wall falls:
+  /* The hot seam at the foot of the wall, and the coals it leaves once the wall falls:
    one animation ten beats long, so the ground keeps a low glow under the being for the
    rest of the arc instead of going black the moment the wall drops. */
-.ephe-scene-core {
-  position: absolute;
-  z-index: -1;
-  inset-inline: -6%;
-  inset-block-end: 0;
-  block-size: 5%;
-  pointer-events: none;
-  background: linear-gradient(to top,
-    var(--color-figure-cream) 0%,
-    var(--color-firefly-glow) 45%,
-    transparent 100%);
-  filter: blur(7px);
-  opacity: 0;
-  transform-origin: 50% 100%;
-  animation: ephe-scene-core calc(var(--ephe-scene-beat) * 10) linear both;
-}
-@keyframes ephe-scene-core {
-  0%   { opacity: 0;    transform: scaleX(0.2); }
-  22%  { opacity: 0.9;  transform: scaleX(1); }
-  70%  { opacity: 1;    transform: scaleX(1.02); }
-  78%  { opacity: 0.28; transform: scaleX(1); }
-  100% { opacity: 0.28; transform: scaleX(0.98); }
-}
+  .ephe-scene-core {
+    position: absolute;
+    z-index: -1;
+    inset-inline: -6%;
+    inset-block-end: 0;
+    block-size: 5%;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      var(--color-figure-cream) 0%,
+      var(--color-firefly-glow) 45%,
+      transparent 100%
+    );
+    filter: blur(7px);
+    opacity: 0;
+    transform-origin: 50% 100%;
+    animation: ephe-scene-core calc(var(--ephe-scene-beat) * 10) linear both;
+  }
+  @keyframes ephe-scene-core {
+    0% {
+      opacity: 0;
+      transform: scaleX(0.2);
+    }
+    22% {
+      opacity: 0.9;
+      transform: scaleX(1);
+    }
+    70% {
+      opacity: 1;
+      transform: scaleX(1.02);
+    }
+    78% {
+      opacity: 0.28;
+      transform: scaleX(1);
+    }
+    100% {
+      opacity: 0.28;
+      transform: scaleX(0.98);
+    }
+  }
 
-/* Embers that come off the wall and rise while it surges. */
-.ephe-scene-embers {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  background-image:
-    radial-gradient(color-mix(in oklab, var(--color-firefly-glow) 60%, transparent) 1.2px, transparent 1.8px),
-    radial-gradient(color-mix(in oklab, var(--color-firefly-glow) 38%, transparent) 1px, transparent 1.5px);
-  background-size: 34px 34px, 53px 53px;
-  background-position: 0 0, 17px 23px;
-  -webkit-mask-image: linear-gradient(to top, transparent 46%, var(--color-ink) 74%, transparent 96%);
-  mask-image: linear-gradient(to top, transparent 46%, var(--color-ink) 74%, transparent 96%);
-  animation: ephe-scene-embers calc(var(--ephe-scene-beat) * 6) linear both;
-}
-@keyframes ephe-scene-embers {
-  0%   { opacity: 0;    transform: translateY(8%); }
-  20%  { opacity: 0.55; }
-  55%  { opacity: 0.8;  transform: translateY(-10%); }
-  100% { opacity: 0;    transform: translateY(-26%); }
-}
+  /* Embers that come off the wall and rise while it surges. */
+  .ephe-scene-embers {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background-image:
+      radial-gradient(
+        color-mix(in oklab, var(--color-firefly-glow) 60%, transparent) 1.2px,
+        transparent 1.8px
+      ),
+      radial-gradient(
+        color-mix(in oklab, var(--color-firefly-glow) 38%, transparent) 1px,
+        transparent 1.5px
+      );
+    background-size:
+      34px 34px,
+      53px 53px;
+    background-position:
+      0 0,
+      17px 23px;
+    -webkit-mask-image: linear-gradient(
+      to top,
+      transparent 46%,
+      var(--color-ink) 74%,
+      transparent 96%
+    );
+    mask-image: linear-gradient(to top, transparent 46%, var(--color-ink) 74%, transparent 96%);
+    animation: ephe-scene-embers calc(var(--ephe-scene-beat) * 6) linear both;
+  }
+  @keyframes ephe-scene-embers {
+    0% {
+      opacity: 0;
+      transform: translateY(8%);
+    }
+    20% {
+      opacity: 0.55;
+    }
+    55% {
+      opacity: 0.8;
+      transform: translateY(-10%);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-26%);
+    }
+  }
 
-/* The surge: the brightest frame of the arc, one beat long, at beat 4's threshold. */
-.ephe-scene-flash {
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(46% 40% at 50% 62%,
-    color-mix(in oklab, var(--color-firefly-glow) 55%, transparent) 0%,
-    transparent 70%);
-  opacity: 0;
-  animation: ephe-scene-flash var(--ephe-scene-beat) ease-out calc(var(--ephe-scene-beat) * 3) both;
-}
-@keyframes ephe-scene-flash {
-  0%   { opacity: 0; }
-  40%  { opacity: 0.55; }
-  100% { opacity: 0; }
-}
+  /* The surge: the brightest frame of the arc, one beat long, at beat 4's threshold. */
+  .ephe-scene-flash {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      46% 40% at 50% 62%,
+      color-mix(in oklab, var(--color-firefly-glow) 55%, transparent) 0%,
+      transparent 70%
+    );
+    opacity: 0;
+    animation: ephe-scene-flash var(--ephe-scene-beat) ease-out calc(var(--ephe-scene-beat) * 3)
+      both;
+  }
+  @keyframes ephe-scene-flash {
+    0% {
+      opacity: 0;
+    }
+    40% {
+      opacity: 0.55;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
 
-/* The being: lands on beat 4, holds through the turn, leans in on beat 9 and leaves
+  /* The being: lands on beat 4, holds through the turn, leans in on beat 9 and leaves
    to the right. Two elements, because one animation per property per element is the
    only way two phases cannot overwrite each other. */
-.ephe-scene-actor {
-  position: relative;
-  /* Half a beat before the wall finishes falling, so the being is already rising out of
+  .ephe-scene-actor {
+    position: relative;
+    /* Half a beat before the wall finishes falling, so the being is already rising out of
      it rather than appearing on an empty stage. */
-  animation: ephe-spirit-land calc(var(--ephe-scene-beat) * 3) var(--ease-out-soft) calc(var(--ephe-scene-beat) * 3.5) both;
-}
-@keyframes ephe-spirit-land {
-  0%   { opacity: 0; transform: translateY(-14%) scale(0.62); }
-  33%  { opacity: 1; transform: translateY(0) scale(1); }
-  45%  { transform: translateY(3%) scale(0.985); }
-  55%  { transform: translateY(1%) scale(0.995); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.ephe-scene-actor-leave {
-  animation: ephe-spirit-leave calc(var(--ephe-scene-beat) * 2) var(--ease-out-soft) calc(var(--ephe-scene-beat) * 8) both;
-}
-@keyframes ephe-spirit-leave {
-  0%   { opacity: 1; transform: translateX(0) scale(1); }
-  50%  { opacity: 1; transform: translateX(3%) scale(1.03); }
-  100% { opacity: 0; transform: translateX(38%) scale(0.98); }
-}
-
+    animation: ephe-spirit-land calc(var(--ephe-scene-beat) * 3) var(--ease-out-soft)
+      calc(var(--ephe-scene-beat) * 3.5) both;
+  }
+  @keyframes ephe-spirit-land {
+    0% {
+      opacity: 0;
+      transform: translateY(-14%) scale(0.62);
+    }
+    33% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    45% {
+      transform: translateY(3%) scale(0.985);
+    }
+    55% {
+      transform: translateY(1%) scale(0.995);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .ephe-scene-actor-leave {
+    animation: ephe-spirit-leave calc(var(--ephe-scene-beat) * 2) var(--ease-out-soft)
+      calc(var(--ephe-scene-beat) * 8) both;
+  }
+  @keyframes ephe-spirit-leave {
+    0% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: translateX(3%) scale(1.03);
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(38%) scale(0.98);
+    }
+  }
 } /* end @layer components (EPH primitives) */
 
 /* Reduced Motion / html.no-motion — hard cuts to the END STATE
@@ -1617,16 +1923,19 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
   .ephe-condense,
   .ephe-decay,
   .ephe-mark,
-  .ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]) {
-    animation-delay: 0ms !important;   /* no delay, no flicker */
+  .ephe-mark[data-state='condense'] :is(svg > *, [data-ephe-part]) {
+    animation-delay: 0ms !important; /* no delay, no flicker */
   }
-  .ephe-stagger { --ephe-stagger-step: 0ms; }
+  .ephe-stagger {
+    --ephe-stagger-step: 0ms;
+  }
   /* work is a state, not a path: without the pulse the actuant stands
      statically lit — the state stays readable instead of vanishing. */
-  .ephe-mark[data-state="work"] :is(.ephe-mark-accent, [data-ephe-part="accent"]),
-  .ephe-mark[data-state="work"]:not(:has(:is(.ephe-mark-accent, [data-ephe-part="accent"]))) {
+  .ephe-mark[data-state='work'] :is(.ephe-mark-accent, [data-ephe-part='accent']),
+  .ephe-mark[data-state='work']:not(:has(:is(.ephe-mark-accent, [data-ephe-part='accent']))) {
     animation: none !important;
-    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent)) brightness(1.14) !important;
+    filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent))
+      brightness(1.14) !important;
   }
   /* The arc is a path, not a state: without it the being stands in its trust read and
      the wall never lights. `fill-mode: both` would leave the leaving actor on its last
@@ -1642,14 +1951,18 @@ html.no-motion .update-details[open] .update-details-body { animation: none !imp
 html.no-motion .ephe-condense,
 html.no-motion .ephe-decay,
 html.no-motion .ephe-mark,
-html.no-motion .ephe-mark[data-state="condense"] :is(svg > *, [data-ephe-part]) {
+html.no-motion .ephe-mark[data-state='condense'] :is(svg > *, [data-ephe-part]) {
   animation-delay: 0ms !important;
 }
-html.no-motion .ephe-stagger { --ephe-stagger-step: 0ms; }
-html.no-motion .ephe-mark[data-state="work"] :is(.ephe-mark-accent, [data-ephe-part="accent"]),
-html.no-motion .ephe-mark[data-state="work"]:not(:has(:is(.ephe-mark-accent, [data-ephe-part="accent"]))) {
+html.no-motion .ephe-stagger {
+  --ephe-stagger-step: 0ms;
+}
+html.no-motion .ephe-mark[data-state='work'] :is(.ephe-mark-accent, [data-ephe-part='accent']),
+html.no-motion
+  .ephe-mark[data-state='work']:not(:has(:is(.ephe-mark-accent, [data-ephe-part='accent']))) {
   animation: none !important;
-  filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent)) brightness(1.14) !important;
+  filter: drop-shadow(0 0 2px color-mix(in oklab, var(--color-brand-glow) 55%, transparent))
+    brightness(1.14) !important;
 }
 html.no-motion .ephe-scene-ground,
 html.no-motion .ephe-scene-flash,
@@ -1665,24 +1978,41 @@ html.no-motion .ephe-scene-actor-leave {
    as their state holds. Only transform, opacity and filter move. The switches at the
    foot of this block land every one of them on the still, its live tone kept. */
 :root {
-  --ephe-run-enter-duration: var(--ephe-condense-duration);  /* 220ms */
-  --ephe-run-done-duration: var(--ephe-decay-duration);      /* 380ms */
-  --ephe-run-work-period: var(--ephe-mark-work-period);      /* 2.4s */
+  --ephe-run-enter-duration: var(--ephe-condense-duration); /* 220ms */
+  --ephe-run-done-duration: var(--ephe-decay-duration); /* 380ms */
+  --ephe-run-work-period: var(--ephe-mark-work-period); /* 2.4s */
   --ephe-run-wait-period: 1.8s;
 }
 
 @keyframes ephe-run-enter {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @keyframes ephe-run-done {
-  0%   { transform: scale(0.62); }
-  60%  { transform: scale(1.08); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0.62);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 @keyframes ephe-run-work {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 @layer components {
@@ -1698,22 +2028,29 @@ html.no-motion .ephe-scene-actor-leave {
   }
   /* The moth glyph carries the state: it breathes while the run works, its two
      knots pulse while the run waits, and it settles when the step lands. */
-  .ephe-run[data-state="ready"] .ephe-run-mark { opacity: 1; }
-  .ephe-run[data-state="working"] .ephe-run-mark {
+  .ephe-run[data-state='ready'] .ephe-run-mark {
+    opacity: 1;
+  }
+  .ephe-run[data-state='working'] .ephe-run-mark {
     animation: ephe-run-work var(--ephe-run-work-period) ease-in-out infinite;
   }
-  .ephe-run[data-state="waiting"] .ephe-run-mark .moth-knot {
+  .ephe-run[data-state='waiting'] .ephe-run-mark .moth-knot {
     animation: moth-knot 1.6s ease-in-out infinite;
   }
-  .ephe-run[data-state="waiting"] .ephe-run-mark .moth-knot.is-right {
+  .ephe-run[data-state='waiting'] .ephe-run-mark .moth-knot.is-right {
     animation-delay: -0.8s;
   }
-  .ephe-run[data-state="done"] .ephe-run-mark {
+  .ephe-run[data-state='done'] .ephe-run-mark {
     animation: ephe-run-done var(--ephe-run-done-duration) var(--ease-organic) both;
   }
   @keyframes moth-knot {
-    0%, 100% { opacity: 0.55; }
-    50% { opacity: 1; }
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
   }
   /* The run's progress rule: the accent at the bar's foot, its length the one ratio
      the plan already carries, and the grow to the next step is the transition. */
@@ -1731,42 +2068,48 @@ html.no-motion .ephe-scene-actor-leave {
     background: var(--border-control);
     border-radius: var(--radius-full);
   }
-  .ephe-rail-mark[data-step="done"] { background: var(--color-signal-ok); }
-  .ephe-rail-mark[data-step="active"] {
+  .ephe-rail-mark[data-step='done'] {
+    background: var(--color-signal-ok);
+  }
+  .ephe-rail-mark[data-step='active'] {
     background: var(--color-brand);
     animation: ephe-run-work var(--ephe-run-work-period) ease-in-out infinite;
   }
-  .ephe-rail-mark[data-step="failed"] { background: var(--color-signal-danger); }
-  .ephe-rail-mark[data-step="pending"],
-  .ephe-rail-mark[data-step="cancelled"] { background: var(--border-control); opacity: 0.6; }
+  .ephe-rail-mark[data-step='failed'] {
+    background: var(--color-signal-danger);
+  }
+  .ephe-rail-mark[data-step='pending'],
+  .ephe-rail-mark[data-step='cancelled'] {
+    background: var(--border-control);
+    opacity: 0.6;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .ephe-run,
-  .ephe-run[data-state="working"] .ephe-run-mark,
-  .ephe-run[data-state="waiting"] .ephe-run-mark,
-  .ephe-run[data-state="done"] .ephe-run-mark,
-  .ephe-rail-mark[data-step="active"] {
+  .ephe-run[data-state='working'] .ephe-run-mark,
+  .ephe-run[data-state='waiting'] .ephe-run-mark,
+  .ephe-run[data-state='done'] .ephe-run-mark,
+  .ephe-rail-mark[data-step='active'] {
     animation: none !important;
   }
   /* A live state keeps its lit tone when its motion goes. */
-  .ephe-run[data-state="working"] .ephe-run-mark,
-  .ephe-rail-mark[data-step="active"] {
+  .ephe-run[data-state='working'] .ephe-run-mark,
+  .ephe-rail-mark[data-step='active'] {
     opacity: 1 !important;
   }
 }
 html.no-motion .ephe-run,
-html.no-motion .ephe-run[data-state="working"] .ephe-run-mark,
-html.no-motion .ephe-run[data-state="waiting"] .ephe-run-mark,
-html.no-motion .ephe-run[data-state="done"] .ephe-run-mark,
-html.no-motion .ephe-rail-mark[data-step="active"] {
+html.no-motion .ephe-run[data-state='working'] .ephe-run-mark,
+html.no-motion .ephe-run[data-state='waiting'] .ephe-run-mark,
+html.no-motion .ephe-run[data-state='done'] .ephe-run-mark,
+html.no-motion .ephe-rail-mark[data-step='active'] {
   animation: none !important;
 }
-html.no-motion .ephe-run[data-state="working"] .ephe-run-mark,
-html.no-motion .ephe-rail-mark[data-step="active"] {
+html.no-motion .ephe-run[data-state='working'] .ephe-run-mark,
+html.no-motion .ephe-rail-mark[data-step='active'] {
   opacity: 1 !important;
 }
-
 
 /* Component layer — what layer 2 and layer 3 feed. */
 
@@ -1787,8 +2130,12 @@ html.no-motion .ephe-rail-mark[data-step="active"] {
     border: 1px solid var(--panel-border);
     box-shadow: var(--elevation-raised);
   }
-  .panel-surface[data-elevation="overlay"] { box-shadow: var(--elevation-overlay); }
-  .panel-surface[data-elevation="elevated"] { box-shadow: var(--elevation-elevated); }
+  .panel-surface[data-elevation='overlay'] {
+    box-shadow: var(--elevation-overlay);
+  }
+  .panel-surface[data-elevation='elevated'] {
+    box-shadow: var(--elevation-elevated);
+  }
 
   /* Chip: a small label on a lifted ground, with its own active step. */
   .chip-surface {
@@ -1797,7 +2144,7 @@ html.no-motion .ephe-rail-mark[data-step="active"] {
     border: 1px solid var(--chip-border);
     box-shadow: var(--elevation-base);
   }
-  .chip-surface[data-state="active"] {
+  .chip-surface[data-state='active'] {
     background: var(--chip-bg-active);
   }
 }

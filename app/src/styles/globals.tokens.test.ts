@@ -45,6 +45,22 @@ function defs(src: string): Map<string, string> {
 
 const theme = defs(block(/@theme\s*\{/))
 
+/**
+ * A declaration's presentation is not its value: whitespace beside `(`, `)` and
+ * `,` is insignificant, and the letters of a hex literal say nothing (`#EFE6D2`
+ * and `#efe6d2` are one colour), so a formatter that breaks a long `hsl()` over
+ * lines or lower-cases a hex literal changes the text, not the colour. Only
+ * `#`-literals are folded here — a custom property name is case-sensitive in CSS,
+ * so `var(--Color-Brand)` must stay unequal to `var(--color-brand)`.
+ */
+function valueForm(value: string | undefined): string {
+  return (value ?? '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([(),])\s*/g, '$1')
+    .replace(/#[0-9a-fA-F]{3,8}\b/g, (literal) => literal.toLowerCase())
+    .trim()
+}
+
 describe('theme tokens — one stylesheet, one ground', () => {
   it('declares no second ground', () => {
     expect(code).not.toMatch(/(^|\n)\s*html\.light\s*\{/)
@@ -66,7 +82,7 @@ describe('theme tokens — one stylesheet, one ground', () => {
     expect(dangling).toEqual([])
   })
 
-  it('keeps every guardian literal equal to the role it duplicates', () => {
+  it('keeps every guardian literal equal to the role it duplicates, letter case and line breaks aside', () => {
     // Legacy token -> the role token whose @theme literal it mirrors. test_sprint2_f2
     // and test_r48 read these raw, so the two copies must not drift apart.
     const pairs: [string, string][] = [
@@ -83,9 +99,9 @@ describe('theme tokens — one stylesheet, one ground', () => {
       ['--color-muted-foreground', '--color-ink-faint'],
     ]
     for (const [legacy, role] of pairs) {
-      expect(theme.get(legacy), `${legacy} fehlt im @theme`).toBeTruthy()
-      expect(theme.get(role), `${role} fehlt im @theme`).toBeTruthy()
-      expect(theme.get(legacy), `${legacy} != ${role}`).toBe(theme.get(role))
+      expect(theme.get(legacy), `${legacy} missing from the @theme block`).toBeTruthy()
+      expect(theme.get(role), `${role} missing from the @theme block`).toBeTruthy()
+      expect(valueForm(theme.get(legacy)), `${legacy} != ${role}`).toBe(valueForm(theme.get(role)))
     }
   })
 
