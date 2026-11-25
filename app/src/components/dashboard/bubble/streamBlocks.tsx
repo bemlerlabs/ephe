@@ -59,18 +59,28 @@ export function StreamBlocks({
 
   return (
     <>
-      {segments.map((segment, index) =>
-        segment.kind === 'text' ? (
-          <TextBlockView key={`t-${index}`} text={segment.text} streaming={streaming} />
-        ) : (
-          <RoundRow
+      {segments.map((segment, index) => {
+        if (segment.kind === 'text') {
+          return <TextBlockView key={`t-${index}`} text={segment.text} streaming={streaming} />
+        }
+        const row = <RoundRow events={segment.events} streaming={streaming} defaultOpen={false} />
+        // The legacy path (bubble/toolStreamRows.tsx) names its group container
+        // `tool-stream-rows`; automation must reach a tool round by one name whichever
+        // renderer drew it, so a round carrying a call is wrapped in that name with the
+        // legacy group's classes. A round of thoughts alone stays a plain thought row.
+        if (!segment.events.some((event) => event.kind === 'call')) {
+          return <div key={`r-${index}`}>{row}</div>
+        }
+        return (
+          <div
             key={`r-${index}`}
-            events={segment.events}
-            streaming={streaming}
-            defaultOpen={false}
-          />
-        ),
-      )}
+            data-testid="tool-stream-rows"
+            className="mt-1 inline-flex max-w-full flex-col items-start gap-0"
+          >
+            {row}
+          </div>
+        )
+      })}
       {streaming && (
         <span className="inline-block h-3.5 w-1.5 ml-0.5 bg-brand animate-pulse align-text-bottom" />
       )}
