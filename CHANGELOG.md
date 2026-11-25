@@ -392,6 +392,12 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - docs: `PERFORMANCE_BASELINE.md` is stamped at a commit a clone can open, and every row was taken
   there — cold ready 734.0 ms, warm 400.8 ms, warm import 322.2 ms, doctor 1560 ms pinned and
   1575 ms live, 5-run medians on an Apple M4, each with its command (`836f730`).
+- marketplace: the registry listings are the sync job's own output, landed. `registry-snapshot.json`,
+  `registry-curated.json` and `search-intents.json` came off `.github/workflows/catalog-sync.yml` on
+  2026-11-23 and waited two days on `catalog/weekly-sync`; the commit carries the job's provenance
+  and the measurements it was let in on — `catalog_freshness.py`, `registry_guard.py` and
+  `plugin_dod.py` at rc=0, 189 catalog and marketplace tests passed in 7.37 s, CPython 3.13.18
+  (`0207869`).
 
 ### Removed
 
