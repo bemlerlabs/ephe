@@ -9,12 +9,18 @@ below is the installer's accepted floor, not evidence of a Node 20 build.
 
 | Component | Minimum | Recommended |
 |---|---|---|
-| OS | macOS 13+ · Ubuntu 22+ · Windows with PowerShell | macOS 14+ or a recent Linux |
+| OS | macOS 13+ · Debian 13 or Ubuntu 24.04 · Windows with PowerShell | macOS 14+; on Linux, the pair named in the measurement below |
 | Python | 3.11 | 3.12+ |
 | Node.js | 20 LTS with `npm` — **desktop/PWA mode only**, see the table below | 22 LTS |
 | Ollama | User-managed; the installer only detects it | Latest stable |
 | RAM | 8 GB for a small local tag | 16 GB+ for a local 12B-class tag, or a remote endpoint |
 | Storage | 12 GB free | 20 GB+ |
+
+The Linux pair above is a measurement, and this page is its home. On 2026-11-25 `install.sh` completed
+without error in Debian 13 (trixie) and Ubuntu 24.04 (noble) containers, arm64 native and amd64
+emulated, on an Apple M4 host running Docker 29.9.3; each leg ended with the served page answering 200
+on `:8765` with `id="root"` present and one built asset loading. No measurement exists for Ubuntu
+22.04, so this page makes no claim about that release, and a first-run report from it is welcome.
 
 What each mode needs, beyond the OS:
 

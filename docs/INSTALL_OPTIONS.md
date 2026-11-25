@@ -147,7 +147,7 @@ separately hash-pin the pip bootstrap wheel.
 
 | Component | Minimum | Recommended |
 |---|---|---|
-| OS | macOS 13+, Ubuntu 22+, Windows with the PowerShell path | macOS 14+ or recent Linux |
+| OS | macOS 13+, Debian 13 or Ubuntu 24.04, Windows with the PowerShell path | macOS 14+; the Linux pair measured so far and its conditions are in [`INSTALL.md`](INSTALL.md#requirements) |
 | Python | 3.11 | 3.12+ |
 | Ollama | User-managed (the installer only detects it) | Latest stable |
 | RAM | 8 GB for a small local tag | 16 GB+ for a local 12B-class tag — or a remote endpoint, which needs none |

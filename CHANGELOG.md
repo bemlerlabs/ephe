@@ -155,6 +155,10 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Fixed
 
+- documentation: the README and the install guide named an Ubuntu release this repository has no
+  measurement for. Both now name the two it has measured — Debian 13 (trixie) and Ubuntu 24.04
+  (noble), arm64 native and amd64 emulated — and `docs/INSTALL.md` holds the conditions of that
+  measurement, which the other pages link instead of repeating.
 - installer: `install.sh --no-start` returned on a fresh clone. The re-exec into the checked-out
   tree replayed `"$@"` after the option loop had shifted every argument away, so the second half ran
   flagless and execed `ephe start --port 8765 --open`; the installer process never came back, which

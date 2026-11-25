@@ -185,7 +185,7 @@ is in [docs/MOBILE.md](docs/MOBILE.md).
 
 | Need | Detail |
 |---|---|
-| Computer | macOS 13+ or Ubuntu 22+; a current browser; Windows instructions unverified |
+| Computer | macOS 13+; on Linux the measured pair is Debian 13 and Ubuntu 24.04, with its conditions in [docs/INSTALL.md](docs/INSTALL.md#requirements); a current browser; Windows instructions unverified |
 | RAM | 8 GB free for a small local model; 16 GB or more for a 12B-class model; a remote engine needs less |
 | Disk | 4 GB for the app and its dependencies; more for the model you choose |
 | Build tools | Node.js 20 LTS is the installer's floor; `.nvmrc` pins 22.23.4 as the build runtime. Python supports 3.11 or newer; `.python-version` pins the 3.13 series |
