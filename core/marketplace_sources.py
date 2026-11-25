@@ -341,9 +341,12 @@ def read_source(
                 raw = json.loads(payload.decode("utf-8"))
             except (ValueError, UnicodeDecodeError) as exc:
                 raise SourceError("unreadable_index", str(exc)) from exc
-            cls = plugin_signing.FIRST_PARTY if kind == "bundled" else plugin_signing.USER
+            # This path is the only one where the index is a value from a page, so
+            # the user's trusted keys answer for it alone. The bundled and local
+            # kinds are read above without a pass, and the boundary is pinned in
+            # tests/test_marketplace_sources.py (TestSignatureBoundary).
             ok, reason = marketplace_index.verify_index_signature(
-                raw, plugin_signing.trusted_pems_for_class(cls),
+                raw, plugin_signing.trusted_pems_for_class(plugin_signing.USER),
             )
             if not ok:
                 raise SourceError("index_untrusted", reason)
@@ -387,8 +390,10 @@ def refresh_all(fetcher: Callable[[str], bytes] | None = None) -> list[dict[str,
 def detached_record(index_path: Path, artifact_url: str) -> tuple[dict[str, Any] | None, str]:
     """Read the signature that sits beside an artifact file, when one is there.
 
-    A local or bundled source ships a plain index that carries no signature of its
-    own, so the artifact is the only thing that can say who built it. The record is
+    A local or bundled source is read without a signature pass, so the artifact is
+    the only thing that can say who built it. A bundled index may carry a signature
+    block (measured 2026-11-25: `marketplace/index.json` does, ES256, kid
+    "first-party"), but the bundled path does not consume it. The record is
     read from `<artifact>.sig` on the source's own disk and verified against the keys
     of this checkout and the user's key folder; a record inside the archive would be
     the artifact signing itself. A file that is there and unreadable is a refusal: a

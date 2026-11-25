@@ -280,3 +280,121 @@ class TestRead:
         assert result["status"] == "error"
         assert result["error"] == "not_found"
         assert str(tmp_path) not in result["error"]
+
+
+class TestSignatureBoundary:
+    """Which source kinds the index signature pass answers for, pinned at read_source.
+
+    Measured 2026-11-25 against this checkout: bundled and local read without the
+    pass, and https runs it against the user class alone. A patch that routes a kind
+    through the pass, or loses the pass it has, flips a case here.
+    """
+
+    def test_a_bundled_index_is_read_without_the_signature_pass(self, cfg):
+        # An unverifiable block is unread scenery on this path, not a refusal.
+        doc = index_doc()
+        doc["signature"] = {"alg": "ES256", "kid": "first-party", "signature": "bm90LWEtc2ln"}
+        marketplace_sources.bundled_index_path().write_text(
+            json.dumps(doc), encoding="utf-8"
+        )
+        result = marketplace_sources.read_source(marketplace_sources.bundled_source())
+        assert result["status"] == "ok", result
+        assert result["index"]["plugins"][0]["name"] == "alpha"
+
+    def test_a_local_index_is_read_without_the_signature_pass(self, cfg, tmp_path):
+        doc = index_doc()
+        doc["signature"] = {"alg": "ES256", "kid": "first-party", "signature": "bm90LWEtc2ln"}
+        local = tmp_path / "signed-noise.json"
+        local.write_text(json.dumps(doc), encoding="utf-8")
+        source = marketplace_sources.add_source("local", "Mine", str(local))
+        result = marketplace_sources.read_source(source)
+        assert result["status"] == "ok", result
+
+    def test_an_https_index_valid_for_the_first_party_class_is_refused_without_a_user_key(
+        self, cfg, monkeypatch
+    ):
+        # The class guard: a genuine first-party signature must not answer for a
+        # remote index. Wire the first-party class back into read_source and this
+        # case flips, which is the point.
+        private = ec.generate_private_key(ec.SECP256R1())
+        private_pem = private.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        public_pem = private.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        doc = index_doc()
+        doc["signature"] = {
+            "alg": plugin_signing.SIG_ALG,
+            "kid": "first-party",
+            "signature": plugin_signing.sign(doc, private_pem),
+        }
+        monkeypatch.setattr(
+            plugin_signing,
+            "TRUSTED_KEYS_LOADER",
+            lambda: [(public_pem, plugin_signing.FIRST_PARTY)],
+        )
+        source = marketplace_sources.add_source(
+            "https", "Remote", "https://example.com/index.json"
+        )
+        result = marketplace_sources.read_source(
+            source, fetcher=lambda _url: json.dumps(doc).encode()
+        )
+        assert result["status"] == "error", result
+        assert "untrusted" in result["error"], result
+
+    def test_the_https_pass_asks_for_the_user_class_keys_only(self, cfg, monkeypatch):
+        from core import marketplace_index
+
+        private = ec.generate_private_key(ec.SECP256R1())
+        private_pem = private.private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.NoEncryption(),
+        )
+        public_pem = private.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        other = ec.generate_private_key(ec.SECP256R1())
+        first_party_pem = other.public_key().public_bytes(
+            serialization.Encoding.PEM,
+            serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        doc = index_doc()
+        doc["signature"] = {
+            "alg": plugin_signing.SIG_ALG,
+            "kid": "test",
+            "signature": plugin_signing.sign(doc, private_pem),
+        }
+        # Two different keys: only the user-class one verifies this document, so a
+        # flipped class selection fails on the keys and on the recorded call.
+        monkeypatch.setattr(
+            plugin_signing,
+            "TRUSTED_KEYS_LOADER",
+            lambda: [
+                (public_pem, plugin_signing.USER),
+                (first_party_pem, plugin_signing.FIRST_PARTY),
+            ],
+        )
+        seen: list = []
+        real = marketplace_index.verify_index_signature
+
+        def spy(raw, pems):
+            seen.append(list(pems))
+            return real(raw, pems)
+
+        monkeypatch.setattr(
+            marketplace_sources.marketplace_index, "verify_index_signature", spy
+        )
+        source = marketplace_sources.add_source(
+            "https", "Remote", "https://example.com/index.json"
+        )
+        result = marketplace_sources.read_source(
+            source, fetcher=lambda _url: json.dumps(doc).encode()
+        )
+        assert result["status"] == "ok", result
+        assert seen == [[public_pem]], seen
