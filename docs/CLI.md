@@ -163,9 +163,20 @@ contribute — then the catalogue with an `installed` column. A bundle Creator M
 this machine is an installed row even when the catalogue has no line for it. `--json`
 carries `{installed, catalog}` with the same facts.
 
-`enable`/`disable` toggle one bundle (the next agent turn follows). `install` fetches a
-marketplace artifact: sha256-verified, manifest-validated, quarantined on error so a refused
-artifact leaves nothing enabled.
+`enable`/`disable` toggle one bundle (the next agent turn follows). `install`
+takes a marketplace artifact through three questions before anything is enabled:
+the sha256 the catalog states for it, a signature a key under
+`~/.ephe/trusted-keys/` answers, and the manifest's own validation. A refusal
+quarantines the staged folder, so a refused artifact leaves nothing enabled.
+`--version` names a catalog version instead of the newest compatible one,
+`--source` the catalog source it is read from (default: the bundled one).
+`--expected-sha256` is the hash you expect rather than the one the listing
+claims, and a mismatch stops the install instead of trusting the listing. When
+the permission delta over the installed state is what stopped it, the refusal
+prints that delta's digest, and `--approve-permissions <digest>` re-runs the
+install having read exactly that delta. An unsigned artifact from a folder on
+this machine installs only under `--trust-local`, which says out loud that no
+key answered for it. `--json` answers in fields for a script to read.
 
 `remove` previews by default: the folder, the `plugins.json` row, the lockfile entry, the
 mount record and the stored files it would delete, plus what stays (the lifecycle state row,
