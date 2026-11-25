@@ -33,7 +33,15 @@ function appearanceField(
   value: boolean | string,
   options?: string[],
 ) {
-  return { key, type, label: key, labelEn: key, default: value, value, ...(options ? { options } : {}) }
+  return {
+    key,
+    type,
+    label: key,
+    labelEn: key,
+    default: value,
+    value,
+    ...(options ? { options } : {}),
+  }
 }
 
 /** The deep register, as the server sends it: sections carrying fields. */
@@ -101,7 +109,10 @@ async function openFirstRun(page: Page, deep: unknown[] = [], replayTour = false
 async function walkPastTheTour(page: Page) {
   const skip = page.getByTestId('intro-skip')
   if (await skip.isVisible().catch(() => false)) await skip.click()
-  await page.getByTestId('first-run-intro').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {})
+  await page
+    .getByTestId('first-run-intro')
+    .waitFor({ state: 'detached', timeout: 5000 })
+    .catch(() => {})
   for (let step = 0; step < 8; step += 1) {
     const next = page
       .getByTestId('tour-start')
@@ -111,7 +122,10 @@ async function walkPastTheTour(page: Page) {
     if (!(await next.isVisible().catch(() => false))) break
     await next.click()
   }
-  await page.getByTestId('first-run-tour').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {})
+  await page
+    .getByTestId('first-run-tour')
+    .waitFor({ state: 'detached', timeout: 5000 })
+    .catch(() => {})
 }
 
 test.use({ serviceWorkers: 'block' })
@@ -126,9 +140,9 @@ test.describe('the first open carries the moth', () => {
     await expect(body).toHaveCount(1)
     expect(await body.getAttribute('src')).toContain('paper-moth-actor.webp')
     // The two hinged halves are the moth's own wings, not another figure's parts.
-    const wings = await figure.locator('img.intro-live-wing').evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute('src')),
-    )
+    const wings = await figure
+      .locator('img.intro-live-wing')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('src')))
     expect(wings).toEqual([
       '/onboarding/paper-moth-wing-l.webp',
       '/onboarding/paper-moth-wing-r.webp',
@@ -137,7 +151,10 @@ test.describe('the first open carries the moth', () => {
     // Nothing in the running document still names the removed figure.
     const named = await page.evaluate(() =>
       Array.from(document.querySelectorAll('[class],[data-testid],[src]'))
-        .map((node) => `${node.className} ${node.getAttribute('data-testid') ?? ''} ${node.getAttribute('src') ?? ''}`)
+        .map(
+          (node) =>
+            `${node.className} ${node.getAttribute('data-testid') ?? ''} ${node.getAttribute('src') ?? ''}`,
+        )
         .filter((line) => /bee|biene/i.test(line)),
     )
     expect(named).toEqual([])
@@ -172,7 +189,11 @@ test.describe('the first open carries the moth', () => {
   test('keeps the moth on the stage when motion is off, standing still and answerable', async ({
     page,
   }) => {
-    await openFirstRun(page, deepSettings([appearanceField('appearance.animations_enabled', 'bool', false)]), true)
+    await openFirstRun(
+      page,
+      deepSettings([appearanceField('appearance.animations_enabled', 'bool', false)]),
+      true,
+    )
     await page.getByTestId('intro-skip').click()
 
     await expect(page.getByTestId('first-run-tour')).toBeVisible({ timeout: 10000 })
@@ -193,10 +214,15 @@ test.describe('the first open carries the moth', () => {
     // Standing means standing: every animation under the guide resolves to none, and
     // the spark canvas — a thing that cannot exist still — is not mounted at all.
     expect(
-      await guide.locator('.moth-actor-motion').evaluate((el) => getComputedStyle(el).animationName),
+      await guide
+        .locator('.moth-actor-motion')
+        .evaluate((el) => getComputedStyle(el).animationName),
     ).toBe('none')
     expect(
-      await guide.locator('img.moth-actor-wing').first().evaluate((el) => getComputedStyle(el).animationName),
+      await guide
+        .locator('img.moth-actor-wing')
+        .first()
+        .evaluate((el) => getComputedStyle(el).animationName),
     ).toBe('none')
     await expect(page.locator('canvas.moth-guide-sparks')).toHaveCount(0)
 

@@ -108,10 +108,10 @@ describe('the turn', () => {
   it('takes its clock from the scene and turns evenly', () => {
     expect(css).toContain('--ephe-think-cycle: calc(var(--ephe-scene-beat) * 6)')
     // An even rotation: linear over the cycle, the curve only inside the two turns.
-    expect(css).toContain(
-      'animation: ephe-think-turn var(--ephe-think-cycle) linear infinite',
+    expect(css).toContain('animation: ephe-think-turn var(--ephe-think-cycle) linear infinite')
+    expect(block(/@keyframes\s+ephe-think-turn\s*\{/)).toMatch(
+      /animation-timing-function:\s*var\(--ease-organic\)/,
     )
-    expect(block(/@keyframes\s+ephe-think-turn\s*\{/)).toMatch(/animation-timing-function:\s*var\(--ease-organic\)/)
   })
 
   it('lands on the standing letter under both switches', () => {

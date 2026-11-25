@@ -184,10 +184,7 @@ export const CompanionActor = forwardRef<CompanionHandle, CompanionActorProps>(
         aria-hidden="true"
       >
         {showsActor && (
-          <div
-            className="companion-turn"
-            onClick={onActivate ? () => onActivate() : undefined}
-          >
+          <div className="companion-turn" onClick={onActivate ? () => onActivate() : undefined}>
             <span className="companion-glow" />
             <div className="companion-motion">
               <img className="companion-body" src={art.body} alt="" draggable={false} />
