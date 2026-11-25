@@ -46,6 +46,14 @@ ENVIRONMENT_OWNER = "release.yml"
 #: Secrets that must never be reachable from outside the owning workflow.
 SIGNING_SECRETS = ("TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD")
 
+#: The one workflow outside the release owner allowed to name a `secrets.` reference, and what it
+#: names it for: `GET /repos/{owner}/{repo}/dependabot/alerts` in the register check
+#: (supply-chain.yml:362), paid for by that job's own `permissions:` block — `contents: read` and
+#: `security-events: read` at supply-chain.yml:116-121, the only step in the job that calls the
+#: alerts API. It is the job's default token, no third-party action or log receives it, and the
+#: step exits 2 with a sentence rather than passing when the token cannot read the list.
+ALERT_REGISTER_READER = "supply-chain.yml"
+
 
 def _workflows() -> dict[str, dict]:
     """Every workflow in the directory, parsed to a mapping keyed by file name."""
@@ -178,15 +186,19 @@ def _sync_exemption_holds() -> bool:
 
 
 def test_no_workflow_outside_the_owner_reads_any_secret():
-    """GIVEN `secrets.` appears only in the owning workflow THEN no other workflow can echo a
-    secret into a log or hand it to a third-party action. This is broader than the two key
-    names above and it costs nothing while the count is what it is today (measured: 4 in
-    release.yml, 0 everywhere else), so a future `secrets.GITHUB_TOKEN` in a new workflow has
-    to be a deliberate edit to this file's expectation rather than a quiet addition.
+    """GIVEN `secrets.` appears only in the owning workflow and in the two jobs that name what they
+    need it for THEN no other workflow can echo a secret into a log or hand it to a third-party
+    action. This is broader than the two key names above and it costs nothing while the count is
+    what it is today (measured 2026-11-25: 14 `secrets.` lines over 11 distinct names in
+    release.yml, one `secrets.GITHUB_TOKEN` each in catalog-sync.yml — under the sync exemption
+    below — and in supply-chain.yml, 0 in the other nineteen workflows), so a future
+    `secrets.GITHUB_TOKEN` in a new workflow has to be a deliberate edit to this file's expectation
+    rather than a quiet addition.
     """
     users = [p.name for p in sorted(WORKFLOWS.glob("*.yml"))
              if "secrets." in p.read_text(encoding="utf-8")]
-    allowed = [ENVIRONMENT_OWNER] + ([SYNC_WORKFLOW] if _sync_exemption_holds() else [])
+    allowed = [ENVIRONMENT_OWNER, ALERT_REGISTER_READER]
+    allowed += [SYNC_WORKFLOW] if _sync_exemption_holds() else []
     assert users == sorted(allowed), (
         f"workflows referencing `secrets.` outside {ENVIRONMENT_OWNER}: {users}. The "
         "release token is the one credential every workflow already holds; if a job needs "
