@@ -155,7 +155,7 @@ Para usar el mismo espacio de trabajo desde un teléfono en tu red, ejecuta `eph
 
 | Necesidad | Detalle |
 |---|---|
-| Ordenador | macOS 13+ o Ubuntu 22+; un navegador actual; las instrucciones de PowerShell para Windows siguen sin verificar de extremo a extremo |
+| Ordenador | macOS 13+; en Linux, el par medido es Debian 13 y Ubuntu 24.04, con sus condiciones en [docs/INSTALL.md](docs/INSTALL.md#requirements); un navegador actual; las instrucciones de PowerShell para Windows siguen sin verificar de extremo a extremo |
 | RAM | 8 GB libres para un modelo local pequeño; 16 GB o más para un modelo de clase 12B; un motor remoto necesita menos |
 | Disco | 4 GB para la aplicación y sus dependencias; más para el modelo que elijas |
 | Herramientas de compilación | Node.js 20 LTS es el mínimo del instalador; `.nvmrc` fija 22.23.4 como entorno de compilación. Python 3.11 o superior; `.python-version` fija la serie 3.13 |

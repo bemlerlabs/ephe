@@ -152,7 +152,7 @@ Windows 的默认安装：
 
 | 需求 | 说明 |
 |---|---|
-| 电脑 | macOS 13+ 或 Ubuntu 22+；较新的浏览器；Windows 说明尚未经过端到端验证 |
+| 电脑 | macOS 13+；Linux 上实测的一对是 Debian 13 和 Ubuntu 24.04，其条件见 [docs/INSTALL.md](docs/INSTALL.md#requirements)；较新的浏览器；Windows 说明尚未经过端到端验证 |
 | 内存 | 小型本地模型需 8 GB 可用内存；12B 级模型需 16 GB 以上；远程引擎需求更少 |
 | 磁盘 | 应用及其依赖需 4 GB；所选模型需要更多空间 |
 | 构建工具 | Node.js 20 LTS 是安装程序的最低要求；`.nvmrc` 固定 22.23.4 作为构建运行时。Python 支持 3.11 或更新版本；`.python-version` 固定 3.13 系列 |
