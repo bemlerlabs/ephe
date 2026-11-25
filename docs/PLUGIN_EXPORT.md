@@ -1,8 +1,8 @@
 # Plugin export and import
 
-Measured 2026-11-07 against this tree. This page is the specification. The build
-has the install path below; the export command and the file-import command are
-the next change.
+Measured 2026-11-07 against this tree. Sections 1 to 5 describe what is in the tree.
+The two commands in section 6 are not in this build; that section holds their design,
+written once so the change that adds them does not re-derive it.
 
 ## 1. What is in the tree
 
@@ -186,7 +186,12 @@ the existing install command as it is.
 
 Export writes neither the lockfile nor the pin file.
 
-## 6. Commands the next change adds
+## 6. The two commands this build does not have
+
+Neither command is in this build: `ephe plugin` answers `list`, `enable`, `disable`,
+`install` and `remove`, and refuses anything else. The shape below is the design this
+page holds for the change that adds them, so the decision is written once instead of
+re-derived when someone sits down to build it.
 
 ```bash
 ephe plugin export <plugin_id> --out <file.zip> [--key <private.pem> --kid <label>]
@@ -209,8 +214,8 @@ not publish `plugin.mount`. A person who has the bundle open reloads it
 with the control the hot-reload path already provides. A native window
 is a separate surface, and this path leaves it in place.
 
-## 7. What lands later
+## 7. What this build leaves out
 
-The commands, the zip writer and the conflict argument are the next
-change. This page registers no refusal code, bumps no marketplace row,
+The two commands above, the zip writer and the conflict argument are not in this
+build. This page registers no refusal code, bumps no marketplace row,
 and moves no locale string.
