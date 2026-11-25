@@ -121,6 +121,14 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   `--ephe-think-cycle: calc(var(--ephe-scene-beat) * 6)`, and under `prefers-reduced-motion` or
   `html.no-motion` it is painted still — asserted against `getComputedStyle().animationName`, not
   against a class name (`b5e95e3`).
+- plugins: the install verbs have cases and the whole-tree gate has a tree. 14 cases hold
+  `ephe plugin install` at the verify boundary — `--version`, `--source`, `--trust-local`,
+  `--expected-sha256`, `--approve-permissions` — where a refusal has to stay a refusal, and
+  `new_file_check` is now scored against five real `git init` trees, so the gate that judges a
+  checkout is measured on one (`c9ac594`).
+- tests: a quality gate names the leg it ran on. Each case in `q-quality.spec.ts` carries the
+  config that carried it, and a skip prints the reason it skipped, so a gate that only ever skipped
+  on a given leg says so in the output instead of looking measured (`9d4d07a`).
 
 ### Fixed
 
@@ -293,6 +301,20 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - gates: `language_gate.py --staged` measured through the inventory instead of `measure()`, so a commit
   adding German developer prose passed the hook while the tree run flagged the identical lines. Both
   passes go through one `measure()` now, with cases naming the difference (`6bdb3f0`).
+- marketplace: the signature check names the key class it asked for. In the https-only branch of
+  `detached_record` a ternary chose the trust class from a `kind` that branch cannot hold and
+  resolved to first-party every time; it now names the user class the branch actually verifies
+  against, and the docstring says what the bundled `marketplace/index.json` carries — an ES256
+  signature with `kid: "first-party"`, which verifies against `plugins/first-party.pub.pem` and
+  fails against the user class with "no trusted key is configured" (`9182ec7`).
+- ci: the release-environment fence explains the grant it allows. The job outside the release owner
+  that needs a token is named in the test with its reason, so the guard stops an unexplained grant
+  and stops failing on a workflow that says why it holds one (`ecccf8a`).
+- scripts: `bench_startup.py --live` reads the machine's engine. The flag advertised the machine's
+  `engine.json` and resolved no engine at all, because `EPHE_CONFIG_DIR` was pointed at a fresh
+  temp directory in both branches; the live branch now names no config dir, which the CLI's own
+  `doctor --json` output shows — an `Engine` check present with the directory unset, absent with it
+  set (`836f730`).
 
 ### Changed
 
@@ -353,6 +375,23 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - gates: both copy ratchets moved down to what the tree measures — 723 German lines to 715, 379 prose
   tells to 368 — written by the instruments' own lowering pass, verified against the copies taken
   before it: no entry raised, none added (`00819f3`).
+- app: the tree is formatted and its developer prose is English. Prettier covers `src` and `tests`
+  — 1201 files at `--check` rc=0 — 79 files came out reformatted, the dogfood spec's developer-facing
+  strings moved to English along with its 11 case titles and 5 screenshot names, and the language
+  ratchet went 715 German lines to 710 across 283 files, written by the instrument's own lowering
+  pass with no entry raised (`71ef464`).
+- app: the stylesheet is formatted and its colour contracts still bite. `globals.css` is
+  prettier-formatted, and the four cases that read hex literals out of it compare them with letter
+  case and line breaks aside; `app/.prettierignore` holds the one path whose bytes are themselves a
+  baseline, named by the spec that reads it (`77532e5`).
+- docs: the glib register row records the close as measured. The alert reached `fixed` at
+  07:47:41 +0100 on 2026-11-25, six seconds after a push, the open-alerts query answered one row a
+  day earlier and none at the recheck, and the register says plainly that no dismissal was ever
+  requested; the row now carries `state=fixed`, `fixed_in=0.20.0` and a recheck date (`37742ee`).
+- docs: `FEATURE_STATUS.md` says which listing source a signature answer speaks for (`1c82d1e`).
+- docs: `PERFORMANCE_BASELINE.md` is stamped at a commit a clone can open, and every row was taken
+  there — cold ready 734.0 ms, warm 400.8 ms, warm import 322.2 ms, doctor 1560 ms pinned and
+  1575 ms live, 5-run medians on an Apple M4, each with its command (`836f730`).
 
 ### Removed
 
