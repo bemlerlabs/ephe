@@ -53,10 +53,13 @@ FORBIDDEN_CLAIMS = ("private", "never", "without a trace", "no data leaves")
 
 def meta_content(attr: str, name: str) -> str:
     html = INDEX_HTML.read_text(encoding="utf-8")
-    pattern = rf'<meta {attr}="{re.escape(name)}" content="([^"]*)"'
-    hit = re.search(pattern, html)
+    # A long tag is split over lines by the formatter, so the tag is matched as a unit and
+    # content is read out of it: the guard is the value, not the line layout of the head.
+    hit = re.search(rf'<meta\b[^>]*{re.escape(attr)}="{re.escape(name)}"[^>]*>', html)
     assert hit, f"app/index.html carries no <meta {attr}={name}>"
-    return hit.group(1)
+    content = re.search(r'(?<![\w-])content="([^"]*)"', hit.group(0))
+    assert content, f'<meta {attr}="{name}" carries no content attribute'
+    return content.group(1)
 
 
 def locale_value(path: Path, *keys: str) -> str:
