@@ -272,6 +272,72 @@ else
     skip+=("spec types: no app/tests path in scope")
 fi
 
+# --- the python guards that read a product file this commit carries ---
+# A Python test is caught by hand or by CI, and neither held here: the full suite over a clean
+# worktree of d11d02d found six red cases in tests/test_index_html_description.py thirty-four minutes
+# after a formatter commit had moved them onto main, and this script held no pytest leg at all
+# (measured 02:28:26: `rg -n pytest scripts/ci_local.sh` returns no output, rc=1). This account's CI
+# cannot run (billing-locked, steps=0), so the whole-tree leg that would have judged it is silent.
+#
+# The rows name pairs the suite already keeps -- a product file and the file that reads it -- and only
+# pairs whose own run is short enough to belong in a hook: the one row here measured 5.87 s serial on
+# this machine at 02:23:31. A pair joins the table by measurement. Like the types leg
+# above, this reads the worktree; the scope rule keeps it honest, and the whole-tree verdict stays
+# with the CI leg that judges a clean checkout.
+python_tests_needed=0
+python_tests_targets=()
+for path in "${scope[@]:-}"; do
+    case "$path" in
+        app/index.html|app/public/manifest.json)
+            python_tests_needed=1
+            for target in tests/test_index_html_description.py; do
+                seen=0
+                for have in "${python_tests_targets[@]:-}"; do
+                    [ "$have" = "$target" ] && seen=1
+                done
+                [ "$seen" -eq 0 ] && python_tests_targets+=("$target")
+            done
+            ;;
+    esac
+done
+
+if [ "$python_tests_needed" -eq 1 ]; then
+    if [ -x .venv/bin/python ]; then
+        pytest_bin=.venv/bin/python
+    elif command -v python3 >/dev/null 2>&1; then
+        pytest_bin=python3
+        skip+=("python guards: no .venv/bin/python here, so the run used python3 from PATH, which is not the interpreter the suite is measured with")
+    else
+        pytest_bin=""
+        died+=("python guards: neither .venv/bin/python nor python3 is available, so ${python_tests_targets[*]} was not run")
+    fi
+    if [ -n "$pytest_bin" ]; then
+        missing=()
+        for target in "${python_tests_targets[@]}"; do
+            [ -f "$target" ] || missing+=("$target")
+        done
+        if [ "${#missing[@]}" -gt 0 ]; then
+            died+=("python guards: ${missing[*]} is not in this checkout, so the pair named in the table was not checked")
+        else
+            tests_out="$(mktemp)"
+            "$pytest_bin" -m pytest "${python_tests_targets[@]}" -q -p no:cacheprovider >"$tests_out" 2>&1
+            tests_status=$?
+            if [ "$tests_status" -ge 128 ]; then
+                died+=("python guards: pytest died with signal $((tests_status - 128)): ${python_tests_targets[*]} did not reach a verdict")
+            elif [ "$tests_status" -eq 1 ]; then
+                fail+=("python guards: ${python_tests_targets[*]} is red over a file this commit carries")
+                tail -20 "$tests_out" >&2
+            elif [ "$tests_status" -ne 0 ]; then
+                died+=("python guards: pytest exited $tests_status without a verdict; 1 is a finding, 2 to 5 are the instrument or an empty collection")
+                tail -20 "$tests_out" >&2
+            fi
+            rm -f "$tests_out"
+        fi
+    fi
+else
+    skip+=("python guards: no path in scope has a named guard in the table")
+fi
+
 # --- the catalog rows, over the index entries this commit carries ---
 # A bundle edit that leaves its catalog row behind makes the store name bytes the
 # directory no longer holds; a skill pack edit does the same to skills-lock.json,
